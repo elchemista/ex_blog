@@ -38,6 +38,12 @@ defmodule ExBlog.AI do
     )
   end
 
+  install(Spectre.Kinetic,
+    top_k: 1,
+    tool_threshold: 0.0,
+    mapping_threshold: 0.0
+  )
+
   @spec complete(:fast | :balanced | :deep, String.t(), keyword()) ::
           {:ok, term()} | {:error, term()}
   def complete(level, prompt, opts \\ []) when level in [:fast, :balanced, :deep] do
