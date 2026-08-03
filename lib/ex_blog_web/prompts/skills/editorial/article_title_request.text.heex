@@ -1,3 +1,4 @@
-Modalità creazione articolo avviata. Qual è il titolo dell'articolo?
+Categoria selezionata: <%= ExBlogWeb.Prompt.escape_text(@category, 80) %>.
 
-Puoi scrivere `/cancel` in qualsiasi momento per uscire senza creare nulla.
+Scrivi il titolo dell'articolo oppure rispondi `genera titolo`: l'agente userà
+brief, lingua e categoria per proporne uno con OpenRouter.
