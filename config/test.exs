@@ -5,11 +5,6 @@ config :ex_blog,
   start_content?: false,
   start_telegram?: false
 
-config :ex_blog, ExBlog.Repo,
-  database: Path.expand("../tmp/ex_blog_test.db", __DIR__),
-  pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: 5
-
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :ex_blog, ExBlogWeb.Endpoint,
