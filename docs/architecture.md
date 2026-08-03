@@ -9,24 +9,23 @@ Fly ENV e Secrets
 Repository Git
 └── Markdown, metadati editoriali e cronologia dei contenuti
 
-SQLite sul volume
-└── stato Spectre, memoria di routing, journal, costi e audit Git
+DETS sul volume
+└── stato Spectre, memoria di routing, costi e storico operativo Git
 
 ETS
 └── snapshot di lettura ricostruibile degli articoli
 ```
 
-Nessun token viene salvato in Git, SQLite, ETS, stato Spectre o memoria. La
+Nessun token viene salvato in Git, DETS, ETS, stato Spectre o memoria. La
 configurazione completa ha un’implementazione `Inspect` redatta; l’agente e MCP
 ricevono soltanto `ExBlog.Config.public/0`.
 
 ## Boot deterministico
 
 `ExBlog.Application` valida l’intera ENV prima del supervision tree. In
-produzione crea la directory del volume, applica le migrazioni con
-`Ecto.Migrator`, avvia Repo, clona o sincronizza Git, costruisce un nuovo indice
-ETS e solo dopo espone Telegram e l’endpoint Phoenix. Un errore in un passaggio
-obbligatorio termina il boot.
+produzione crea la directory del volume, apre e ripara lo storage DETS, clona o
+sincronizza Git, costruisce un nuovo indice ETS e solo dopo espone Telegram e
+l’endpoint Phoenix. Un errore in un passaggio obbligatorio termina il boot.
 
 Il rebuild ETS popola una tabella nuova. Un singolo aggiornamento in
 `:persistent_term` pubblica lo snapshot completo; la vecchia tabella viene poi
@@ -55,12 +54,25 @@ classificatore usa il proprio modello configurato, anche quando condivide il
 livello fast.
 
 Il budget viene autorizzato prima della richiesta HTTP. Dopo una risposta
-valida, token, modello, scopo, soggetto e costi sono registrati in SQLite. Le
+valida, token, modello, scopo, soggetto e costi sono registrati in DETS. Le
 operazioni deterministiche non dipendono dalla disponibilità del provider.
+
+Kinetic estrae il catalogo tipizzato dagli attributi `@al` nel codice e traduce
+solo comandi Action Language validi in effetti provider-neutral. Spectre resta
+responsabile di conferme, persistenza, idempotenza ed esecuzione. I prompt del
+classificatore e delle trasformazioni editoriali sono template HEEx compilati;
+i valori dinamici vengono redatti, limitati ed escapati prima del rendering.
+
+L’agente monta tre `Spectre.Skill` indipendenti: lettura e audit del blog,
+operazioni runtime/repository e workflow editoriale. La creazione di un articolo
+usa flow annidati per titolo, categoria, lingua e brief; `current_flow` e
+`current_scope` vengono persistiti tra i messaggi. Completato l’intake, Kinetic
+valida il comando `CREATE ARTICLE` e la policy della skill richiede conferma
+prima che l’azione possa essere eseguita.
 
 ## Modello operativo Fly.io
 
 ExBlog usa una singola macchina e un volume `/data`. Questa è una scelta
-deliberata: SQLite e il checkout sono cache/stato locale, mentre i contenuti
-restano recuperabili da GitHub. Il container corregge soltanto la proprietà
+deliberata: DETS e il checkout sono stato locale, mentre i contenuti restano
+recuperabili da GitHub. Il container corregge soltanto la proprietà
 della radice del volume, poi abbassa i privilegi all’utente `exblog`.
