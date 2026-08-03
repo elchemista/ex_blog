@@ -8,17 +8,10 @@
 import Config
 
 config :ex_blog,
-  ecto_repos: [ExBlog.Repo],
-  generators: [timestamp_type: :utc_datetime],
   validate_runtime_config?: true,
-  auto_migrate?: false,
   start_content?: true,
   start_telegram?: true,
   secure_session_cookie?: config_env() == :prod
-
-config :ex_blog, ExBlog.Repo,
-  migration_primary_key: [type: :binary_id],
-  migration_foreign_key: [type: :binary_id]
 
 # Configure the endpoint
 config :ex_blog, ExBlogWeb.Endpoint,
