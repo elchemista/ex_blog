@@ -8,8 +8,9 @@ defmodule ExBlog.Content.Git do
   """
 
   alias ExBlog.Config
-  alias ExBlog.Content.GitOperation
-  alias ExBlog.Repo
+  alias ExBlog.Storage
+
+  @operation_history_limit 500
 
   @spec ensure_checkout(keyword()) :: {:ok, String.t()} | {:error, term()}
   def ensure_checkout(opts \\ []) do
@@ -256,18 +257,19 @@ defmodule ExBlog.Content.Git do
   end
 
   defp record(operation, result, files) do
-    if Process.whereis(Repo) do
+    if Process.whereis(Storage) do
       {ok?, sha, error} = record_values(result)
 
-      %GitOperation{}
-      |> GitOperation.changeset(%{
+      entry = %{
         op: to_string(operation),
         commit_sha: sha,
-        files: %{"paths" => files},
+        files: files,
         ok: ok?,
-        error: error
-      })
-      |> Repo.insert()
+        error: error,
+        occurred_at: DateTime.utc_now()
+      }
+
+      Storage.update(:git_operations, [], &prepend_operation(&1, entry))
     end
 
     result
@@ -281,5 +283,10 @@ defmodule ExBlog.Content.Git do
   defp record_values({:error, reason}) do
     error = reason |> inspect(limit: 20, printable_limit: 4_000) |> Config.redact()
     {false, nil, error}
+  end
+
+  defp prepend_operation(operations, entry) do
+    operations = if is_list(operations), do: operations, else: []
+    {:put, Enum.take([entry | operations], @operation_history_limit), :ok}
   end
 end
