@@ -11,7 +11,7 @@ defmodule ExBlog.MixProject do
       aliases: aliases(),
       dialyzer: [
         flags: [:unmatched_returns, :error_handling],
-        plt_add_apps: [:ex_unit]
+        plt_add_apps: [:ex_unit, :mix]
       ],
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
@@ -62,6 +62,8 @@ defmodule ExBlog.MixProject do
        compile: false,
        depth: 1},
       {:req, "~> 0.7.2", override: true},
+      {:argon2_elixir, "~> 4.1"},
+      {:qr_code, "~> 3.2"},
       {:mdex, "~> 0.13.5"},
       {:yaml_elixir, "~> 2.12"},
       {:slugify, github: "elchemista/slugify", branch: "master", depth: 1},
