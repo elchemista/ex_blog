@@ -31,12 +31,6 @@ config :ex_blog,
   runtime_environment: config_env(),
   runtime_data_dir: data_dir
 
-if config_env() != :test do
-  config :ex_blog, ExBlog.Repo,
-    database: Path.join(data_dir, "ex_blog.db"),
-    pool_size: String.to_integer(System.get_env("POOL_SIZE", "5"))
-end
-
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :ex_blog, ExBlogWeb.Endpoint,
@@ -65,8 +59,6 @@ if config_env() == :prod do
   # evaluation from masking the aggregated boot error.
   secret_key_base = System.get_env("SECRET_KEY_BASE") || String.duplicate("0", 64)
   host = System.get_env("PHX_HOST") || "localhost"
-
-  config :ex_blog, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :ex_blog, ExBlogWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
