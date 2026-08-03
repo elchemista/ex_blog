@@ -52,7 +52,32 @@ defmodule ExBlogWeb.Prompt do
   @spec article_seo(map()) :: String.t()
   def article_seo(assigns) when is_map(assigns) do
     assigns
+    |> Map.put_new(:title, "")
+    |> Map.put_new(:category, "")
+    |> Map.put_new(:cover_alt, "")
     |> article_seo_prompt()
+    |> rendered_to_string()
+  end
+
+  @doc "Renders the bounded prompt used for an AI-assisted title step."
+  @spec editorial_title(map()) :: String.t()
+  def editorial_title(assigns) when is_map(assigns) do
+    assigns
+    |> Map.put_new(:lang, "")
+    |> Map.put_new(:category, "")
+    |> Map.put_new(:brief, "")
+    |> editorial_title_prompt()
+    |> rendered_to_string()
+  end
+
+  @doc "Renders the bounded prompt used for an AI-assisted category step."
+  @spec editorial_category(map()) :: String.t()
+  def editorial_category(assigns) when is_map(assigns) do
+    assigns
+    |> Map.put_new(:lang, "")
+    |> Map.put_new(:brief, "")
+    |> Map.put_new(:category_options, "")
+    |> editorial_category_prompt()
     |> rendered_to_string()
   end
 
