@@ -17,7 +17,9 @@ defmodule ExBlogWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico)
+  # Only physical files under priv/static belong here. The sitemap is generated
+  # by SitemapController because it follows the synchronized content index.
+  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 
   def router do
     quote do
