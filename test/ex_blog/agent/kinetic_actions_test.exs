@@ -41,8 +41,14 @@ defmodule ExBlog.Agent.KineticActionsTest do
              "title",
              "lang",
              "category",
-             "brief"
+             "brief",
+             "generate_seo",
+             "cover",
+             "cover_alt"
            ]
+
+    assert Enum.find(create["args"], &(&1["name"] == "generate_seo"))["type"] ==
+             "boolean()"
 
     assert Enum.map(publish["args"], &{&1["name"], &1["type"]}) == [
              {"lang", "String.t()"},
@@ -86,7 +92,17 @@ defmodule ExBlog.Agent.KineticActionsTest do
   test "builds escaped Action Language that Kinetic maps back to typed arguments" do
     title = ~s(Phoenix "senza sorprese")
     brief = "Prima riga\nSeconda riga con \\ percorso"
-    command = KineticActions.create_article_command(title, "it", "Elixir", brief)
+
+    command =
+      KineticActions.create_article_command(
+        title,
+        "it",
+        "Elixir",
+        brief,
+        true,
+        "/images/articles/cover.jpg",
+        "Schema del flusso"
+      )
 
     context = %Context{
       agent: Agent,
@@ -108,7 +124,10 @@ defmodule ExBlog.Agent.KineticActionsTest do
              "title" => title,
              "lang" => "it",
              "category" => "Elixir",
-             "brief" => "Prima riga Seconda riga con \\ percorso"
+             "brief" => "Prima riga Seconda riga con \\ percorso",
+             "generate_seo" => true,
+             "cover" => "/images/articles/cover.jpg",
+             "cover_alt" => "Schema del flusso"
            }
   end
 
