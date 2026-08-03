@@ -40,8 +40,7 @@ defmodule ExBlogWeb.Router do
     get "/health", HealthController, :show
     get "/tag/:tag", BlogController, :tag
     get "/category/:category", BlogController, :category
-    get "/sitemap.xml", FeedController, :sitemap
-    get "/robots.txt", FeedController, :robots
+    get "/sitemap.xml", SitemapController, :show
     get "/feed.xml", FeedController, :rss
     get "/atom.xml", FeedController, :atom
   end
