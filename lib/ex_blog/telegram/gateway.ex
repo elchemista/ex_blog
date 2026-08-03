@@ -6,6 +6,7 @@ defmodule ExBlog.Telegram.Gateway do
 
   alias ExBlog.Agent.Presenter
   alias ExBlog.Config
+  alias ExBlog.Telegram.Image
   alias Spectre.Result
 
   @telegram_limit 4_096
@@ -34,8 +35,10 @@ defmodule ExBlog.Telegram.Gateway do
 
   defp process(event, opts) do
     with {:ok, inbound} <-
-           Spectre.Beam.decode(ExBlog.Agent, :telegram, event, authenticated?: true),
-         input <- Spectre.Beam.to_input(inbound),
+           Spectre.Beam.decode(ExBlog.Agent, :telegram, event,
+             adapter_opts: [authenticated?: true]
+           ),
+         {:ok, input} <- Image.prepare(inbound),
          {:ok, result} <-
            Spectre.ask(
              ExBlog.Agent,
@@ -46,8 +49,22 @@ defmodule ExBlog.Telegram.Gateway do
       chunks = split(text)
       {:reply, chunks}
     else
-      :ignore -> :ignore
-      {:error, _reason} = error -> error
+      :ignore ->
+        :ignore
+
+      {:error, :telegram_image_too_large} ->
+        {:reply, ["Immagine troppo grande: il limite è 10 MB."]}
+
+      {:error, reason}
+      when reason in [
+             :missing_telegram_file_id,
+             :invalid_telegram_image_size,
+             :unauthenticated_telegram_image
+           ] ->
+        {:reply, ["Non riesco a usare questa immagine Telegram. Invia una foto valida."]}
+
+      {:error, _reason} = error ->
+        error
     end
   end
 
@@ -95,7 +112,15 @@ defmodule ExBlog.Telegram.Gateway do
 
   defp spectre_opts(opts, conversation_id) do
     opts
-    |> Keyword.take([:model, :req_options, :test_pid])
+    |> Keyword.take([
+      :model,
+      :req_options,
+      :test_pid,
+      :ai_complete,
+      :telegram_media_downloader,
+      :telegram_session_id,
+      :article_asset_root
+    ])
     |> Keyword.put(:conversation_id, to_string(conversation_id))
   end
 
