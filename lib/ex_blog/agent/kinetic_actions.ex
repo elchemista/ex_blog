@@ -85,22 +85,35 @@ defmodule ExBlog.Agent.KineticActions do
   @spec check_page(url :: String.t()) :: {:ok, map()}
   def check_page(url), do: {:ok, %{url: url}}
 
-  @al ~s(CREATE ARTICLE TITLE="Phoenix and Spectre Kinetic" LANG="it" CATEGORY="Tecnologia" BRIEF="Explain the architecture")
+  @al ~s(CREATE ARTICLE TITLE="Phoenix and Spectre Kinetic" LANG="it" CATEGORY="Tecnologia" BRIEF="Explain the architecture" GENERATE_SEO=true COVER="/images/articles/example.jpg" COVER_ALT="A Spectre workflow diagram")
   @doc """
-  Generate and commit a new draft article.
+  Generate and commit a new draft article, optional SEO metadata, and its
+  already-ingested static cover reference.
 
-  AL: CREATE ARTICLE TITLE="Building an editorial agent" LANG="en" CATEGORY="AI" BRIEF="Explain the design and safety boundaries"
-  AL: WRITE BLOG POST TITLE="Safe Git automation" LANG="en" CATEGORY="Engineering" BRIEF="Show a practical workflow"
-  AL: CREA ARTICOLO TITLE="Phoenix LiveView in produzione" LANG="it" CATEGORY="Elixir" BRIEF="Spiega architettura e deploy"
+  AL: CREATE ARTICLE TITLE="Building an editorial agent" LANG="en" CATEGORY="AI" BRIEF="Explain the design and safety boundaries" GENERATE_SEO=true COVER="" COVER_ALT=""
+  AL: WRITE BLOG POST TITLE="Safe Git automation" LANG="en" CATEGORY="Engineering" BRIEF="Show a practical workflow" GENERATE_SEO=false COVER="" COVER_ALT=""
+  AL: CREA ARTICOLO TITLE="Phoenix LiveView in produzione" LANG="it" CATEGORY="Elixir" BRIEF="Spiega architettura e deploy" GENERATE_SEO=true COVER="/images/articles/example.jpg" COVER_ALT="Diagramma del flusso editoriale"
   """
   @spec create_article(
           title :: String.t(),
           lang :: String.t(),
           category :: String.t(),
-          brief :: String.t()
+          brief :: String.t(),
+          generate_seo :: boolean(),
+          cover :: String.t(),
+          cover_alt :: String.t()
         ) :: {:ok, map()}
-  def create_article(title, lang, category, brief) do
-    {:ok, %{title: title, lang: lang, category: category, brief: brief}}
+  def create_article(title, lang, category, brief, generate_seo, cover, cover_alt) do
+    {:ok,
+     %{
+       title: title,
+       lang: lang,
+       category: category,
+       brief: brief,
+       generate_seo: generate_seo,
+       cover: cover,
+       cover_alt: cover_alt
+     }}
   end
 
   @al ~s(REVISE ARTICLE LANG="it" SLUG="phoenix-liveview" INSTRUCTIONS="Improve the introduction")
@@ -186,10 +199,21 @@ defmodule ExBlog.Agent.KineticActions do
   Builds the canonical Action Language instruction for a completed article
   intake. Values are redacted, bounded, and quoted as inert AL data.
   """
-  @spec create_article_command(String.t(), String.t(), String.t(), String.t()) :: String.t()
-  def create_article_command(title, lang, category, brief) do
-    ~s(CREATE ARTICLE TITLE="#{al_value(title, 160)}" LANG="#{al_value(lang, 32)}" CATEGORY="#{al_value(category, 80)}" BRIEF="#{al_value(brief, 8_000)}")
+  @spec create_article_command(
+          String.t(),
+          String.t(),
+          String.t(),
+          String.t(),
+          boolean(),
+          String.t() | nil,
+          String.t() | nil
+        ) :: String.t()
+  def create_article_command(title, lang, category, brief, generate_seo, cover, cover_alt) do
+    ~s(CREATE ARTICLE TITLE="#{al_value(title, 160)}" LANG="#{al_value(lang, 32)}" CATEGORY="#{al_value(category, 80)}" BRIEF="#{al_value(brief, 8_000)}" GENERATE_SEO=#{generate_seo} COVER="#{optional_al_value(cover, 512)}" COVER_ALT="#{optional_al_value(cover_alt, 500)}")
   end
+
+  defp optional_al_value(nil, _limit), do: ""
+  defp optional_al_value(value, limit), do: al_value(value, limit)
 
   @spec al_value(String.t(), pos_integer()) :: String.t()
   defp al_value(value, limit) do
