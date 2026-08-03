@@ -34,7 +34,7 @@ category: "Tecnologia"
 tags: ["elixir", "phoenix"]
 seo_title: "Un esempio completo in Elixir"
 seo_description: "Una descrizione concisa, entro 160 caratteri."
-cover: "/images/un-esempio.webp"
+cover: "/images/articles/sha256-del-file.webp"
 cover_alt: "Una pagina di codice Elixir"
 translation_of: null
 ---
@@ -58,8 +58,8 @@ Campi:
 | `tags` | lista YAML o stringa separata da virgole |
 | `seo_title` | opzionale, massimo 60 caratteri nelle scritture dell’agente |
 | `seo_description` | opzionale, massimo 160 caratteri |
-| `cover` | URL HTTPS o percorso pubblico che inizia con `/` |
-| `cover_alt` | testo alternativo accessibile |
+| `cover` | URL HTTPS o percorso pubblico sicuro che inizia con `/`; gli upload Telegram usano `/images/articles/<sha256>.<ext>` |
+| `cover_alt` | testo alternativo accessibile; per una foto Telegram deriva dalla didascalia o dal fallback sul titolo |
 | `translation_of` | path repository-relative dell’articolo origine |
 
 Per collegare le traduzioni, ogni variante usa lo stesso path origine. Esempio:
@@ -93,3 +93,32 @@ validazione → path confinato sotto content/ → file canonico → git add/comm
 Slug e lingua di un articolo esistente non vengono cambiati da un update. Una
 traduzione è un nuovo draft. Pubblicazione e rimozione modificano il repository
 e richiedono conferma nelle superfici agentiche.
+
+Nel flow `/create`, corpo e SEO opzionale vengono generati via OpenRouter solo
+dopo la conferma Spectre. La risposta SEO viene normalizzata nei campi
+`seo_title`, `seo_description`, `cover_alt` e `tags` prima che il Writer applichi
+i limiti del contratto e serializzi il file.
+
+## Asset di copertina Telegram
+
+L’amministratore può inviare una foto mentre `article_creation` è attivo.
+`ex_gram` scarica i byte tramite il file id TDLib; ExBlog accetta JPEG, PNG,
+WebP e GIF fino a 10 MB, determina il formato dai magic bytes e usa SHA-256 come
+nome. Il filename Telegram non viene mai riutilizzato.
+
+La copia servita da Phoenix è:
+
+```text
+priv/static/images/articles/<sha256>.<estensione>
+```
+
+Il backing durevole è:
+
+```text
+$EX_BLOG_DATA_DIR/assets/images/articles/<sha256>.<estensione>
+```
+
+Al boot il backing viene validato e ripristinato nella directory statica della
+release. Il Markdown conserva soltanto il path pubblico in `cover`; byte, file
+id Telegram e path locali TDLib non entrano nel front matter o nello stato
+Spectre.
