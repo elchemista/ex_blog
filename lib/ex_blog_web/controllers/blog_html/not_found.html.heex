@@ -1,0 +1,30 @@
+<Layouts.app
+  flash={@flash}
+  current_language={@current_language}
+  supported_languages={@supported_languages}
+>
+  <section
+    id="not-found"
+    class="mx-auto flex min-h-[68vh] max-w-4xl items-center px-5 py-20 sm:px-8"
+  >
+    <div class="relative w-full overflow-hidden rounded-[2.5rem] border border-stone-200 bg-white/70 px-7 py-16 text-center shadow-[0_35px_100px_-55px_rgba(28,25,23,0.65)] dark:border-white/10 dark:bg-stone-900/65 sm:px-12 sm:py-24">
+      <div class="pointer-events-none absolute left-1/2 top-0 h-48 w-96 -translate-x-1/2 rounded-full bg-amber-300/20 blur-3xl">
+      </div>
+      <p class="relative text-xs font-bold uppercase tracking-[0.3em] text-amber-700 dark:text-amber-400">
+        Errore 404
+      </p>
+      <h1 class="relative mt-6 font-serif text-5xl font-semibold tracking-[-0.04em] text-stone-950 dark:text-stone-50 sm:text-7xl">
+        Pagina fuori margine.
+      </h1>
+      <p class="relative mx-auto mt-6 max-w-lg text-base leading-7 text-stone-600 dark:text-stone-300">
+        Il contenuto che cercavi non esiste, non è ancora pubblicato oppure ha cambiato indirizzo.
+      </p>
+      <.link
+        href={~p"/#{@current_language}"}
+        class="relative mt-9 inline-flex items-center gap-2 rounded-full bg-stone-950 px-6 py-3 text-sm font-bold text-white shadow-lg transition duration-300 hover:-translate-y-0.5 hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-600 dark:bg-amber-400 dark:text-stone-950 dark:hover:bg-amber-300"
+      >
+        Torna agli articoli <.icon name="hero-arrow-right" class="size-4" />
+      </.link>
+    </div>
+  </section>
+</Layouts.app>
