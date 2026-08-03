@@ -22,7 +22,5 @@ config :ex_blog, ExBlogWeb.Endpoint,
 # Do not print debug messages in production
 config :logger, level: :info
 
-config :ex_blog, auto_migrate?: true
-
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
