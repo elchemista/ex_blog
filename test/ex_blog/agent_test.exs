@@ -1,9 +1,7 @@
 defmodule ExBlog.AgentTest do
   use ExBlog.DataCase, async: false
 
-  alias ExBlog.Agent.MemoryEntry
-  alias ExBlog.Agent.StateEntry
-  alias ExBlog.Repo
+  alias ExBlog.Storage
   alias Spectre.Input
   alias Spectre.Input.Pipeline
   alias Spectre.Result
@@ -14,7 +12,8 @@ defmodule ExBlog.AgentTest do
     assert {:ok, result} =
              Spectre.ask(ExBlog.Agent, "/config", conversation_id: conversation_id)
 
-    assert result.route.label == :CONFIG
+    assert result.route.label == :SHOW_BLOG_CONFIG
+    assert result.route.scope == {:skill, :operations}
     assert Result.pending_effect(result).name == :show_config
 
     assert {:ok, executed} =
@@ -54,7 +53,8 @@ defmodule ExBlog.AgentTest do
                conversation_id: conversation_id
              )
 
-    assert result.route.label == :CHECK_PAGE
+    assert result.route.label == :CHECK_BLOG_PAGE
+    assert result.route.scope == {:skill, :reader}
     assert Result.pending_effect(result).name == :check_page
   end
 
@@ -82,9 +82,7 @@ defmodule ExBlog.AgentTest do
 
     assert result.route.label == :UNSAFE
 
-    persisted =
-      [Repo.all(StateEntry), Repo.all(MemoryEntry)]
-      |> inspect(limit: :infinity, printable_limit: :infinity)
+    persisted = Storage.all() |> inspect(limit: :infinity, printable_limit: :infinity)
 
     refute persisted =~ secret
   end
