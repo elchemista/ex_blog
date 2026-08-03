@@ -1,0 +1,8 @@
+<% article = @article_creation || %{} %>Ho raccolto tutto per il nuovo draft:
+
+- Titolo: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :title), 160) %>
+- Categoria: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :category), 80) %>
+- Lingua: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :lang), 32) %>
+- Brief: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :brief), 1_000) %>
+
+Conferma con “sì” per generare e salvare l'articolo, oppure rispondi “no” per annullare.
