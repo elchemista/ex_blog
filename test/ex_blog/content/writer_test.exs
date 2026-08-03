@@ -60,7 +60,9 @@ defmodule ExBlog.Content.WriterTest do
                  lang: "it",
                  date: "2026-08-03",
                  body: "## Corpo\n\nUn testo completo.",
-                 tags: ["elixir", "scrittura"]
+                 tags: ["elixir", "scrittura"],
+                 cover: "/images/articles/example.jpg",
+                 cover_alt: "Un esempio editoriale"
                },
                config: config
              )
@@ -73,6 +75,7 @@ defmodule ExBlog.Content.WriterTest do
     source = File.read!(absolute)
     assert source =~ ~s(slug: "larte-dellelixir-gia-pronta")
     assert source =~ "status: draft"
+    assert source =~ ~s(cover: "/images/articles/example.jpg")
 
     {remote_source, 0} =
       System.cmd("git", ["--git-dir", origin, "show", "main:#{draft.path}"],
@@ -87,6 +90,9 @@ defmodule ExBlog.Content.WriterTest do
 
     assert {:error, :seo_title_too_long} =
              Writer.update(published, %{seo_title: String.duplicate("x", 61)}, config: config)
+
+    assert {:error, :invalid_cover} =
+             Writer.update(published, %{cover: "javascript:alert(1)"}, config: config)
 
     assert :ok = Writer.delete(published, config: config)
     assert {:error, :not_found} = Content.get("it", published.slug, published_only?: false)
