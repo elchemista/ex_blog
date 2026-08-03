@@ -1,14 +1,11 @@
 defmodule ExBlog.Agent.StateStore do
   @moduledoc """
-  SQLite-backed Spectre state store with optimistic concurrency.
+  DETS-backed Spectre state store with optimistic concurrency.
   """
 
   @behaviour Spectre.State.Store
 
-  import Ecto.Query
-
-  alias ExBlog.Agent.StateEntry
-  alias ExBlog.Repo
+  alias ExBlog.Storage
   alias Spectre.State
   alias Spectre.State.Codec
 
@@ -19,9 +16,9 @@ defmodule ExBlog.Agent.StateStore do
         {:ok, %State{}}
 
       conversation_id ->
-        case Repo.get_by(StateEntry, conversation_id: conversation_id, agent: agent_name(agent)) do
-          nil -> {:ok, %State{conversation_id: conversation_id}}
-          %StateEntry{} = entry -> decode_entry(entry)
+        case Storage.fetch(storage_key(conversation_id, agent)) do
+          :error -> {:ok, %State{conversation_id: conversation_id}}
+          {:ok, entry} -> decode_entry(entry)
         end
     end
   end
@@ -37,72 +34,34 @@ defmodule ExBlog.Agent.StateStore do
     else
       with :ok <- validate_revision(state.revision, expected_revision),
            {:ok, payload} <- Codec.encode(state) do
-        persist(conversation_id, agent_name(agent), state.revision, expected_revision, payload)
+        persist(conversation_id, agent, state.revision, expected_revision, payload)
       end
     end
   end
 
-  @spec delete(String.t(), module()) :: :ok
+  @spec delete(String.t(), module()) :: :ok | {:error, term()}
   def delete(conversation_id, agent) do
-    StateEntry
-    |> where(
-      [entry],
-      entry.conversation_id == ^identity(conversation_id) and entry.agent == ^agent_name(agent)
-    )
-    |> Repo.delete_all()
-
-    :ok
-  end
-
-  defp persist(conversation_id, agent, revision, 0, payload) do
-    now = DateTime.utc_now()
-
-    case Repo.insert_all(
-           StateEntry,
-           [
-             %{
-               conversation_id: conversation_id,
-               agent: agent,
-               revision: revision,
-               payload: payload,
-               inserted_at: now,
-               updated_at: now
-             }
-           ],
-           on_conflict: :nothing,
-           conflict_target: [:conversation_id, :agent]
-         ) do
-      {1, _rows} -> :ok
-      {0, _rows} -> stale_state(conversation_id, agent)
-    end
+    conversation_id
+    |> storage_key(agent)
+    |> Storage.delete()
   end
 
   defp persist(conversation_id, agent, revision, expected_revision, payload) do
-    query =
-      from entry in StateEntry,
-        where:
-          entry.conversation_id == ^conversation_id and entry.agent == ^agent and
-            entry.revision == ^expected_revision
+    key = storage_key(conversation_id, agent)
 
-    case Repo.update_all(query,
-           set: [revision: revision, payload: payload, updated_at: DateTime.utc_now()]
-         ) do
-      {1, _rows} -> :ok
-      {0, _rows} -> stale_state(conversation_id, agent)
-    end
+    Storage.update(key, nil, fn
+      nil when expected_revision == 0 ->
+        {:put, %{revision: revision, payload: payload}, :ok}
+
+      %{revision: ^expected_revision} ->
+        {:put, %{revision: revision, payload: payload}, :ok}
+
+      current ->
+        {:keep, {:error, {:stale_state, stored_revision(current)}}}
+    end)
   end
 
-  defp stale_state(conversation_id, agent) do
-    actual =
-      StateEntry
-      |> where([entry], entry.conversation_id == ^conversation_id and entry.agent == ^agent)
-      |> select([entry], entry.revision)
-      |> Repo.one()
-
-    {:error, {:stale_state, actual}}
-  end
-
-  defp decode_entry(%StateEntry{payload: payload, revision: revision}) do
+  defp decode_entry(%{payload: payload, revision: revision}) do
     with {:ok, %State{} = state} <- Codec.decode(payload),
          true <- state.revision == revision do
       {:ok, state}
@@ -123,4 +82,10 @@ defmodule ExBlog.Agent.StateStore do
   defp identity(value) when is_atom(value) or is_number(value), do: to_string(value)
   defp identity(_value), do: nil
   defp agent_name(agent), do: inspect(agent)
+
+  defp storage_key(conversation_id, agent),
+    do: {:spectre_state, identity(conversation_id), agent_name(agent)}
+
+  defp stored_revision(%{revision: revision}), do: revision
+  defp stored_revision(_entry), do: nil
 end
