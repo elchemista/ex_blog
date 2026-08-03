@@ -75,4 +75,29 @@ defmodule ExBlogWeb.BlogHTML do
     |> trunc()
     |> max(1)
   end
+
+  def cover_source(nil), do: nil
+
+  def cover_source("/" <> rest = path) do
+    segments = String.split(rest, "/", trim: true)
+
+    if rest != "" and not String.starts_with?(rest, "/") and
+         not String.contains?(rest, ["\\", "\0"]) and
+         Enum.all?(segments, &(&1 not in [".", ".."])) do
+      path
+    end
+  end
+
+  def cover_source(url) when is_binary(url) do
+    case URI.parse(url) do
+      %URI{scheme: "https", host: host} when is_binary(host) and host != "" -> url
+      _invalid -> nil
+    end
+  end
+
+  def cover_source(_cover), do: nil
+
+  def cover_alt(article) do
+    article.cover_alt || "Copertina di #{article.title}"
+  end
 end
