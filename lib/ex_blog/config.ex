@@ -11,6 +11,7 @@ defmodule ExBlog.Config do
   @storage_key {__MODULE__, :runtime}
 
   @required ~w(
+    EX_BLOG_ADMIN_PASSWORD_HASH
     EX_BLOG_ADMIN_TELEGRAM_ID
     EX_BLOG_TELEGRAM_API_ID
     EX_BLOG_TELEGRAM_API_HASH
@@ -28,6 +29,7 @@ defmodule ExBlog.Config do
   @production_required ~w(SECRET_KEY_BASE PHX_HOST)
 
   @secret_fields [
+    :admin_password_hash,
     :github_token,
     :openrouter_api_key,
     :telegram_api_hash,
@@ -36,6 +38,7 @@ defmodule ExBlog.Config do
 
   @derive {Inspect, except: @secret_fields}
   @enforce_keys [
+    :admin_password_hash,
     :admin_telegram_id,
     :github_repository,
     :github_branch,
@@ -64,6 +67,7 @@ defmodule ExBlog.Config do
   defstruct @enforce_keys ++ [:admin_telegram_username, :phx_host]
 
   @type t :: %__MODULE__{
+          admin_password_hash: String.t(),
           admin_telegram_id: pos_integer(),
           admin_telegram_username: String.t() | nil,
           github_repository: String.t(),
@@ -138,7 +142,13 @@ defmodule ExBlog.Config do
   end
 
   @doc "Returns one credential to the infrastructure module that owns its use."
-  @spec fetch_secret!(:github_token | :openrouter_api_key | :telegram_api_hash | :mcp_token) ::
+  @spec fetch_secret!(
+          :admin_password_hash
+          | :github_token
+          | :openrouter_api_key
+          | :telegram_api_hash
+          | :mcp_token
+        ) ::
           String.t()
   def fetch_secret!(name) when name in @secret_fields do
     get()
@@ -205,6 +215,8 @@ defmodule ExBlog.Config do
   def test_config(overrides \\ []) do
     base =
       load!(%{
+        "EX_BLOG_ADMIN_PASSWORD_HASH" =>
+          "$argon2id$v=19$m=65536,t=3,p=4$/ozmJANXqOhc51VZNhCDpA$ghgiVIIRxNcczcSsqt6Zk2IprX8zSc4fvl9p0+7Xc8c",
         "EX_BLOG_ADMIN_TELEGRAM_ID" => "123456789",
         "EX_BLOG_TELEGRAM_API_ID" => "12345",
         "EX_BLOG_TELEGRAM_API_HASH" => "test-telegram-api-hash",
@@ -233,6 +245,7 @@ defmodule ExBlog.Config do
       end
 
     validations = [
+      admin_password_hash: password_hash(env),
       admin_telegram_id: positive_integer(env, "EX_BLOG_ADMIN_TELEGRAM_ID"),
       telegram_api_id: positive_integer(env, "EX_BLOG_TELEGRAM_API_ID"),
       telegram_session_id: telegram_session_id(env),
@@ -257,6 +270,7 @@ defmodule ExBlog.Config do
 
       {:ok,
        %__MODULE__{
+         admin_password_hash: values.admin_password_hash,
          admin_telegram_id: values.admin_telegram_id,
          admin_telegram_username: optional(env, "EX_BLOG_ADMIN_TELEGRAM_USERNAME"),
          github_repository: values.github_repository,
@@ -330,6 +344,16 @@ defmodule ExBlog.Config do
       {:error,
        {"EX_BLOG_TELEGRAM_SESSION_ID",
         "must contain only letters, numbers, underscores, or hyphens"}}
+    end
+  end
+
+  defp password_hash(env) do
+    hash = value(env, "EX_BLOG_ADMIN_PASSWORD_HASH")
+
+    if String.starts_with?(hash, ["$argon2id$", "$argon2i$", "$argon2d$"]) do
+      {:ok, hash}
+    else
+      {:error, {"EX_BLOG_ADMIN_PASSWORD_HASH", "must be an Argon2 encoded hash"}}
     end
   end
 
