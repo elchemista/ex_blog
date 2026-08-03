@@ -12,6 +12,9 @@ Repository Git
 DETS sul volume
 └── stato Spectre, memoria di routing, costi e storico operativo Git
 
+Asset sul volume + priv/static
+└── backing durevole e copia pubblica delle immagini Telegram
+
 ETS
 └── snapshot di lettura ricostruibile degli articoli
 ```
@@ -23,9 +26,10 @@ ricevono soltanto `ExBlog.Config.public/0`.
 ## Boot deterministico
 
 `ExBlog.Application` valida l’intera ENV prima del supervision tree. In
-produzione crea la directory del volume, apre e ripara lo storage DETS, clona o
-sincronizza Git, costruisce un nuovo indice ETS e solo dopo espone Telegram e
-l’endpoint Phoenix. Un errore in un passaggio obbligatorio termina il boot.
+produzione crea la directory del volume, ripristina in `priv/static` gli asset
+content-addressed, apre e ripara lo storage DETS, clona o sincronizza Git,
+costruisce un nuovo indice ETS e solo dopo espone Telegram e l’endpoint Phoenix.
+Un errore in un passaggio obbligatorio termina il boot.
 
 Il rebuild ETS popola una tabella nuova. Un singolo aggiornamento in
 `:persistent_term` pubblica lo snapshot completo; la vecchia tabella viene poi
@@ -42,7 +46,9 @@ eliminata. I lettori ritentano se si trovano esattamente durante lo swap.
   grezzi non entrano nello stato Spectre; prima del modello passano da
   `SpectreLens.agent_context/2` come contenuto web non fidato.
 - Telegram: l’ID numerico viene confrontato nel primo `case` del gateway,
-  prima di Beam, prompt, log o contabilità.
+  prima di Beam, download media, prompt, log o contabilità. Le foto diventano
+  input Beam autenticati con il solo file id TDLib e vengono scaricate da
+  `ex_gram` soltanto dentro un flow editoriale attivo.
 - MCP: ogni richiesta verifica Origin, versione protocollo e bearer tramite
   confronto costante. Le risposte di errore non serializzano eccezioni interne.
 
@@ -65,14 +71,23 @@ i valori dinamici vengono redatti, limitati ed escapati prima del rendering.
 
 L’agente monta tre `Spectre.Skill` indipendenti: lettura e audit del blog,
 operazioni runtime/repository e workflow editoriale. La creazione di un articolo
-usa flow annidati per titolo, categoria, lingua e brief; `current_flow` e
-`current_scope` vengono persistiti tra i messaggi. Completato l’intake, Kinetic
-valida il comando `CREATE ARTICLE` e la policy della skill richiede conferma
-prima che l’azione possa essere eseguita.
+usa flow annidati per brief, lingua, categoria, titolo e scelta SEO;
+`current_flow` e `current_scope` vengono persistiti tra i messaggi. Categoria e
+titolo possono essere riempiti da leaf call OpenRouter che non mutano Git. Una
+foto Telegram è un interrupt globale che associa la copertina senza cambiare il
+cursore del flow. Completato l’intake, Kinetic valida il comando tipizzato
+`CREATE ARTICLE`; la policy della skill richiede conferma prima che OpenRouter
+generi corpo/SEO e che il Writer esegua la singola scrittura canonica.
+
+Il percorso completo, inclusi esempi e punti di estensione, è descritto in
+[`spectre-editorial-showcase.md`](spectre-editorial-showcase.md).
 
 ## Modello operativo Fly.io
 
 ExBlog usa una singola macchina e un volume `/data`. Questa è una scelta
 deliberata: DETS e il checkout sono stato locale, mentre i contenuti restano
-recuperabili da GitHub. Il container corregge soltanto la proprietà
-della radice del volume, poi abbassa i privilegi all’utente `exblog`.
+recuperabili da GitHub. Le immagini Telegram hanno un backing sotto
+`/data/assets/images/articles`; al boot vengono copiate nella `priv/static`
+della release, che Phoenix serve a `/images/articles`. Il container corregge
+soltanto la proprietà della radice del volume, poi abbassa i privilegi
+all’utente `exblog`.
