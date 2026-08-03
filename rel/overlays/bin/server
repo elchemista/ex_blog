@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+export PHX_SERVER=true
+exec /app/bin/ex_blog start
