@@ -17,6 +17,9 @@ defmodule ExBlogWeb.ConnCase do
 
   use ExUnit.CaseTemplate
 
+  alias Ecto.Adapters.SQL.Sandbox
+  alias ExBlog.Repo
+
   using do
     quote do
       # The default endpoint for testing
@@ -31,7 +34,10 @@ defmodule ExBlogWeb.ConnCase do
     end
   end
 
-  setup _tags do
+  setup tags do
+    owner = Sandbox.start_owner!(Repo, shared: not tags[:async])
+    on_exit(fn -> Sandbox.stop_owner(owner) end)
+
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end
