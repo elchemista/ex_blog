@@ -45,9 +45,6 @@ defmodule ExBlog.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.8.9"},
-      {:phoenix_ecto, "~> 4.6"},
-      {:ecto_sql, "~> 3.13"},
-      {:ecto_sqlite3, "~> 0.24.1"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 1.2.0"},
@@ -66,6 +63,7 @@ defmodule ExBlog.MixProject do
       {:qr_code, "~> 3.2"},
       {:mdex, "~> 0.13.5"},
       {:yaml_elixir, "~> 2.12"},
+      {:decimal, "~> 3.1"},
       {:slugify, github: "elchemista/slugify", branch: "master", depth: 1},
       {:ex_gram, github: "elchemista/ex_gram", branch: "main", depth: 1},
       {:spectre, github: "elchemista/spectre", branch: "main", depth: 1, override: true},
@@ -73,13 +71,12 @@ defmodule ExBlog.MixProject do
        github: "elchemista/spectre_prism", branch: "main", depth: 1, override: true},
       {:spectre_beam,
        github: "elchemista/spectre_beam", branch: "main", depth: 1, override: true},
+      {:spectre_kinetic,
+       github: "elchemista/spectre_kinetic", branch: "main", depth: 1, override: true},
       {:spectre_lens,
        github: "elchemista/spectre_lens", branch: "main", depth: 1, override: true},
-      {:telemetry_metrics, "~> 1.0"},
-      {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
-      {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
@@ -94,10 +91,7 @@ defmodule ExBlog.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
-      "ecto.setup": ["ecto.create", "ecto.migrate"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      setup: ["deps.get", "assets.setup", "assets.build"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind ex_blog", "esbuild ex_blog"],
       "assets.deploy": [
