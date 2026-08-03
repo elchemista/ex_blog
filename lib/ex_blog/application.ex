@@ -5,11 +5,14 @@ defmodule ExBlog.Application do
 
   use Application
 
+  alias ExBlog.Content.Asset
+
   @impl true
   def start(_type, _args) do
     config = load_runtime_config!()
     _state_store = Code.ensure_loaded!(ExBlog.Agent.StateStore)
     File.mkdir_p!(config.data_dir)
+    :ok = Asset.restore_static!()
 
     children =
       [
