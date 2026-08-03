@@ -16,8 +16,11 @@ locale senza un database SQL.
 - blog multilingua, tag, categorie, traduzioni, RSS, Atom, sitemap e JSON-LD;
 - agente Spectre organizzato in skill di lettura, editoriale e operazioni, con
   prompt HEEx e azioni `@al` pianificate da Kinetic;
-- creazione articolo guidata da flow annidati per titolo, categoria, lingua e
-  brief, seguita da conferma esplicita prima di modificare Git;
+- creazione articolo guidata da flow annidati per brief, lingua, categoria,
+  titolo e SEO, con generazione OpenRouter campo per campo e conferma esplicita
+  prima di modificare Git;
+- foto di copertina ricevuta dall’admin tramite `ex_gram`, validata e salvata in
+  `priv/static/images/articles`, quindi collegata nel front matter Markdown;
 - verifica on demand delle pagine renderizzate con Spectre Lens e Lightpanda;
 - ledger dei token e limiti di spesa in euro;
 - area web amministratore protetta da password Argon2 per associare Telegram;
@@ -26,7 +29,9 @@ locale senza un database SQL.
 
 Il [contratto dei contenuti](docs/content-contract.md) documenta struttura e
 front matter. Le [decisioni architetturali](docs/architecture.md) descrivono
-boot, dati e confini di sicurezza.
+boot, dati e confini di sicurezza. Il
+[walkthrough dello showcase Spectre](docs/spectre-editorial-showcase.md) spiega
+flow dentro flow, skill, prompt HEEx, Kinetic `@al`, policy e foto Telegram.
 
 ## Requisiti
 
@@ -90,7 +95,8 @@ Il processo di boot segue quest’ordine:
 
 ```text
 ENV → validazione → directory dati → storage DETS → repository Git
-    → parsing Markdown → indice ETS → Spectre/Prism/Kinetic → Telegram
+    → ripristino immagini → parsing Markdown → indice ETS
+    → Spectre/Prism/Kinetic → Telegram
     → endpoint web/MCP
 ```
 
@@ -148,7 +154,14 @@ Solo il mittente il cui ID coincide con `EX_BLOG_ADMIN_TELEGRAM_ID` raggiunge
 Beam, Spectre o OpenRouter. Gli altri update sono ignorati senza registrarne il
 testo. I comandi deterministici principali sono `/config`, `/budget`, `/sync`,
 `/articles` e `/check [URL]`; le operazioni editoriali sensibili richiedono
-conferma. `/check` usa la URL canonica del blog quando la URL è omessa, apre la
+conferma. `/create` avvia il flow editoriale: dopo il brief si può scrivere
+`genera categoria`, `genera titolo`, `genera SEO` o `salta`. Durante il flow una
+foto con didascalia diventa la copertina del draft. L’immagine viene scaricata
+solo dopo il gate admin, salvata sotto `priv/static/images/articles` e replicata
+sul volume in `$EX_BLOG_DATA_DIR/assets/images/articles` per sopravvivere ai
+deploy.
+
+`/check` usa la URL canonica del blog quando la URL è omessa, apre la
 pagina con Spectre Lens, esegue controlli tecnici di base e chiede al modello
 balanced una valutazione basata esclusivamente sul contenuto osservato.
 Lightpanda verifica DOM, semantica e metadati ma non il rendering pixel-level;
