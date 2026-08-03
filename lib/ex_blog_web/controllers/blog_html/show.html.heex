@@ -1,0 +1,143 @@
+<Layouts.app
+  flash={@flash}
+  current_language={@current_language}
+  supported_languages={@supported_languages}
+>
+  <article id={"article-#{@article.lang}-#{@article.slug}"} class="pb-24">
+    <header class="relative overflow-hidden border-b border-stone-200/80 bg-stone-950 text-white dark:border-white/10">
+      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(251,191,36,0.2),transparent_30%),radial-gradient(circle_at_12%_86%,rgba(194,65,12,0.28),transparent_34%)]">
+      </div>
+      <div class="relative mx-auto max-w-5xl px-5 pb-16 pt-12 sm:px-8 sm:pb-24 sm:pt-16 lg:px-12">
+        <nav
+          id="article-breadcrumbs"
+          aria-label="Breadcrumb"
+          class="flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-400"
+        >
+          <.link href={~p"/#{@article.lang}"} class="transition hover:text-white">
+            Archivio
+          </.link>
+          <.icon name="hero-chevron-right" class="size-3.5" />
+          <.link
+            :if={@article.category}
+            href={~p"/category/#{@article.category}?lang=#{@article.lang}"}
+            class="transition hover:text-white"
+          >
+            {@article.category}
+          </.link>
+        </nav>
+
+        <div class="mt-12 max-w-4xl">
+          <p class="flex items-center gap-3 text-[0.68rem] font-bold uppercase tracking-[0.25em] text-amber-400">
+            <span class="h-px w-8 bg-amber-400"></span>
+            {@article.category || "Editoriale"}
+          </p>
+          <h1
+            id="article-title"
+            class="mt-6 font-serif text-5xl font-semibold leading-[1.01] tracking-[-0.045em] text-balance sm:text-7xl lg:text-[5.2rem]"
+          >
+            {@article.title}
+          </h1>
+          <p
+            :if={@article.seo_description || @article.excerpt}
+            class="mt-7 max-w-3xl text-lg leading-8 text-stone-300 sm:text-xl"
+          >
+            {@article.seo_description || @article.excerpt}
+          </p>
+          <div class="mt-10 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-white/10 pt-6 text-xs font-semibold text-stone-400">
+            <time datetime={date_string(@article.date)}>{format_date(@article.date)}</time>
+            <span class="size-1 rounded-full bg-amber-400"></span>
+            <span>{reading_time(@article.body)} min di lettura</span>
+            <span class="size-1 rounded-full bg-amber-400"></span>
+            <span class="uppercase tracking-[0.16em]">{@article.lang}</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto grid max-w-6xl gap-12 px-5 pt-14 sm:px-8 sm:pt-20 lg:grid-cols-[minmax(0,1fr)_13rem] lg:px-12">
+      <div id="article-body" class="article-prose min-w-0">
+        {raw(@article.html)}
+      </div>
+
+      <aside class="space-y-8 lg:sticky lg:top-28 lg:self-start">
+        <section
+          :if={@translations != []}
+          id="article-translations"
+          class="rounded-2xl border border-stone-200 bg-white/60 p-5 dark:border-white/10 dark:bg-white/[0.03]"
+        >
+          <h2 class="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400">
+            Lingue
+          </h2>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <.link
+              :for={translation <- @translations}
+              href={~p"/#{translation.lang}/#{translation.slug}"}
+              hreflang={translation.lang}
+              class={[
+                "rounded-full border px-3 py-1.5 text-xs font-bold uppercase transition",
+                if(translation.lang == @article.lang,
+                  do:
+                    "border-amber-400 bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
+                  else:
+                    "border-stone-200 text-stone-600 hover:border-amber-300 hover:text-amber-800 dark:border-white/10 dark:text-stone-300"
+                )
+              ]}
+            >
+              {translation.lang}
+            </.link>
+          </div>
+        </section>
+
+        <section :if={@article.tags != []} id="article-tags">
+          <h2 class="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400">
+            Argomenti
+          </h2>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <.link
+              :for={tag <- @article.tags}
+              href={~p"/tag/#{tag}?lang=#{@article.lang}"}
+              class="relative z-10 rounded-full bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:bg-amber-100 hover:text-amber-900 dark:bg-white/[0.06] dark:text-stone-300 dark:hover:bg-amber-950 dark:hover:text-amber-200"
+            >
+              #{tag}
+            </.link>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <section
+      :if={@related != []}
+      id="related-articles"
+      class="mx-auto mt-24 max-w-6xl border-t border-stone-200 px-5 pt-12 dark:border-white/10 sm:px-8 lg:px-12"
+    >
+      <div class="flex items-end justify-between gap-4">
+        <div>
+          <p class="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-400">
+            Continua a leggere
+          </p>
+          <h2 class="mt-2 font-serif text-3xl font-semibold text-stone-950 dark:text-stone-50">
+            Nella stessa categoria
+          </h2>
+        </div>
+      </div>
+      <div class="mt-7 grid gap-5 md:grid-cols-3">
+        <.link
+          :for={related <- @related}
+          id={"related-#{related.lang}-#{related.slug}"}
+          href={~p"/#{related.lang}/#{related.slug}"}
+          class="group rounded-2xl border border-stone-200 bg-white/60 p-6 transition duration-300 hover:-translate-y-1 hover:border-amber-300 dark:border-white/10 dark:bg-white/[0.03]"
+        >
+          <time
+            datetime={date_string(related.date)}
+            class="text-[0.65rem] font-bold uppercase tracking-widest text-stone-500"
+          >
+            {format_date(related.date)}
+          </time>
+          <h3 class="mt-3 font-serif text-xl font-semibold leading-snug text-stone-900 transition group-hover:text-amber-800 dark:text-stone-100 dark:group-hover:text-amber-300">
+            {related.title}
+          </h3>
+        </.link>
+      </div>
+    </section>
+  </article>
+</Layouts.app>
