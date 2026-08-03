@@ -8,17 +8,12 @@ defmodule ExBlog.Application do
   @impl true
   def start(_type, _args) do
     config = load_runtime_config!()
+    _state_store = Code.ensure_loaded!(ExBlog.Agent.StateStore)
     File.mkdir_p!(config.data_dir)
-
-    if Application.get_env(:ex_blog, :auto_migrate?, false) do
-      :ok = ExBlog.Release.migrate()
-    end
 
     children =
       [
-        ExBlog.Repo,
-        ExBlogWeb.Telemetry,
-        {DNSCluster, query: Application.get_env(:ex_blog, :dns_cluster_query) || :ignore},
+        {ExBlog.Storage, path: Path.join(config.data_dir, "runtime.dets")},
         {Phoenix.PubSub, name: ExBlog.PubSub},
         ExBlog.Admin.LoginThrottle
       ] ++ content_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
