@@ -67,7 +67,7 @@ defmodule ExBlog.MixProject do
       {:mdex, "~> 0.13.5"},
       {:yaml_elixir, "~> 2.12"},
       {:slugify, github: "elchemista/slugify", branch: "master", depth: 1},
-      {:ex_gram, path: "../../personal/ex_gram"},
+      {:ex_gram, github: "elchemista/ex_gram", branch: "main", depth: 1},
       {:spectre, github: "elchemista/spectre", branch: "main", depth: 1, override: true},
       {:spectre_prism,
        github: "elchemista/spectre_prism", branch: "main", depth: 1, override: true},
