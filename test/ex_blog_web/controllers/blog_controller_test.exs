@@ -87,7 +87,7 @@ defmodule ExBlogWeb.BlogControllerTest do
     assert one?(category_document, "#article-card-it-primo-articolo")
   end
 
-  test "serves sitemap, feeds, robots, and commit-derived conditional caching", %{conn: conn} do
+  test "serves the dynamic sitemap, static robots, feeds, and conditional caching", %{conn: conn} do
     sitemap = get(conn, "/sitemap.xml")
     assert response(sitemap, 200) =~ "/it/primo-articolo"
     refute response(sitemap, 200) =~ "bozza-segreta"
@@ -102,6 +102,7 @@ defmodule ExBlogWeb.BlogControllerTest do
     robots = get(build_conn(), "/robots.txt")
     assert response(robots, 200) =~ "Disallow: /admin"
     assert response(robots, 200) =~ "Disallow: /mcp"
+    assert response(robots, 200) =~ "Sitemap: https://ex-blog.fly.dev/sitemap.xml"
 
     first = get(build_conn(), "/it")
     [etag] = get_resp_header(first, "etag")
