@@ -1,14 +1,17 @@
 defmodule ExBlogWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :ex_blog
 
-  # The session will be stored in the cookie and signed,
-  # this means its contents can be read but not tampered with.
-  # Set :encryption_salt if you would also like to encrypt it.
+  # Browser sessions are signed and encrypted. Production cookies are sent
+  # only over HTTPS; development keeps HTTP support on the loopback interface.
   @session_options [
     store: :cookie,
     key: "_ex_blog_key",
     signing_salt: "jJyZOVU/",
-    same_site: "Lax"
+    encryption_salt: "Lz1DVLX7FfQ7y0nM",
+    http_only: true,
+    secure: Application.compile_env(:ex_blog, :secure_session_cookie?, true),
+    same_site: "Strict",
+    max_age: 8 * 60 * 60
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
