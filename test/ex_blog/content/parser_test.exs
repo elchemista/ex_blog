@@ -33,6 +33,9 @@ defmodule ExBlog.Content.ParserTest do
     assert article.tags == ["otp", "phoenix"]
     assert article.html =~ "<h1>Introduzione</h1>"
     refute article.html =~ "<script"
+    assert article.excerpt =~ "Introduzione"
+    refute article.excerpt =~ "script"
+    refute article.excerpt =~ "alert"
   end
 
   test "uses tolerant defaults for optional editorial fields" do
