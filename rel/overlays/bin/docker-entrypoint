@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+mkdir -p /data
+chown exblog:exblog /data
+
+exec gosu exblog "$@"
