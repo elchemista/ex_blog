@@ -17,7 +17,7 @@ defmodule ExBlogWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths, do: ~w(assets fonts images favicon.ico)
 
   def router do
     quote do
@@ -88,8 +88,8 @@ defmodule ExBlogWeb do
       import ExBlogWeb.CoreComponents
 
       # Common modules used in templates
-      alias Phoenix.LiveView.JS
       alias ExBlogWeb.Layouts
+      alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())
