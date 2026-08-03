@@ -54,6 +54,24 @@
       </div>
     </header>
 
+    <figure
+      :if={cover_source(@article.cover)}
+      id="article-cover"
+      class="relative z-10 mx-auto -mt-8 max-w-6xl overflow-hidden rounded-[2rem] border border-white/70 bg-stone-100 shadow-[0_32px_100px_-48px_rgba(28,25,23,0.65)] dark:border-white/10 dark:bg-stone-900 sm:-mt-12"
+    >
+      <img
+        id="article-cover-image"
+        src={cover_source(@article.cover)}
+        alt={cover_alt(@article)}
+        class="aspect-[16/8] w-full object-cover transition duration-700 hover:scale-[1.01]"
+        width="1536"
+        height="768"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      />
+    </figure>
+
     <div class="mx-auto grid max-w-6xl gap-12 px-5 pt-14 sm:px-8 sm:pt-20 lg:grid-cols-[minmax(0,1fr)_13rem] lg:px-12">
       <div id="article-body" class="article-prose min-w-0">
         {raw(@article.html)}
