@@ -16,6 +16,7 @@ modello e SQLite conserva stato, memoria operativa e costi.
 - agente editoriale Spectre con modelli OpenRouter selezionati a runtime;
 - verifica on demand delle pagine renderizzate con Spectre Lens e Lightpanda;
 - ledger dei token e limiti di spesa in euro;
+- area web amministratore protetta da password Argon2 per associare Telegram;
 - gate Telegram sull’ID numerico prima di prompt, log e chiamate al modello;
 - MCP Streamable HTTP autenticato con gli stessi strumenti dell’agente.
 
@@ -31,7 +32,7 @@ boot, dati e confini di sicurezza.
 - Lightpanda compatibile con Spectre Lens (installato automaticamente
   nell'immagine Docker);
 - una repository GitHub dedicata ai contenuti;
-- credenziali Telegram API e una sessione TDLib già associata;
+- credenziali Telegram API e un account Telegram;
 - una chiave OpenRouter.
 
 ## Configurazione
@@ -56,6 +57,7 @@ Variabili obbligatorie dell’applicazione:
 
 | Variabile | Scopo |
 | --- | --- |
+| `EX_BLOG_ADMIN_PASSWORD_HASH` | hash Argon2 per l’area amministratore web |
 | `EX_BLOG_ADMIN_TELEGRAM_ID` | unica identità amministrativa autorizzata |
 | `EX_BLOG_TELEGRAM_API_ID` | API ID dell'applicazione Telegram |
 | `EX_BLOG_TELEGRAM_API_HASH` | API hash dell'applicazione Telegram |
@@ -108,6 +110,24 @@ vive in `data/repo` e SQLite in `data/ex_blog.db`.
 Le pagine pubbliche usano un ETag derivato dal commit indicizzato. Le bozze non
 sono mai leggibili dalle route pubbliche, dai feed o dalla sitemap.
 
+## Area amministratore
+
+Genera localmente l’hash della password:
+
+```bash
+mix ex_blog.admin.hash_password 'una-password-lunga'
+```
+
+Configura l’output come `EX_BLOG_ADMIN_PASSWORD_HASH`, quindi apri
+`/admin/login`. Dopo l’accesso, `/admin/telegram` mostra lo stato della sessione
+TDLib e guida l’associazione tramite QR, numero telefonico, codice ed eventuale
+password Telegram 2FA.
+
+La sessione web è cifrata, dura al massimo otto ore e viene invalidata anche
+prima della scadenza quando cambia l’hash configurato. Le route amministrative
+inviano header `no-store`, non sono indicizzabili e applicano un limite ai
+tentativi di login.
+
 `EX_BLOG_TELEGRAM_SESSION_ID` è opzionale e vale `ex_blog` per default. Il
 database TDLib persistente viene salvato in
 `$EX_BLOG_DATA_DIR/telegram/$EX_BLOG_TELEGRAM_SESSION_ID`.
@@ -115,10 +135,9 @@ database TDLib persistente viene salvato in
 ## Telegram
 
 Il trasporto usa il client TDLib locale `../../personal/ex_gram` e quindi un
-account Telegram reale, non la Bot API. Prima del deploy associa una volta la
-sessione con `ExGram.Live.run/1`, usando lo stesso session ID, API ID, API hash
-e percorso dati che userà ExBlog; gli avvii successivi riutilizzano il database
-TDLib persistente.
+account Telegram reale, non la Bot API. L’associazione si esegue dalla pagina
+protetta `/admin/telegram`; gli avvii successivi riutilizzano il database TDLib
+persistente sul volume.
 
 Solo il mittente il cui ID coincide con `EX_BLOG_ADMIN_TELEGRAM_ID` raggiunge
 Beam, Spectre o OpenRouter. Gli altri update sono ignorati senza registrarne il
@@ -185,8 +204,11 @@ controlli statici e avvia l’intera suite.
 3. Imposta i segreti:
 
    ```bash
+   EX_BLOG_DEPLOY_ADMIN_HASH="$(mix ex_blog.admin.hash_password 'una-password-lunga')"
+
    fly secrets set \
      SECRET_KEY_BASE="$(mix phx.gen.secret)" \
+     EX_BLOG_ADMIN_PASSWORD_HASH="$EX_BLOG_DEPLOY_ADMIN_HASH" \
      EX_BLOG_ADMIN_TELEGRAM_ID="123456789" \
      EX_BLOG_TELEGRAM_API_ID="12345" \
      EX_BLOG_TELEGRAM_API_HASH="..." \
