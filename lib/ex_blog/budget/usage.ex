@@ -1,55 +1,42 @@
 defmodule ExBlog.Budget.Usage do
-  @moduledoc false
+  @moduledoc "Durable AI usage entry stored by `ExBlog.Storage`."
 
-  use Ecto.Schema
-  import Ecto.Changeset
+  @enforce_keys [
+    :occurred_at,
+    :purpose,
+    :level,
+    :model,
+    :prompt_tokens,
+    :completion_tokens,
+    :cost_usd,
+    :cost_eur
+  ]
 
-  @type t :: %__MODULE__{}
+  defstruct [
+    :occurred_at,
+    :purpose,
+    :level,
+    :model,
+    :cost_usd,
+    :cost_eur,
+    :subject_type,
+    :subject_ref,
+    :conversation_id,
+    prompt_tokens: 0,
+    completion_tokens: 0
+  ]
 
-  schema "llm_usage" do
-    field :occurred_at, :utc_datetime_usec
-    field :purpose, :string
-    field :level, :string
-    field :model, :string
-    field :prompt_tokens, :integer, default: 0
-    field :completion_tokens, :integer, default: 0
-    field :cost_usd, :decimal, default: Decimal.new(0)
-    field :cost_eur, :decimal, default: Decimal.new(0)
-    field :subject_type, :string
-    field :subject_ref, :string
-    field :conversation_id, :string
-
-    timestamps(updated_at: false, type: :utc_datetime_usec)
-  end
-
-  def changeset(usage, attrs) do
-    usage
-    |> cast(attrs, [
-      :occurred_at,
-      :purpose,
-      :level,
-      :model,
-      :prompt_tokens,
-      :completion_tokens,
-      :cost_usd,
-      :cost_eur,
-      :subject_type,
-      :subject_ref,
-      :conversation_id
-    ])
-    |> validate_required([
-      :occurred_at,
-      :purpose,
-      :level,
-      :model,
-      :prompt_tokens,
-      :completion_tokens,
-      :cost_usd,
-      :cost_eur
-    ])
-    |> validate_number(:prompt_tokens, greater_than_or_equal_to: 0)
-    |> validate_number(:completion_tokens, greater_than_or_equal_to: 0)
-    |> validate_number(:cost_usd, greater_than_or_equal_to: 0)
-    |> validate_number(:cost_eur, greater_than_or_equal_to: 0)
-  end
+  @type t :: %__MODULE__{
+          occurred_at: DateTime.t(),
+          purpose: String.t(),
+          level: String.t(),
+          model: String.t(),
+          prompt_tokens: non_neg_integer(),
+          completion_tokens: non_neg_integer(),
+          cost_usd: Decimal.t(),
+          cost_eur: Decimal.t(),
+          subject_type: String.t() | nil,
+          subject_ref: String.t() | nil,
+          conversation_id: String.t() | nil
+        }
 end
