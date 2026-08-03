@@ -8,7 +8,16 @@
 import Config
 
 config :ex_blog,
-  generators: [timestamp_type: :utc_datetime]
+  ecto_repos: [ExBlog.Repo],
+  generators: [timestamp_type: :utc_datetime],
+  validate_runtime_config?: true,
+  auto_migrate?: false,
+  start_content?: true,
+  start_telegram?: true
+
+config :ex_blog, ExBlog.Repo,
+  migration_primary_key: [type: :binary_id],
+  migration_foreign_key: [type: :binary_id]
 
 # Configure the endpoint
 config :ex_blog, ExBlogWeb.Endpoint,
@@ -55,6 +64,9 @@ config :logger, :default_formatter,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+config :ex_gram, :backend_verbosity_level, 0
+config :ex_gram, :log_unhandled_updates, false
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
