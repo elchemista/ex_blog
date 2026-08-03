@@ -15,6 +15,8 @@ defmodule ExBlogWeb.BlogControllerTest do
       article("Primo articolo", "primo-articolo", "it", "published",
         category: "Tecnologia",
         tags: ["elixir", "phoenix"],
+        cover: "/images/articles/primo-articolo.jpg",
+        cover_alt: "Diagramma del primo articolo",
         body: "## Un sottotitolo\n\nContenuto **importante**.\n\n<script>alert('no')</script>"
       )
     )
@@ -54,6 +56,12 @@ defmodule ExBlogWeb.BlogControllerTest do
     refute one?(document, "#article-body script")
     assert one?(document, ~s(a[href="/tag/elixir?lang=it"]))
     assert one?(document, ~s(a[hreflang="en"][href="/en/first-article"]))
+    assert one?(document, "#article-cover")
+
+    assert one?(
+             document,
+             ~s(img#article-cover-image[src="/images/articles/primo-articolo.jpg"][alt="Diagramma del primo articolo"])
+           )
 
     assert LazyHTML.attribute(LazyHTML.query(document, ~s(meta[property="og:type"])), "content") ==
              ["article"]
@@ -123,11 +131,15 @@ defmodule ExBlogWeb.BlogControllerTest do
     category = Keyword.get(opts, :category)
     tags = Keyword.get(opts, :tags, [])
     translation_of = Keyword.get(opts, :translation_of)
+    cover = Keyword.get(opts, :cover)
+    cover_alt = Keyword.get(opts, :cover_alt)
     body = Keyword.get(opts, :body, "Testo dell'articolo.")
 
     optional =
       [
         category && "category: #{category}",
+        cover && "cover: #{cover}",
+        cover_alt && "cover_alt: #{cover_alt}",
         translation_of && "translation_of: #{translation_of}"
       ]
       |> Enum.reject(&is_nil/1)
