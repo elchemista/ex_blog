@@ -25,6 +25,49 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/ex_blog"
 import topbar from "../vendor/topbar"
 
+const preferredTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+
+const storedTheme = () => {
+  try {
+    return window.localStorage.getItem("ex-blog:theme")
+  } catch (_error) {
+    return null
+  }
+}
+
+const applyTheme = theme => {
+  const resolved = theme === "dark" || theme === "light" ? theme : preferredTheme()
+  document.documentElement.dataset.theme = resolved
+  document.querySelectorAll("[data-theme-toggle]").forEach(button => {
+    button.setAttribute("aria-pressed", String(resolved === "dark"))
+  })
+}
+
+applyTheme(storedTheme())
+
+document.addEventListener("click", event => {
+  const toggle = event.target.closest("[data-theme-toggle]")
+  if (!toggle) return
+
+  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"
+
+  try {
+    window.localStorage.setItem("ex-blog:theme", nextTheme)
+  } catch (_error) {
+    // A private browser context may make localStorage unavailable.
+  }
+
+  applyTheme(nextTheme)
+})
+
+window.addEventListener("storage", event => {
+  if (event.key === "ex-blog:theme") applyTheme(event.newValue)
+})
+
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (!storedTheme()) applyTheme(null)
+})
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
@@ -80,4 +123,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-
