@@ -23,6 +23,9 @@ defmodule ExBlog.AI do
 
     purpose(:route_classification, prefer: :fast)
     purpose(:response_generation, prefer: :balanced)
+    purpose(:category_generation, prefer: :fast)
+    purpose(:title_generation, prefer: :balanced)
+    purpose(:seo_generation, prefer: :balanced)
     purpose(:article_generation, prefer: :deep)
     purpose(:page_audit, prefer: :balanced)
     default(:balanced)
@@ -32,7 +35,7 @@ defmodule ExBlog.AI do
     channel(:telegram,
       type: :telegram,
       adapter: Spectre.Beam.Adapters.ExGram,
-      capabilities: [:text],
+      capabilities: [:text, :image],
       planner_exposure: :none,
       typing: true
     )
