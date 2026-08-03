@@ -4,5 +4,8 @@
 - Categoria: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :category), 80) %>
 - Lingua: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :lang), 32) %>
 - Brief: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :brief), 1_000) %>
+- Articolo: generato con OpenRouter (modello deep)
+- SEO e tag: <%= if Map.get(article, :generate_seo) do %>generati con OpenRouter<% else %>non richiesti<% end %>
+- Copertina: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :cover) || "nessuna", 512) %>
 
 Conferma con “sì” per generare e salvare l'articolo, oppure rispondi “no” per annullare.
