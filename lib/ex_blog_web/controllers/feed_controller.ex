@@ -33,6 +33,7 @@ defmodule ExBlogWeb.FeedController do
       """
       User-agent: *
       Allow: /
+      Disallow: /admin
       Disallow: /mcp
 
       Sitemap: #{absolute("/sitemap.xml")}
