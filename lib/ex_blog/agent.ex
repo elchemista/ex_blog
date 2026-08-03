@@ -34,6 +34,7 @@ defmodule ExBlog.Agent do
     terminal_labels: [
       :UNSAFE,
       :CANCEL_ARTICLE_CREATION,
+      :ATTACH_ARTICLE_IMAGE,
       :LIST_ARTICLES,
       :READ_ARTICLE,
       :SEARCH_ARTICLES,
@@ -47,6 +48,7 @@ defmodule ExBlog.Agent do
       :CAPTURE_ARTICLE_CATEGORY,
       :CAPTURE_ARTICLE_LANGUAGE,
       :CAPTURE_ARTICLE_BRIEF,
+      :CAPTURE_ARTICLE_SEO,
       :REVISE_ARTICLE,
       :TRANSLATE_ARTICLE,
       :GENERATE_ARTICLE_SEO,
