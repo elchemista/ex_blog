@@ -19,7 +19,8 @@ defmodule ExBlog.Application do
         ExBlog.Repo,
         ExBlogWeb.Telemetry,
         {DNSCluster, query: Application.get_env(:ex_blog, :dns_cluster_query) || :ignore},
-        {Phoenix.PubSub, name: ExBlog.PubSub}
+        {Phoenix.PubSub, name: ExBlog.PubSub},
+        ExBlog.Admin.LoginThrottle
       ] ++ content_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
 
     # See https://elixir.hexdocs.pm/Supervisor.html
