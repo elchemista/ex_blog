@@ -2,9 +2,17 @@ defmodule ExBlog.Agent.Skills.Editorial do
   @moduledoc """
   Editorial capability with a persistent, multi-turn article creation flow.
 
-  The nested creation flows describe the current field being collected. A
-  completed intake is converted to Action Language and validated by Kinetic
-  before Spectre stages the protected repository mutation.
+  The nested flows are the workflow: each leaf captures exactly one editorial
+  decision and `Spectre.State.current_flow` persists the cursor between
+  Telegram messages. Free text is routed deterministically to that leaf by the
+  host router plug, while global interrupts keep `/cancel` and Telegram image
+  attachment available at every step.
+
+  Title and category generation are read-only OpenRouter leaf calls. They fill
+  state but never touch Git. Once the administrator selects article and SEO
+  generation, the completed intake becomes real Action Language, Kinetic
+  validates it against the `@al` catalog, and Spectre stages the protected
+  repository mutation behind the skill policy.
   """
 
   use Spectre.Skill,
@@ -12,9 +20,12 @@ defmodule ExBlog.Agent.Skills.Editorial do
     version: 1,
     prompt_root: "lib/ex_blog_web/prompts/skills/editorial"
 
+  alias ExBlog.Agent.EditorialAI
   alias ExBlog.Agent.KineticActions
   alias ExBlog.Config
   alias ExBlog.Content
+  alias ExBlog.Content.Asset
+  alias ExBlog.Telegram.Image
   alias Spectre.Action
   alias Spectre.ActionConfig
   alias Spectre.ActionPlanner
@@ -25,7 +36,13 @@ defmodule ExBlog.Agent.Skills.Editorial do
   alias Spectre.State
 
   @workflow_key :article_creation
-  @creation_flows [:article_title, :article_category, :article_language, :article_brief]
+  @creation_flows [
+    :article_brief,
+    :article_language,
+    :article_category,
+    :article_title,
+    :article_seo
+  ]
 
   requires_action(:create_article, mode: :write)
   requires_action(:revise_article, mode: :write)
@@ -58,6 +75,15 @@ defmodule ExBlog.Agent.Skills.Editorial do
     run(:cancel_creation)
   end
 
+  # Beam turns an authenticated Telegram photo into this private intent. As a
+  # global interrupt it wins over whichever free-text field currently owns the
+  # conversation, then returns to that same leaf after storing the asset.
+  interrupt :ATTACH_ARTICLE_IMAGE,
+    regex: ~r/^\/attach-image$/u,
+    cache: false do
+    run(:attach_image)
+  end
+
   flow :editorial do
     flow :article_creation do
       on :START_ARTICLE_CREATION,
@@ -67,15 +93,9 @@ defmodule ExBlog.Agent.Skills.Editorial do
         run(:start_creation)
       end
 
-      flow :article_title do
-        on :CAPTURE_ARTICLE_TITLE, via: [:llm_classifier], cache: false do
-          run(:capture_title)
-        end
-      end
-
-      flow :article_category do
-        on :CAPTURE_ARTICLE_CATEGORY, via: [:llm_classifier], cache: false do
-          run(:capture_category)
+      flow :article_brief do
+        on :CAPTURE_ARTICLE_BRIEF, via: [:llm_classifier], cache: false do
+          run(:capture_brief)
         end
       end
 
@@ -85,9 +105,21 @@ defmodule ExBlog.Agent.Skills.Editorial do
         end
       end
 
-      flow :article_brief do
-        on :CAPTURE_ARTICLE_BRIEF, via: [:llm_classifier], cache: false do
-          run(:capture_brief)
+      flow :article_category do
+        on :CAPTURE_ARTICLE_CATEGORY, via: [:llm_classifier], cache: false do
+          run(:capture_category)
+        end
+      end
+
+      flow :article_title do
+        on :CAPTURE_ARTICLE_TITLE, via: [:llm_classifier], cache: false do
+          run(:capture_title)
+        end
+      end
+
+      flow :article_seo do
+        on :CAPTURE_ARTICLE_SEO, via: [:llm_classifier], cache: false do
+          run(:capture_seo)
         end
       end
     end
@@ -123,38 +155,22 @@ defmodule ExBlog.Agent.Skills.Editorial do
   @doc false
   @spec start_creation(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def start_creation(%Input{} = input, %Context{} = ctx) do
-    advance(input, ctx, :article_title, %{}, :article_title_request)
+    advance(input, ctx, :article_brief, %{}, :article_brief_request)
   end
 
   @doc false
-  @spec capture_title(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
-  def capture_title(%Input{text: text} = input, %Context{} = ctx) do
-    case bounded_field(text, 160) do
-      {:ok, title} ->
-        workflow = ctx |> workflow() |> Map.put(:title, title)
-
-        advance(input, ctx, :article_category, workflow, :article_category_request,
-          category_options: category_options()
-        )
-
-      {:error, _reason} ->
-        invalid_field(input, ctx, "titolo", 160)
-    end
-  end
-
-  @doc false
-  @spec capture_category(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
-  def capture_category(%Input{text: text} = input, %Context{} = ctx) do
-    case bounded_field(text, 80) do
-      {:ok, category} ->
-        workflow = ctx |> workflow() |> Map.put(:category, category)
+  @spec capture_brief(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
+  def capture_brief(%Input{text: text} = input, %Context{} = ctx) do
+    case bounded_field(text, 8_000) do
+      {:ok, brief} ->
+        workflow = ctx |> workflow() |> Map.put(:brief, brief)
 
         advance(input, ctx, :article_language, workflow, :article_language_request,
           languages: Enum.join(Config.get().supported_languages, ", ")
         )
 
       {:error, _reason} ->
-        invalid_field(input, ctx, "categoria", 80)
+        invalid_field(input, ctx, "brief", 8_000)
     end
   end
 
@@ -165,7 +181,10 @@ defmodule ExBlog.Agent.Skills.Editorial do
 
     if language in Config.get().supported_languages do
       workflow = ctx |> workflow() |> Map.put(:lang, language)
-      advance(input, ctx, :article_brief, workflow, :article_brief_request)
+
+      advance(input, ctx, :article_category, workflow, :article_category_request,
+        category_options: category_options()
+      )
     else
       invalid_field(input, ctx, "lingua", 32,
         allowed: Enum.join(Config.get().supported_languages, ", ")
@@ -174,15 +193,67 @@ defmodule ExBlog.Agent.Skills.Editorial do
   end
 
   @doc false
-  @spec capture_brief(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
-  def capture_brief(%Input{text: text} = input, %Context{} = ctx) do
-    case bounded_field(text, 8_000) do
-      {:ok, brief} ->
-        workflow = ctx |> workflow() |> Map.put(:brief, brief)
+  @spec capture_category(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
+  def capture_category(%Input{text: text} = input, %Context{} = ctx) do
+    if generate_request?(text, :category) do
+      generate_category(input, ctx)
+    else
+      case bounded_field(text, 80) do
+        {:ok, category} -> continue_after_category(input, ctx, category, false)
+        {:error, _reason} -> invalid_field(input, ctx, "categoria", 80)
+      end
+    end
+  end
+
+  @doc false
+  @spec capture_title(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
+  def capture_title(%Input{text: text} = input, %Context{} = ctx) do
+    if generate_request?(text, :title) do
+      generate_title(input, ctx)
+    else
+      case bounded_field(text, 160) do
+        {:ok, title} -> continue_after_title(input, ctx, title, false)
+        {:error, _reason} -> invalid_field(input, ctx, "titolo", 160)
+      end
+    end
+  end
+
+  @doc false
+  @spec capture_seo(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
+  def capture_seo(%Input{text: text} = input, %Context{} = ctx) do
+    case seo_choice(text) do
+      {:ok, generate_seo?} ->
+        workflow = ctx |> workflow() |> Map.put(:generate_seo, generate_seo?)
         stage_creation(input, ctx, workflow)
 
-      {:error, _reason} ->
-        invalid_field(input, ctx, "brief", 8_000)
+      :error ->
+        reply(:article_seo_invalid, input, ctx)
+    end
+  end
+
+  @doc false
+  @spec attach_image(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
+  def attach_image(%Input{} = input, %Context{} = ctx) do
+    if active?(ctx.state) do
+      with {:ok, downloaded} <- Image.download(input, ctx.opts),
+           {:ok, asset} <- Asset.store(downloaded.bytes, asset_options(ctx)) do
+        workflow =
+          ctx
+          |> workflow()
+          |> Map.put(:cover, asset.public_path)
+          |> Map.put(:cover_alt, downloaded.caption)
+
+        state = put_workflow(ctx.state, workflow)
+
+        reply(:article_image_attached, input, %{ctx | state: state},
+          cover: asset.public_path,
+          next_step: step_instruction(state.current_flow)
+        )
+      else
+        {:error, _reason} -> reply(:article_image_failed, input, ctx)
+      end
+    else
+      reply(:article_image_requires_creation, input, ctx)
     end
   end
 
@@ -207,9 +278,53 @@ defmodule ExBlog.Agent.Skills.Editorial do
     flow in @creation_flows and is_map(Map.get(data, @workflow_key))
   end
 
+  defp generate_category(input, ctx) do
+    options = category_options()
+
+    case EditorialAI.category(workflow(ctx), options, ctx) do
+      {:ok, category} -> continue_after_category(input, ctx, category, true)
+      {:error, _reason} -> generation_failed(:category, input, ctx)
+    end
+  end
+
+  defp generate_title(input, ctx) do
+    case EditorialAI.title(workflow(ctx), ctx) do
+      {:ok, title} -> continue_after_title(input, ctx, title, true)
+      {:error, _reason} -> generation_failed(:title, input, ctx)
+    end
+  end
+
+  defp continue_after_category(input, ctx, category, generated?) do
+    workflow =
+      ctx
+      |> workflow()
+      |> Map.put(:category, category)
+      |> mark_generated(:category, generated?)
+
+    advance(input, ctx, :article_title, workflow, :article_title_request, category: category)
+  end
+
+  defp continue_after_title(input, ctx, title, generated?) do
+    workflow =
+      ctx
+      |> workflow()
+      |> Map.put(:title, title)
+      |> mark_generated(:title, generated?)
+
+    advance(input, ctx, :article_seo, workflow, :article_seo_request,
+      title: title,
+      title_generated?: generated?
+    )
+  end
+
+  defp generation_failed(field, input, ctx) do
+    reply(:article_generation_failed, input, ctx, field: field_label(field))
+  end
+
   @spec stage_creation(Input.t(), Context.t(), map()) ::
           {:ok, Result.t()} | {:error, term()}
   defp stage_creation(input, ctx, workflow) do
+    workflow = Map.put(workflow, :cover_alt, cover_alt(workflow))
     command = creation_command(workflow)
 
     planner_opts =
@@ -241,12 +356,11 @@ defmodule ExBlog.Agent.Skills.Editorial do
   @spec advance(Input.t(), Context.t(), atom(), map(), atom(), keyword()) ::
           {:ok, Result.t()} | {:error, term()}
   defp advance(input, ctx, flow, workflow, prompt, assigns \\ []) do
-    state = %{
+    state =
       ctx.state
-      | current_flow: flow,
-        current_scope: ctx.route.scope,
-        data: Map.put(ctx.state.data, @workflow_key, workflow)
-    }
+      |> put_workflow(workflow)
+      |> Map.put(:current_flow, flow)
+      |> Map.put(:current_scope, ctx.route.scope)
 
     reply(prompt, input, %{ctx | state: state}, assigns)
   end
@@ -272,6 +386,11 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
+  @spec put_workflow(State.t(), map()) :: State.t()
+  defp put_workflow(%State{} = state, workflow) do
+    %{state | data: Map.put(state.data, @workflow_key, workflow)}
+  end
+
   @spec clear_workflow(State.t()) :: State.t()
   defp clear_workflow(%State{} = state) do
     %{
@@ -293,6 +412,32 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
+  defp generate_request?(text, field) do
+    value = text |> String.trim() |> String.downcase()
+    field_names = if field == :title, do: "titolo|title", else: "categoria|category"
+
+    Regex.match?(
+      ~r/^(?:\/?genera|generate|proponi|scegli|crea)(?:\s+(?:il|la|un|una))?(?:\s+(?:#{field_names}))?[.!]?$/iu,
+      value
+    ) or
+      Regex.match?(~r/^(?:fai|decidi|scegli)\s+tu[.!]?$/iu, value)
+  end
+
+  defp seo_choice(text) do
+    value = text |> String.trim() |> String.downcase()
+
+    cond do
+      Regex.match?(~r/^(?:\/?genera(?:\s+(?:la\s+)?)?(?:seo)?|seo|s[iì]|yes)[.!]?$/iu, value) ->
+        {:ok, true}
+
+      Regex.match?(~r/^(?:salta|senza\s+seo|no|skip)[.!]?$/iu, value) ->
+        {:ok, false}
+
+      true ->
+        :error
+    end
+  end
+
   @spec category_options() :: String.t()
   defp category_options do
     Content.list(lang: :all, status: :all)
@@ -301,10 +446,37 @@ defmodule ExBlog.Agent.Skills.Editorial do
     |> Enum.uniq()
     |> Enum.sort()
     |> case do
-      [] -> "Nessuna categoria esistente: scrivine una nuova."
+      [] -> "Nessuna categoria esistente: creane una nuova."
       categories -> Enum.map_join(categories, "\n", &"- #{&1}")
     end
   end
+
+  defp mark_generated(workflow, _field, false), do: workflow
+
+  defp mark_generated(workflow, field, true) do
+    Map.update(workflow, :ai_fields, [field], fn fields -> Enum.uniq([field | fields]) end)
+  end
+
+  defp cover_alt(%{cover_alt: value}) when is_binary(value) and value != "", do: value
+  defp cover_alt(%{cover: cover, title: title}) when is_binary(cover), do: "Copertina di #{title}"
+  defp cover_alt(_workflow), do: nil
+
+  defp asset_options(%Context{opts: opts}) do
+    case Keyword.get(opts, :article_asset_root) do
+      root when is_binary(root) -> [root: root]
+      _default -> []
+    end
+  end
+
+  defp step_instruction(:article_brief), do: "descrivi il brief editoriale"
+  defp step_instruction(:article_language), do: "indica la lingua"
+  defp step_instruction(:article_category), do: "scrivi la categoria o ‘genera categoria’"
+  defp step_instruction(:article_title), do: "scrivi il titolo o ‘genera titolo’"
+  defp step_instruction(:article_seo), do: "scrivi ‘genera SEO’ oppure ‘salta’"
+  defp step_instruction(_flow), do: "continua il flusso editoriale"
+
+  defp field_label(:category), do: "categoria"
+  defp field_label(:title), do: "titolo"
 
   @spec creation_command(map()) :: String.t()
   defp creation_command(workflow) do
@@ -312,7 +484,10 @@ defmodule ExBlog.Agent.Skills.Editorial do
       workflow.title,
       workflow.lang,
       workflow.category,
-      workflow.brief
+      workflow.brief,
+      Map.get(workflow, :generate_seo, false),
+      Map.get(workflow, :cover),
+      Map.get(workflow, :cover_alt)
     )
   end
 end
