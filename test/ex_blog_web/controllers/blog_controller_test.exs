@@ -92,6 +92,7 @@ defmodule ExBlogWeb.BlogControllerTest do
     assert response(atom, 200) =~ "http://www.w3.org/2005/Atom"
 
     robots = get(build_conn(), "/robots.txt")
+    assert response(robots, 200) =~ "Disallow: /admin"
     assert response(robots, 200) =~ "Disallow: /mcp"
 
     first = get(build_conn(), "/it")
