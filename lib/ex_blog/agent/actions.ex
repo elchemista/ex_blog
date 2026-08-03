@@ -89,23 +89,51 @@ defmodule ExBlog.Agent.Actions do
     with :ok <- require_text(title, :title),
          :ok <- require_text(slug, :slug),
          {:ok, response} <-
-           AI.complete(:deep, prompt,
-             purpose: :article_generation,
-             subject_type: "article",
-             subject_ref: subject_ref,
-             conversation_id: conversation_id(ctx),
-             estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.10")
+           complete(
+             :deep,
+             prompt,
+             [
+               purpose: :article_generation,
+               subject_type: "article",
+               subject_ref: subject_ref,
+               conversation_id: conversation_id(ctx),
+               estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.10")
+             ],
+             ctx
+           ),
+         body <- response_text(response),
+         :ok <- require_text(body, :body),
+         {:ok, seo} <-
+           maybe_generate_seo(
+             args,
+             ctx,
+             %{
+               lang: lang,
+               title: title,
+               category: category,
+               cover_alt: argument(args, :cover_alt),
+               body: body
+             },
+             subject_ref
            ),
          {:ok, article} <-
-           Writer.create(%{
-             title: title,
-             slug: slug,
-             lang: lang,
-             status: :draft,
-             category: category,
-             tags: argument(args, :tags) || [],
-             body: response_text(response)
-           }) do
+           writer_create(
+             Map.merge(
+               %{
+                 title: title,
+                 slug: slug,
+                 lang: lang,
+                 status: :draft,
+                 category: category,
+                 tags: argument(args, :tags) || [],
+                 cover: argument(args, :cover),
+                 cover_alt: argument(args, :cover_alt),
+                 body: body
+               },
+               seo
+             ),
+             ctx
+           ) do
       {:ok, article_summary(article)}
     end
   end
@@ -132,14 +160,17 @@ defmodule ExBlog.Agent.Actions do
          {:ok, article} <- Content.get(source_lang, slug, published_only?: false),
          :ok <- supported_language(target),
          {:ok, response} <-
-           AI.complete(
+           complete(
              :deep,
              translation_prompt(article, target),
-             purpose: :translation,
-             subject_type: "article",
-             subject_ref: article.path,
-             conversation_id: conversation_id(ctx),
-             estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.08")
+             [
+               purpose: :translation,
+               subject_type: "article",
+               subject_ref: article.path,
+               conversation_id: conversation_id(ctx),
+               estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.08")
+             ],
+             ctx
            ),
          {:ok, translated} <-
            Writer.create(%{
@@ -148,6 +179,8 @@ defmodule ExBlog.Agent.Actions do
              status: :draft,
              category: article.category,
              tags: article.tags,
+             cover: article.cover,
+             cover_alt: article.cover_alt,
              translation_of: article.path,
              body: response_text(response)
            }) do
@@ -159,22 +192,10 @@ defmodule ExBlog.Agent.Actions do
   def generate_seo(args, ctx \\ nil) do
     with {:ok, lang, slug} <- identifier(args, ctx),
          {:ok, article} <- Content.get(lang, slug, published_only?: false),
-         {:ok, response} <-
-           AI.complete(:balanced, seo_prompt(article),
-             purpose: :seo_generation,
-             subject_type: "article",
-             subject_ref: article.path,
-             conversation_id: conversation_id(ctx),
-             estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.02")
-           ),
-         {:ok, seo} <- decode_json(response_text(response)),
+         {:ok, generated} <- seo_metadata(article, args, ctx, article.path),
+         seo <- preserve_editorial_metadata(generated, article),
          {:ok, updated} <-
-           Writer.update(article, %{
-             seo_title: Map.get(seo, "seo_title"),
-             seo_description: Map.get(seo, "seo_description"),
-             cover_alt: Map.get(seo, "cover_alt"),
-             updated: Date.utc_today()
-           }) do
+           Writer.update(article, Map.put(seo, :updated, Date.utc_today())) do
       {:ok, article_summary(updated)}
     end
   end
@@ -207,12 +228,17 @@ defmodule ExBlog.Agent.Actions do
     prompt = Prompt.article_revision(%{instructions: instructions, body: article.body})
 
     with {:ok, response} <-
-           AI.complete(level, prompt,
-             purpose: :article_revision,
-             subject_type: "article",
-             subject_ref: article.path,
-             conversation_id: conversation_id(ctx),
-             estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.05")
+           complete(
+             level,
+             prompt,
+             [
+               purpose: :article_revision,
+               subject_type: "article",
+               subject_ref: article.path,
+               conversation_id: conversation_id(ctx),
+               estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.05")
+             ],
+             ctx
            ) do
       proposed = response_text(response)
 
@@ -316,7 +342,144 @@ defmodule ExBlog.Agent.Actions do
       })
 
   defp seo_prompt(article),
-    do: Prompt.article_seo(%{lang: article.lang, body: article.body})
+    do:
+      Prompt.article_seo(%{
+        lang: article.lang,
+        title: article.title,
+        category: article.category,
+        cover_alt: article.cover_alt,
+        body: article.body
+      })
+
+  defp maybe_generate_seo(args, ctx, article, subject_ref) do
+    if truthy?(argument(args, :generate_seo)) do
+      with {:ok, generated} <- seo_metadata(article, args, ctx, subject_ref) do
+        requested_alt = nonblank_string(Map.get(article, :cover_alt))
+        requested_tags = normalized_tags(argument(args, :tags))
+
+        {:ok,
+         generated
+         |> Map.put(:cover_alt, requested_alt || generated.cover_alt)
+         |> Map.put(:tags, Enum.take(Enum.uniq(requested_tags ++ generated.tags), 8))}
+      end
+    else
+      {:ok, %{}}
+    end
+  end
+
+  defp seo_metadata(%ExBlog.Content.Article{} = article, args, ctx, subject_ref) do
+    with {:ok, response} <-
+           complete(
+             :balanced,
+             seo_prompt(article),
+             seo_options(args, ctx, subject_ref),
+             ctx
+           ),
+         {:ok, decoded} <- decode_json(response_text(response)) do
+      normalize_seo(decoded)
+    end
+  end
+
+  defp seo_metadata(article, args, ctx, subject_ref) when is_map(article) do
+    with {:ok, response} <-
+           complete(
+             :balanced,
+             Prompt.article_seo(article),
+             seo_options(args, ctx, subject_ref),
+             ctx
+           ),
+         {:ok, decoded} <- decode_json(response_text(response)) do
+      normalize_seo(decoded)
+    end
+  end
+
+  defp seo_options(args, ctx, subject_ref) do
+    estimated_cost =
+      argument(args, :seo_estimated_cost_eur) ||
+        decimal_argument(args, :estimated_cost_eur, "0.02")
+
+    [
+      purpose: :seo_generation,
+      subject_type: "article",
+      subject_ref: subject_ref,
+      conversation_id: conversation_id(ctx),
+      estimated_cost_eur: estimated_cost
+    ]
+  end
+
+  defp normalize_seo(seo) do
+    with {:ok, seo_title} <- bounded_json_string(seo, "seo_title", 60, true),
+         {:ok, seo_description} <- bounded_json_string(seo, "seo_description", 160, true),
+         {:ok, cover_alt} <- bounded_json_string(seo, "cover_alt", 500, false) do
+      {:ok,
+       %{
+         seo_title: seo_title,
+         seo_description: seo_description,
+         cover_alt: cover_alt,
+         tags: normalized_tags(Map.get(seo, "tags"))
+       }}
+    end
+  end
+
+  defp bounded_json_string(map, key, maximum, required?) do
+    case Map.get(map, key) do
+      value when is_binary(value) ->
+        value = value |> String.trim() |> String.slice(0, maximum)
+
+        if value == "" and required?,
+          do: {:error, {:invalid_model_field, key}},
+          else: {:ok, empty_to_nil(value)}
+
+      nil when not required? ->
+        {:ok, nil}
+
+      _invalid ->
+        {:error, {:invalid_model_field, key}}
+    end
+  end
+
+  defp normalized_tags(tags) when is_list(tags) do
+    tags
+    |> Enum.filter(&is_binary/1)
+    |> Enum.map(&(String.trim(&1) |> String.slice(0, 50)))
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.uniq()
+    |> Enum.take(6)
+  end
+
+  defp normalized_tags(_tags), do: []
+
+  defp preserve_editorial_metadata(generated, article) do
+    generated
+    |> Map.put(:cover_alt, article.cover_alt || generated.cover_alt)
+    |> Map.put(:tags, Enum.take(Enum.uniq(article.tags ++ generated.tags), 8))
+  end
+
+  defp complete(level, prompt, opts, ctx) do
+    opts = maybe_put_req_options(opts, ctx)
+
+    case context_option(ctx, :ai_complete) do
+      fun when is_function(fun, 3) -> fun.(level, prompt, opts)
+      _default -> AI.complete(level, prompt, opts)
+    end
+  end
+
+  defp maybe_put_req_options(opts, ctx) do
+    case context_option(ctx, :req_options) do
+      req_options when is_list(req_options) -> Keyword.put(opts, :req_options, req_options)
+      _missing -> opts
+    end
+  end
+
+  defp context_option(%{opts: opts}, key) when is_list(opts), do: Keyword.get(opts, key)
+  defp context_option(_ctx, _key), do: nil
+
+  defp writer_create(params, ctx) do
+    case context_option(ctx, :article_writer) do
+      fun when is_function(fun, 1) -> fun.(params)
+      _default -> Writer.create(params)
+    end
+  end
 
   defp decode_json(text) do
     text =
@@ -354,6 +517,10 @@ defmodule ExBlog.Agent.Actions do
       date: date_string(article.date),
       category: article.category,
       tags: article.tags,
+      seo_title: article.seo_title,
+      seo_description: article.seo_description,
+      cover: article.cover,
+      cover_alt: article.cover_alt,
       path: article.path
     }
   end
@@ -386,6 +553,8 @@ defmodule ExBlog.Agent.Actions do
   end
 
   defp response_text(%{text: text}) when is_binary(text), do: String.trim(text)
+  defp response_text(%{"text" => text}) when is_binary(text), do: String.trim(text)
+  defp response_text(_response), do: ""
 
   defp input_text(%{input: %{text: text}}) when is_binary(text), do: text
   defp input_text(_ctx), do: nil
@@ -406,6 +575,10 @@ defmodule ExBlog.Agent.Actions do
   end
 
   defp truthy?(value), do: value in [true, "true", "1", 1]
+  defp empty_to_nil(""), do: nil
+  defp empty_to_nil(value), do: value
+  defp nonblank_string(value) when is_binary(value), do: value |> String.trim() |> empty_to_nil()
+  defp nonblank_string(_value), do: nil
   defp require_text(value, _field) when is_binary(value) and value != "", do: :ok
   defp require_text(_value, field), do: {:error, {:missing_field, field}}
   defp date_string(%Date{} = date), do: Date.to_iso8601(date)
