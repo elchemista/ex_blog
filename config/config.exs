@@ -13,7 +13,8 @@ config :ex_blog,
   validate_runtime_config?: true,
   auto_migrate?: false,
   start_content?: true,
-  start_telegram?: true
+  start_telegram?: true,
+  secure_session_cookie?: config_env() == :prod
 
 config :ex_blog, ExBlog.Repo,
   migration_primary_key: [type: :binary_id],
