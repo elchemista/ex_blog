@@ -134,8 +134,9 @@ database TDLib persistente viene salvato in
 
 ## Telegram
 
-Il trasporto usa il client TDLib locale `../../personal/ex_gram` e quindi un
-account Telegram reale, non la Bot API. L’associazione si esegue dalla pagina
+Il trasporto usa il client TDLib
+[`elchemista/ex_gram`](https://github.com/elchemista/ex_gram) e quindi un account
+Telegram reale, non la Bot API. L’associazione si esegue dalla pagina
 protetta `/admin/telegram`; gli avvii successivi riutilizzano il database TDLib
 persistente sul volume.
 
