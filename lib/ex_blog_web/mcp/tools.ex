@@ -63,17 +63,24 @@ defmodule ExBlogWeb.MCP.Tools do
       ),
       tool(
         "create_article",
-        "Generate and commit a new draft. Obtain confirmation for the title and language before calling.",
+        "Generate a draft body and optional SEO metadata with OpenRouter, then commit the Markdown. Obtain confirmation before calling.",
         schema(
           %{
             title: string_schema("Article title", 160),
             slug: slug_schema(),
             lang: language_schema(),
             category: string_schema("Optional category", 120),
+            brief: string_schema("Editorial brief used for article generation", 8_000),
             tags: tags_schema(),
+            generate_seo: %{
+              type: "boolean",
+              description: "Also generate SEO title, description, image alt text, and tags"
+            },
+            cover: string_schema("Optional HTTPS URL or /images public path", 2_048),
+            cover_alt: string_schema("Optional accessible cover description", 500),
             estimated_cost_eur: cost_schema()
           },
-          ["title"]
+          ["title", "brief"]
         ),
         read_only: false,
         destructive: false,
