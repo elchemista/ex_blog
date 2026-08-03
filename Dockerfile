@@ -35,7 +35,6 @@ RUN apt-get update \
       gosu \
       libcap2 \
       libncurses6 \
-      libsqlite3-0 \
       libssl3 \
       libstdc++6 \
       locales \
