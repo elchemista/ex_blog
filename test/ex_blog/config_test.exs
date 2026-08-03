@@ -25,6 +25,7 @@ defmodule ExBlog.ConfigTest do
   test "aggregates invalid typed values" do
     env =
       full_env()
+      |> Map.put("EX_BLOG_ADMIN_PASSWORD_HASH", "not-an-argon2-hash")
       |> Map.put("EX_BLOG_ADMIN_TELEGRAM_ID", "not-an-id")
       |> Map.put("EX_BLOG_TELEGRAM_API_ID", "not-an-id")
       |> Map.put("EX_BLOG_TELEGRAM_SESSION_ID", "../unsafe")
@@ -33,6 +34,7 @@ defmodule ExBlog.ConfigTest do
       |> Map.put("EX_BLOG_GIT_SYNC_INTERVAL_MS", "0")
 
     assert {:error, message} = Config.load(env)
+    assert message =~ "EX_BLOG_ADMIN_PASSWORD_HASH: must be an Argon2 encoded hash"
     assert message =~ "EX_BLOG_ADMIN_TELEGRAM_ID: must be a positive integer"
     assert message =~ "EX_BLOG_TELEGRAM_API_ID: must be a positive integer"
     assert message =~ "EX_BLOG_TELEGRAM_SESSION_ID"
@@ -48,6 +50,7 @@ defmodule ExBlog.ConfigTest do
     inspected_config = inspect(config)
 
     refute output =~ "github-secret-value"
+    refute output =~ "argon2id"
     refute output =~ "openrouter-secret-value"
     refute output =~ "telegram-api-secret-value"
     refute output =~ "mcp-secret-value"
@@ -62,10 +65,11 @@ defmodule ExBlog.ConfigTest do
     config = Config.load!(full_env())
 
     text =
-      "github-secret-value openrouter-secret-value telegram-api-secret-value mcp-secret-value"
+      "$argon2id$admin-password-hash github-secret-value openrouter-secret-value " <>
+        "telegram-api-secret-value mcp-secret-value"
 
     assert Config.redact(text, config) ==
-             "[REDACTED] [REDACTED] [REDACTED] [REDACTED]"
+             "[REDACTED] [REDACTED] [REDACTED] [REDACTED] [REDACTED]"
   end
 
   test "validates language membership and safe content paths" do
@@ -82,6 +86,7 @@ defmodule ExBlog.ConfigTest do
 
   defp full_env do
     %{
+      "EX_BLOG_ADMIN_PASSWORD_HASH" => "$argon2id$admin-password-hash",
       "EX_BLOG_ADMIN_TELEGRAM_ID" => "123456789",
       "EX_BLOG_TELEGRAM_API_ID" => "12345",
       "EX_BLOG_TELEGRAM_API_HASH" => "telegram-api-secret-value",
