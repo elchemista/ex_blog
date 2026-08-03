@@ -5,47 +5,6 @@ defmodule ExBlogWeb.FeedController do
   alias ExBlog.Content
   alias ExBlogWeb.PublicCache
 
-  def sitemap(conn, _params) do
-    entries =
-      Content.list(lang: :all)
-      |> Enum.map_join("\n", fn article ->
-        """
-          <url>
-            <loc>#{xml(absolute("/#{article.lang}/#{article.slug}"))}</loc>
-            <lastmod>#{xml(date_string(article.updated || article.date))}</lastmod>
-          </url>
-        """
-      end)
-
-    body =
-      """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-      #{entries}
-      </urlset>
-      """
-
-    PublicCache.render(conn, "sitemap", &xml_response(&1, body, "application/xml"))
-  end
-
-  def robots(conn, _params) do
-    body =
-      """
-      User-agent: *
-      Allow: /
-      Disallow: /admin
-      Disallow: /mcp
-
-      Sitemap: #{absolute("/sitemap.xml")}
-      """
-
-    PublicCache.render(conn, "robots", fn cached_conn ->
-      cached_conn
-      |> put_resp_content_type("text/plain")
-      |> send_resp(:ok, body)
-    end)
-  end
-
   def rss(conn, _params) do
     language = Config.get().default_language
 
@@ -138,9 +97,6 @@ defmodule ExBlogWeb.FeedController do
 
   defp date_from_article(nil), do: Date.utc_today()
   defp date_from_article(article), do: article.updated || article.date || Date.utc_today()
-
-  defp date_string(%Date{} = date), do: Date.to_iso8601(date)
-  defp date_string(_date), do: nil
 
   defp iso8601(%Date{} = date), do: Date.to_iso8601(date) <> "T00:00:00Z"
   defp iso8601(_date), do: Date.utc_today() |> iso8601()
