@@ -44,6 +44,49 @@ defmodule ExBlog.Telegram.TransportTest do
     assert_receive {ClientFake, {:send_message, "test_session", "-10042", "second"}}
   end
 
+  test "projects ExGram authorization events without persisting login inputs" do
+    transport = start_transport(fn _event -> :ignore end)
+
+    send(transport, {:ex_gram_session, :auth, {:wait_phone_number}})
+    _state = :sys.get_state(transport)
+
+    assert %{
+             auth_state: :wait_phone_number,
+             connection_status: :authenticating,
+             qr_link: nil
+           } = Transport.snapshot(transport)
+
+    assert :ok = Transport.request_qr(transport)
+    assert_receive {ClientFake, {:request_qr_code_login, "test_session"}}
+    assert %{auth_state: :requesting_qr} = Transport.snapshot(transport)
+
+    login_link = "tg://login?token=short-lived"
+    send(transport, {:ex_gram_session, :auth, {:wait_other_device_confirmation, login_link}})
+    _state = :sys.get_state(transport)
+
+    assert %{auth_state: :wait_other_device_confirmation, qr_link: ^login_link} =
+             Transport.snapshot(transport)
+
+    assert :ok = Transport.provide_phone_number("+393331234567", transport)
+    assert_receive {ClientFake, {:provide_phone_number, "test_session", "+393331234567"}}
+
+    assert :ok = Transport.provide_auth_code("12345", transport)
+    assert_receive {ClientFake, {:provide_auth_code, "test_session", "12345"}}
+
+    assert :ok = Transport.provide_password("telegram-secret", transport)
+    assert_receive {ClientFake, {:provide_password, "test_session", "telegram-secret"}}
+
+    send(transport, {:ex_gram_session, :auth, {:status, :ready}})
+    _state = :sys.get_state(transport)
+
+    assert %{
+             auth_state: :ready,
+             connection_status: :connected,
+             password_hint: nil,
+             qr_link: nil
+           } = Transport.snapshot(transport)
+  end
+
   defp start_transport(handler) do
     start_supervised!(
       {Transport,
