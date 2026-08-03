@@ -4,7 +4,8 @@ ExBlog è un blog Phoenix controllato da un unico amministratore via Telegram e
 MCP. I contenuti canonici sono file Markdown in una repository GitHub; Phoenix
 li indicizza in ETS e li pubblica senza interrogazioni SQL nel percorso di
 lettura. Spectre orchestra la conversazione, Prism sceglie il livello del
-modello e SQLite conserva stato, memoria operativa e costi.
+modello, Kinetic valida le azioni `@al` e DETS conserva lo stato operativo
+locale senza un database SQL.
 
 ## Cosa è incluso
 
@@ -13,7 +14,10 @@ modello e SQLite conserva stato, memoria operativa e costi.
 - parsing CommonMark con `MDEx`, front matter con `YamlElixir` e HTML sanificato;
 - indice ETS sostituito atomicamente e sync Git periodico;
 - blog multilingua, tag, categorie, traduzioni, RSS, Atom, sitemap e JSON-LD;
-- agente editoriale Spectre con modelli OpenRouter selezionati a runtime;
+- agente Spectre organizzato in skill di lettura, editoriale e operazioni, con
+  prompt HEEx e azioni `@al` pianificate da Kinetic;
+- creazione articolo guidata da flow annidati per titolo, categoria, lingua e
+  brief, seguita da conferma esplicita prima di modificare Git;
 - verifica on demand delle pagine renderizzate con Spectre Lens e Lightpanda;
 - ledger dei token e limiti di spesa in euro;
 - area web amministratore protetta da password Argon2 per associare Telegram;
@@ -28,7 +32,6 @@ boot, dati e confini di sicurezza.
 
 - Elixir 1.19 o successivo e OTP compatibile;
 - Git;
-- SQLite 3;
 - Lightpanda compatibile con Spectre Lens (installato automaticamente
   nell'immagine Docker);
 - una repository GitHub dedicata ai contenuti;
@@ -86,13 +89,14 @@ problemi e termina prima di avviare il blog in uno stato parziale.
 Il processo di boot segue quest’ordine:
 
 ```text
-ENV → validazione → directory dati → migrazioni SQLite → repository Git
-    → parsing Markdown → indice ETS → Spectre/Prism → Telegram → endpoint web/MCP
+ENV → validazione → directory dati → storage DETS → repository Git
+    → parsing Markdown → indice ETS → Spectre/Prism/Kinetic → Telegram
+    → endpoint web/MCP
 ```
 
 La directory dati predefinita è `/data`; in locale è consigliato
 `EX_BLOG_DATA_DIR="$PWD/data"` perché il path deve essere assoluto. Il checkout
-vive in `data/repo` e SQLite in `data/ex_blog.db`.
+vive in `data/repo` e lo stato operativo in `data/runtime.dets`.
 
 ## Superfici pubbliche
 
@@ -225,11 +229,10 @@ controlli statici e avvia l’intera suite.
 
 4. Esegui `fly deploy`.
 
-Le migrazioni SQLite girano al boot sulla macchina che possiede il volume. Non
-va configurato un `release_command`: Fly lo eseguirebbe su una macchina
-temporanea priva del volume. La configurazione mantiene una sola macchina
-attiva (`min_machines_running = 1`) perché SQLite e il checkout sono locali al
-volume; GitHub resta la sorgente durevole dei contenuti.
+Non va configurato un `release_command`: lo storage DETS e il checkout vengono
+aperti direttamente sulla macchina che possiede il volume. La configurazione
+mantiene una sola macchina attiva (`min_machines_running = 1`) perché DETS e il
+checkout sono locali al volume; GitHub resta la sorgente durevole dei contenuti.
 
 Per cambiare credenziali, repository, modelli o amministratore, aggiorna ENV o
 Fly Secrets e riavvia. L’agente può spiegare quale variabile modificare, ma non
