@@ -1,28 +1,24 @@
 defmodule ExBlog.Agent.Memory do
   @moduledoc """
-  Minimal durable memory adapter for Spectre.
+  Minimal DETS-backed memory adapter for Spectre.
 
   It stores redaction-safe routing examples. Infrastructure configuration and
   provider credentials are never part of the persisted payload.
   """
 
-  import Ecto.Query
-
-  alias ExBlog.Agent.MemoryEntry
   alias ExBlog.Config
-  alias ExBlog.Repo
+  alias ExBlog.Storage
 
   @spec recall(String.t(), keyword()) :: {:ok, [map()]}
   def recall(text, opts) when is_binary(text) and is_list(opts) do
     agent = opts |> Keyword.get(:agent) |> agent_name()
+    cue = String.slice(text, 0, 2_000)
 
     memories =
-      MemoryEntry
-      |> where([entry], entry.agent == ^agent and entry.cue == ^text)
-      |> order_by([entry], desc: entry.updated_at)
-      |> limit(5)
-      |> Repo.all()
-      |> Enum.map(&%{cue: &1.cue, label: &1.label, verified?: &1.verified})
+      case Storage.fetch(storage_key(agent, cue)) do
+        {:ok, entries} when is_list(entries) -> entries
+        _missing -> []
+      end
 
     {:ok, memories}
   end
@@ -33,20 +29,10 @@ defmodule ExBlog.Agent.Memory do
     label = route_label(result)
 
     if safe_cue?(input.text) and is_binary(label) and label != "UNSAFE" do
-      result =
-        %MemoryEntry{}
-        |> MemoryEntry.changeset(%{
-          agent: agent_name(agent),
-          cue: String.slice(input.text, 0, 2_000),
-          label: label,
-          verified: false
-        })
-        |> Repo.insert()
+      cue = String.slice(input.text, 0, 2_000)
+      entry = %{cue: cue, label: label, verified?: false}
 
-      case result do
-        {:ok, _entry} -> :ok
-        {:error, reason} -> {:error, reason}
-      end
+      Storage.update(storage_key(agent_name(agent), cue), [], &prepend_entry(&1, entry))
     else
       :ok
     end
@@ -63,8 +49,14 @@ defmodule ExBlog.Agent.Memory do
 
   defp safe_cue?(_text), do: false
 
+  defp prepend_entry(entries, entry) do
+    entries = if is_list(entries), do: entries, else: []
+    {:put, Enum.take([entry | entries], 5), :ok}
+  end
+
   defp agent_name(nil), do: "unknown"
   defp agent_name(agent) when is_atom(agent), do: inspect(agent)
   defp agent_name(agent) when is_binary(agent), do: agent
   defp agent_name(_agent), do: "unknown"
+  defp storage_key(agent, cue), do: {:spectre_memory, agent_name(agent), cue}
 end
