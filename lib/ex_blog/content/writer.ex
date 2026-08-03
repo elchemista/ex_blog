@@ -146,8 +146,11 @@ defmodule ExBlog.Content.Writer do
          :ok <- valid_slug(attrs.slug),
          :ok <- supported_language(attrs.lang, config),
          :ok <- valid_status(attrs.status),
+         :ok <- maximum_length(attrs.title, 160, :title_too_long),
          :ok <- maximum_length(attrs.seo_title, 60, :seo_title_too_long),
-         :ok <- maximum_length(attrs.seo_description, 160, :seo_description_too_long) do
+         :ok <- maximum_length(attrs.seo_description, 160, :seo_description_too_long),
+         :ok <- maximum_length(attrs.cover_alt, 500, :cover_alt_too_long),
+         :ok <- valid_cover(attrs.cover) do
       {:ok, attrs}
     end
   end
@@ -178,6 +181,29 @@ defmodule ExBlog.Content.Writer do
   defp maximum_length(value, maximum, error) do
     if String.length(value) <= maximum, do: :ok, else: {:error, error}
   end
+
+  defp valid_cover(nil), do: :ok
+
+  defp valid_cover("/" <> rest) do
+    segments = String.split(rest, "/", trim: true)
+
+    if rest != "" and not String.starts_with?(rest, "/") and
+         not String.contains?(rest, ["\\", "\0"]) and
+         Enum.all?(segments, &(&1 not in [".", ".."])) do
+      :ok
+    else
+      {:error, :invalid_cover}
+    end
+  end
+
+  defp valid_cover(value) when is_binary(value) do
+    case URI.parse(value) do
+      %URI{scheme: "https", host: host} when is_binary(host) and host != "" -> :ok
+      _invalid -> {:error, :invalid_cover}
+    end
+  end
+
+  defp valid_cover(_value), do: {:error, :invalid_cover}
 
   defp article_path(attrs, config) do
     filename = "#{Date.to_iso8601(attrs.date)}-#{attrs.slug}.md"
@@ -266,6 +292,7 @@ defmodule ExBlog.Content.Writer do
     end
   end
 
+  defp normalize_string(nil), do: nil
   defp normalize_string(value) when is_atom(value), do: Atom.to_string(value)
   defp normalize_string(_value), do: nil
 
