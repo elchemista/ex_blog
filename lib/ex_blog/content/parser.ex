@@ -148,6 +148,8 @@ defmodule ExBlog.Content.Parser do
 
   defp excerpt(body) do
     body
+    |> String.replace(~r/<(?:script|style)\b[^>]*>.*?<\/(?:script|style)\s*>/isu, " ")
+    |> String.replace(~r/<[^>]+>/u, " ")
     |> String.replace(~r/```.*?```/s, " ")
     |> String.replace(~r/[#>*_`\[\]()!-]/u, " ")
     |> String.replace(~r/\s+/u, " ")
