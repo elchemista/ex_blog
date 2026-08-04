@@ -1,5 +1,9 @@
 import Config
 
+# Development can train and exercise the optional local classifier. Production
+# overrides this boundary with the hosted OpenRouter embedding adapter.
+config :ex_blog, :spectre_embedding_adapter, Spectre.Classifier.Embeddings.ExFastembed
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
