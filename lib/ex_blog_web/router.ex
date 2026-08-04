@@ -71,6 +71,32 @@ defmodule ExBlogWeb.Router do
     end
   end
 
+  # ChatGPT discovers these documents before it starts the OAuth flow.
+  scope "/.well-known", ExBlogWeb do
+    pipe_through :api
+
+    get "/oauth-protected-resource", OAuthMetadataController, :protected_resource
+    get "/oauth-protected-resource/mcp", OAuthMetadataController, :protected_resource
+    get "/oauth-authorization-server", OAuthMetadataController, :authorization_server
+  end
+
+  # Dynamic registration and token exchange are JSON protocol endpoints.
+  scope "/oauth", ExBlogWeb do
+    pipe_through :api
+
+    post "/register", OAuthController, :register
+    post "/token", OAuthController, :token
+    post "/revoke", OAuthController, :revoke
+  end
+
+  # Consent reuses the password-protected administrator browser session.
+  scope "/oauth", ExBlogWeb do
+    pipe_through [:browser, :admin_browser, :require_admin_authenticated]
+
+    get "/authorize", OAuthController, :authorize
+    post "/authorize", OAuthController, :decide
+  end
+
   scope "/", ExBlogWeb do
     pipe_through :mcp
 
