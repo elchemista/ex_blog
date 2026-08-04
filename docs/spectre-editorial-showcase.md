@@ -16,7 +16,8 @@ ExGram / Telegram
         ├── Editorial skill: workflows, generation, and protected mutations
         └── Operations skill: configuration, budget, provider health, and Git sync
             ├── Spectre Prism: OpenRouter model-tier selection
-            ├── trained local classifier: fast intent recognition
+            ├── optional local classifier: development/test evaluation
+            ├── OpenRouter embeddings: production semantic routing
             ├── Semantic Cache + Vettore: verified reuse of read intents
             ├── Spectre Kinetic: Action Language → typed action
             └── Spectre Policy: confirmation → executable effect
@@ -30,7 +31,7 @@ The separation is intentional:
   HTTP implementation details;
 - Prism and OpenRouter generate bounded values but cannot advance a workflow or
   write a file by themselves;
-- the trained classifier and semantic cache recognize intent but never grant
+- the optional classifier and semantic cache recognize intent but never grant
   authorization;
 - Kinetic translates only valid Action Language declared by the `@al` catalog;
 - Spectre owns policy, persistence, idempotency, and effect execution;
@@ -124,7 +125,7 @@ The router collects evidence in this order:
 explicit slash command or safety regex
   → continuation of the active leaf flow
   → exact trusted dataset or verified-cache match
-  → trained local classifier
+  → optional local classifier when enabled
   → verified semantic vector search
   → arbitration
   → llm_classifier fallback
@@ -132,8 +133,8 @@ explicit slash command or safety regex
 
 Regex is intentionally narrow. It handles explicit `/...` commands, safety
 patterns, confirmation responses, cancellation, and image control. Natural
-English requests are handled by semantic examples, the trained classifier, the
-verified semantic cache, and finally the remote classifier.
+English requests are handled by semantic examples, the optional classifier,
+the verified semantic cache, and finally the remote classifier.
 
 Every route declares its own `via:` providers:
 
@@ -169,36 +170,42 @@ and requires complete intent coverage:
 mix ex_blog.spectre.dataset.build --check
 ```
 
-Classifier bootstrap is reproducible:
+Development/test classifier bootstrap is reproducible:
 
 ```bash
-mix spectre.classifier.setup
+MIX_ENV=dev mix spectre.classifier.setup
 ```
 
 It normalizes the training corpus, downloads
 `intfloat/multilingual-e5-small`, trains a centroid classifier, and writes a
-vectorized semantic-cache mirror. Dataset source is committed; generated model
-weights, vectors, and the local model cache are ignored by Git and rebuilt in
-the production image.
+vectorized semantic-cache mirror under `artifacts/spectre`. Dataset source is
+committed; generated model weights, vectors, and the local model cache are
+ignored by Git and excluded from the production image.
 
-## One local encoder, two safe uses
+## Environment-specific embedding boundary
 
-`ExBlog.Agent.Embedding` wraps ExFastembed and applies E5's `query:` role prefix
-during both training and inference. The same 384-dimensional model powers:
+`ExBlog.Agent.Embedding` follows the same split used by the reference Freelance
+application:
 
-1. the local centroid classifier, which recognizes a known intent before the
-   remote LLM is considered;
-2. semantic search over trusted or reviewed read-route examples.
+- development and test delegate to ExFastembed. E5's `query:` prefix is applied
+  during training and inference, and the same 384-dimensional model powers the
+  optional centroid classifier and local semantic mirror;
+- production delegates to `ExBlog.AI.Embedding`. Text is redacted and sent to
+  the configured OpenRouter embedding model through Req, budget authorization,
+  and usage accounting. Hosted text does not receive the E5-specific prefix.
 
-Using one encoder prevents dimension drift between stored vectors and live
-queries. It also keeps normal routing off the OpenRouter budget. The separate
-`ExBlog.AI.Embedding` module remains available for optional hosted Prism work,
-but it is not the agent's intent encoder.
+ExFastembed is declared `only: [:dev, :test], runtime: false`. Production also
+sets `local_classifier_enabled?: false`, `start?: false`, and
+`artifact_dir: nil`. The runtime image contains no ExFastembed dependency,
+native embedding-model cache, local classifier, or 384d semantic artifact. Its
+build-only Rust stage exists for Spectre Kinetic's Ortex NIF and is not copied
+into the runtime image.
 
-Local results must meet both score and label-margin gates. An ambiguous result
-falls through to later evidence instead of being treated as authoritative. The
-remote classifier is therefore a fallback, not the default understanding
-mechanism.
+This separation prevents dimension drift. DETS semantic snapshots include the
+adapter/model/dimension identity in their storage key, so local 384d rows and
+hosted 1,024d rows cannot be restored into the same index. When enabled in
+development, local results must still meet both score and label-margin gates;
+an ambiguous result falls through to later evidence.
 
 ## Semantic cache lifecycle
 
@@ -212,12 +219,14 @@ search. A later request may promote it only at `0.985` cosine similarity with at
 least a `0.05` margin over competing labels. Ordinary verified search remains
 at `0.94`.
 
-The build artifact contains vectors for all 204 classifier examples, but route
-policy filters the runtime index to the 84 examples belonging to cacheable read
-intents. Writes, deletion, synchronization, unsafe input, and unknown input can
-train intent classification without becoming reusable semantic authorization.
-A cache hit can select a read handler; it can never approve a policy or execute
-a Git mutation.
+The local development artifact contains vectors for all 204 classifier
+examples, but route policy filters its runtime index to the 84 examples
+belonging to cacheable read intents. Production does not load that artifact: it
+uses the checked-in dataset for exact matches and OpenRouter for new learned
+semantic rows. Writes, deletion, synchronization, unsafe input, and unknown
+input can train local intent evaluation without becoming reusable semantic
+authorization. A cache hit can select a read handler; it can never approve a
+policy or execute a Git mutation.
 
 ## Kinetic and `@al`
 
@@ -309,8 +318,9 @@ an instruction to a prompt is not enough: in Spectre, the prompt proposes and
 the runtime decides.
 
 To add a read intent, add contrastive English examples to the skill and the
-ExBlog dataset, then rerun `mix spectre.classifier.setup`. Keep `learn: true`
-only when semantic reuse cannot produce a side effect.
+ExBlog dataset, then optionally rerun `MIX_ENV=dev mix
+spectre.classifier.setup` for local evaluation. Keep `learn: true` only when
+semantic reuse cannot produce a side effect.
 
 ## Browser verification
 
