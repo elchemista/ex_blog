@@ -25,7 +25,7 @@ locale senza un database SQL.
 - ledger dei token e limiti di spesa in euro;
 - area web amministratore protetta da password Argon2 per associare Telegram;
 - gate Telegram sull’ID numerico prima di prompt, log e chiamate al modello;
-- MCP Streamable HTTP autenticato con gli stessi strumenti dell’agente.
+- MCP Streamable HTTP con OAuth 2.1 per ChatGPT e gli stessi strumenti dell’agente.
 
 Il [contratto dei contenuti](docs/content-contract.md) documenta struttura e
 front matter. Le [decisioni architetturali](docs/architecture.md) descrivono
@@ -77,12 +77,16 @@ Variabili obbligatorie dell’applicazione:
 | `EX_BLOG_LLM_BALANCED_MODEL` | SEO, sintesi e revisioni normali |
 | `EX_BLOG_LLM_DEEP_MODEL` | articoli, traduzioni e revisioni complesse |
 | `EX_BLOG_CLASSIFIER_MODEL` | fallback del router Spectre |
-| `EX_BLOG_MCP_TOKEN` | bearer token dell'endpoint MCP |
+| `EX_BLOG_MCP_TOKEN` | bearer operatore per client MCP diretti, separato da OAuth |
 
 `LIGHTPANDA_PATH` è opzionale quando il binario non è nel `PATH` o in
 `~/.local/bin/lightpanda`. Spectre Lens usa una policy di rete pubblica per le
 URL scelte dall’agente e rifiuta loopback, reti private, credenziali nella URL e
 porte non standard.
+
+`EX_BLOG_CHATGPT_PUBLIC_BASE_URL` è opzionale e serve soltanto quando il public
+origin OAuth differisce da `https://<PHX_HOST>`, per esempio con un tunnel HTTPS
+locale. Deve contenere l’origine, senza il percorso `/mcp`.
 
 In produzione sono obbligatorie anche `PHX_HOST` e `SECRET_KEY_BASE`. Le
 variabili opzionali e i default sono elencati in [.env.example](.env.example).
@@ -115,7 +119,8 @@ vive in `data/repo` e lo stato operativo in `data/runtime.dets`.
 | `/feed.xml`, `/atom.xml` | feed RSS e Atom |
 | `/sitemap.xml`, `/robots.txt` | discovery crawler |
 | `/health` | health check senza segreti |
-| `/mcp` | endpoint MCP autenticato |
+| `/mcp` | endpoint MCP con OAuth 2.1 |
+| `/.well-known/*`, `/oauth/*` | discovery e protocollo OAuth per ChatGPT |
 
 Le pagine pubbliche usano un ETag derivato dal commit indicizzato. Le bozze non
 sono mai leggibili dalle route pubbliche, dai feed o dalla sitemap.
@@ -171,11 +176,27 @@ Lo username è puramente informativo: non viene usato come identità.
 
 ## MCP
 
-Configura il client con:
+Per collegare ChatGPT, crea un’app MCP personalizzata indicando soltanto:
 
 - URL: `https://<PHX_HOST>/mcp`;
-- header: `Authorization: Bearer <EX_BLOG_MCP_TOKEN>`;
 - trasporto: Streamable HTTP, protocollo `2025-11-25`.
+
+ChatGPT legge i documenti `/.well-known/`, registra un client pubblico, apre
+`/oauth/authorize` e avvia authorization code con PKCE S256. Se la sessione
+amministratore non è già attiva, ExBlog conserva la richiesta OAuth nella
+sessione cifrata, mostra `/admin/login` e torna automaticamente al consenso dopo
+la password. Gli scope sono `articles:read` e `articles:write`; il refresh usa
+`offline_access`.
+
+L’access token dura 15 minuti e il refresh token 30 giorni. Ogni refresh ruota
+la coppia e revoca quella precedente. I valori in chiaro sono consegnati una
+sola volta a ChatGPT; `$EX_BLOG_DATA_DIR/runtime.dets` conserva solamente hash
+SHA-256, scadenze, scope e revoche. Nulla viene scritto nella repository Git.
+Con il volume Fly montato il collegamento sopravvive ai deploy; una nuova login
+serve solo se il volume viene perso, cancellato o sostituito.
+
+`EX_BLOG_MCP_TOKEN` rimane un bearer amministrativo separato per client MCP
+diretti e script operativi. Non deve essere configurato dentro ChatGPT.
 
 `tools/list` espone strumenti di lettura, verifica pagine, generazione e
 gestione editoriale con annotazioni `readOnlyHint`, `destructiveHint`,
@@ -246,6 +267,8 @@ Non va configurato un `release_command`: lo storage DETS e il checkout vengono
 aperti direttamente sulla macchina che possiede il volume. La configurazione
 mantiene una sola macchina attiva (`min_machines_running = 1`) perché DETS e il
 checkout sono locali al volume; GitHub resta la sorgente durevole dei contenuti.
+Lo stesso volume conserva gli hash OAuth, quindi un deploy normale non scollega
+ChatGPT.
 
 Per cambiare credenziali, repository, modelli o amministratore, aggiorna ENV o
 Fly Secrets e riavvia. L’agente può spiegare quale variabile modificare, ma non
