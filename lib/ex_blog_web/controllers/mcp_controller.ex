@@ -1,12 +1,13 @@
 defmodule ExBlogWeb.MCPController do
   use ExBlogWeb, :controller
 
+  alias ExBlog.ChatGPT.OAuth
   alias ExBlogWeb.MCP.Tools
 
   @protocol_version "2025-11-25"
 
   def create(conn, request) when is_map(request) do
-    case handle_request(request) do
+    case handle_request(request, conn) do
       nil -> send_resp(conn, :accepted, "")
       response -> respond(conn, response)
     end
@@ -21,7 +22,7 @@ defmodule ExBlogWeb.MCPController do
     |> send_resp(:method_not_allowed, "")
   end
 
-  defp handle_request(%{"jsonrpc" => "2.0", "method" => method} = request) do
+  defp handle_request(%{"jsonrpc" => "2.0", "method" => method} = request, conn) do
     id = Map.get(request, "id")
     params = Map.get(request, "params", %{})
 
@@ -49,26 +50,25 @@ defmodule ExBlogWeb.MCPController do
         jsonrpc_result(id, %{tools: Tools.list()})
 
       "tools/call" ->
-        tool_call(id, params)
+        tool_call(id, params, conn)
 
       _method ->
         if Map.has_key?(request, "id"), do: jsonrpc_error(id, -32_601, "Method not found")
     end
   end
 
-  defp handle_request(%{"jsonrpc" => "2.0"}), do: nil
-  defp handle_request(%{"id" => id}), do: jsonrpc_error(id, -32_600, "Invalid Request")
-  defp handle_request(_request), do: jsonrpc_error(nil, -32_600, "Invalid Request")
+  defp handle_request(%{"jsonrpc" => "2.0"}, _conn), do: nil
 
-  defp tool_call(id, %{"name" => name} = params) when is_binary(name) do
+  defp handle_request(%{"id" => id}, _conn),
+    do: jsonrpc_error(id, -32_600, "Invalid Request")
+
+  defp handle_request(_request, _conn), do: jsonrpc_error(nil, -32_600, "Invalid Request")
+
+  defp tool_call(id, %{"name" => name} = params, conn) when is_binary(name) do
     arguments = Map.get(params, "arguments", %{})
 
     if is_map(arguments) do
-      result =
-        case Tools.call(name, arguments) do
-          {:ok, value} -> successful_tool_result(value)
-          {:error, reason} -> failed_tool_result(reason)
-        end
+      result = authorized_tool_result(conn, name, arguments)
 
       jsonrpc_result(id, result)
     else
@@ -76,7 +76,44 @@ defmodule ExBlogWeb.MCPController do
     end
   end
 
-  defp tool_call(id, _params), do: jsonrpc_error(id, -32_602, "Invalid params")
+  defp tool_call(id, _params, _conn), do: jsonrpc_error(id, -32_602, "Invalid params")
+
+  defp authorized_tool_result(conn, name, arguments) do
+    case Tools.required_scope(name) do
+      {:ok, scope} ->
+        if MapSet.member?(conn.assigns.mcp_scopes, scope) do
+          execute_tool(name, arguments)
+        else
+          authentication_required_result(scope)
+        end
+
+      :error ->
+        execute_tool(name, arguments)
+    end
+  end
+
+  defp execute_tool(name, arguments) do
+    case Tools.call(name, arguments) do
+      {:ok, value} -> successful_tool_result(value)
+      {:error, reason} -> failed_tool_result(reason)
+    end
+  end
+
+  defp authentication_required_result(scope) do
+    challenge =
+      OAuth.authorization_challenge(
+        scope,
+        "insufficient_scope",
+        "Authorize the ExBlog connection to use this tool"
+      )
+
+    %{
+      content: [%{type: "text", text: "Authentication is required for this tool."}],
+      structuredContent: %{ok: false, error: "invalid_token", required_scope: scope},
+      isError: true,
+      _meta: %{"mcp/www_authenticate" => [challenge]}
+    }
+  end
 
   defp successful_tool_result(value) do
     %{
