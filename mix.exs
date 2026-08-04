@@ -75,7 +75,12 @@ defmodule ExBlog.MixProject do
        github: "elchemista/spectre_kinetic", branch: "main", depth: 1, override: true},
       {:spectre_lens,
        github: "elchemista/spectre_lens", branch: "main", depth: 1, override: true},
-      {:ex_fastembed, github: "elchemista/ex_fastembed", branch: "master", depth: 1},
+      {:ex_fastembed,
+       github: "elchemista/ex_fastembed",
+       branch: "master",
+       only: [:dev, :test],
+       runtime: false,
+       depth: 1},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
@@ -104,7 +109,7 @@ defmodule ExBlog.MixProject do
       "spectre.classifier.setup": [
         "spectre.dataset.setup",
         "spectre.classifier.download_model --model intfloat/multilingual-e5-small",
-        "spectre.classifier.train training/dataset.json priv/spectre/classifier --model intfloat/multilingual-e5-small --accept-threshold 0.89 --margin-threshold 0.008 --high-confidence-threshold 0.95"
+        "spectre.classifier.train training/dataset.json artifacts/spectre --model intfloat/multilingual-e5-small --accept-threshold 0.89 --margin-threshold 0.008 --high-confidence-threshold 0.95"
       ],
       precommit: [
         "ex_blog.spectre.dataset.build --check",
