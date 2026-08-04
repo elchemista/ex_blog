@@ -17,6 +17,7 @@ defmodule ExBlog.Application do
     children =
       [
         {ExBlog.Storage, path: Path.join(config.data_dir, "runtime.dets")},
+        ExBlog.Agent.SemanticCache,
         {Phoenix.PubSub, name: ExBlog.PubSub},
         ExBlog.Admin.LoginThrottle
       ] ++ content_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
