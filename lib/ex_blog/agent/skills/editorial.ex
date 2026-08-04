@@ -14,8 +14,8 @@ defmodule ExBlog.Agent.Skills.Editorial do
   validates it against the `@al` catalog, and Spectre stages the protected
   repository mutation behind the skill policy.
 
-  Route declarations expose regex, optional embedding similarity, the trained
-  local classifier, and the LLM classifier. They deliberately exclude
+  Route declarations expose regex, optional embedding similarity, the optional
+  local-classifier provider, and the LLM classifier. They deliberately exclude
   `:semantic_cache`: a historical vector match may identify an editorial
   intent, but it must never become a reusable authorization signal for a write.
   `regex_strength: :hard` is scoped to regex evidence, while model evidence
