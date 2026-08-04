@@ -2,8 +2,11 @@ defmodule ExBlog.Agent.SemanticCache do
   @moduledoc """
   Durable adapter for Spectre's learned semantic route cache.
 
-  Spectre owns row validation, vector search, route visibility, and the review
-  lifecycle. This adapter adds two application guarantees:
+  This is a routing cache, not conversational memory. The row value is an
+  intent label plus routing evidence; article bodies, model prompts, and action
+  arguments are never stored here. Spectre owns row validation, Vettore search,
+  route visibility, and the review lifecycle. This adapter adds two application
+  guarantees:
 
   * online rows and their embeddings are snapshotted to the DETS runtime store;
   * an unreviewed row can become verified without an admin UI only when a later
@@ -12,6 +15,18 @@ defmodule ExBlog.Agent.SemanticCache do
   Policy-protected mutations are never learned by Spectre, and ExBlog only
   marks explicitly learnable read routes for online learning. Semantic
   verification therefore cannot approve or execute a repository mutation.
+
+  A normal learned route moves through these states:
+
+      LLM classifies a learnable read intent
+      -> Spectre stores its text and embedding as unverified
+      -> an exact repeat or exceptionally close paraphrase reuses the row
+      -> the adapter verifies it only after the similarity and margin gates
+      -> future paraphrases can match the verified vector at the search gate
+
+  The online ETS/Vettore structures remain replaceable caches. DETS snapshots
+  make reviewed rows survive deploys, and `restore/1` rebuilds Spectre's online
+  store during application startup.
   """
 
   use GenServer
@@ -20,15 +35,17 @@ defmodule ExBlog.Agent.SemanticCache do
 
   require Logger
 
-  alias ExBlog.Config
+  alias ExBlog.Agent.ClassifierConfig
   alias ExBlog.Storage
   alias Spectre.Router.SemanticCache, as: Cache
   alias Spectre.Router.SemanticCache.Learned
+  alias Spectre.Router.SemanticCache.Learned.Index
 
   @default_search_threshold 0.94
   @default_auto_verify_threshold 0.985
   @default_auto_verify_margin 0.05
 
+  @doc "Starts the adapter and restores the persisted snapshot before serving lookups."
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -44,11 +61,21 @@ defmodule ExBlog.Agent.SemanticCache do
         Logger.warning("semantic_cache restore_failed reason=#{inspect(reason)}")
     end
 
+    case warm() do
+      {:ok, vectors} ->
+        Logger.info("semantic_cache warm_ready vectors=#{vectors}")
+
+      {:error, reason} ->
+        Logger.warning("semantic_cache warm_failed reason=#{inspect(reason)}")
+    end
+
     {:ok, %{}}
   end
 
   @impl Cache
   def lookup(text, opts) when is_binary(text) and is_list(opts) do
+    # Exact lookup and vector lookup share the Spectre adapter callback. The
+    # semantic-search plug sets `:semantic_search?` explicitly for vector work.
     opts = runtime_opts(opts)
 
     case Learned.lookup_with_metadata(text, search_opts(opts)) do
@@ -62,6 +89,8 @@ defmodule ExBlog.Agent.SemanticCache do
 
   @impl Cache
   def put(text, result, opts) do
+    # Learned.put acquires the embedding once and stores it on the row. Search
+    # later embeds only the incoming query; it never re-embeds the row dataset.
     opts = runtime_opts(opts)
 
     with {:ok, row} <- Learned.put(text, result, opts),
@@ -136,7 +165,7 @@ defmodule ExBlog.Agent.SemanticCache do
     end
   end
 
-  @doc false
+  @doc "Restores one agent's online semantic rows from the durable DETS snapshot."
   @spec restore(module()) :: :ok | {:error, term()}
   def restore(agent \\ ExBlog.Agent) when is_atom(agent) do
     case Storage.fetch(storage_key(agent)) do
@@ -154,6 +183,14 @@ defmodule ExBlog.Agent.SemanticCache do
     end
   end
 
+  @doc "Builds the Vettore projection from stored offline and online vectors."
+  @spec warm(module()) :: {:ok, non_neg_integer()} | {:error, term()}
+  def warm(agent \\ ExBlog.Agent) when is_atom(agent) do
+    opts = runtime_opts(agent, [])
+
+    with {:ok, rows} <- Learned.rows(opts), do: Index.warm(rows, opts)
+  end
+
   defp maybe_auto_verify(text, original_reason, opts) do
     if Keyword.get(opts, :semantic_search?, false) do
       verify_semantic_match(text, original_reason, opts)
@@ -163,6 +200,8 @@ defmodule ExBlog.Agent.SemanticCache do
   end
 
   defp verify_semantic_match(text, original_reason, opts) do
+    # Normal semantic search excludes unverified rows. This second, stricter
+    # search includes them solely to decide whether one row is safe to promote.
     review_opts =
       opts
       |> Keyword.put(:semantic_cache_include_unverified?, true)
@@ -187,6 +226,8 @@ defmodule ExBlog.Agent.SemanticCache do
   end
 
   defp high_confidence?(result) do
+    # Similarity alone is insufficient: a near tie between two labels remains
+    # ambiguous even when the top vector is individually very close.
     score = Map.get(result, :confidence, 0.0)
     label = Map.get(result, :label)
 
@@ -223,6 +264,8 @@ defmodule ExBlog.Agent.SemanticCache do
   end
 
   defp persist(agent, opts) do
+    # Snapshot rows include their embeddings, so restore does not need to call
+    # OpenRouter or rebuild vectors from raw text.
     case Learned.snapshot(agent, Keyword.put(runtime_opts(agent, opts), :source, :online_learned)) do
       {:ok, rows} -> Storage.put(storage_key(agent), rows)
       {:error, _reason} = error -> error
@@ -248,6 +291,9 @@ defmodule ExBlog.Agent.SemanticCache do
   end
 
   defp runtime_opts(agent, opts) do
+    # Adapter callbacks may arrive with only per-call options. Rebuilding the
+    # compiled rule set here preserves route visibility and cacheability checks
+    # for direct review operations as well as normal router calls.
     rules =
       agent
       |> Spectre.Definition.rules()
@@ -279,13 +325,10 @@ defmodule ExBlog.Agent.SemanticCache do
   end
 
   defp storage_key(agent) do
-    config = Config.get()
-
     {
       :spectre_semantic_cache,
       inspect(agent),
-      config.embedding_model,
-      config.embedding_dimensions
+      ClassifierConfig.encoder_model()
     }
   end
 end
