@@ -1,11 +1,11 @@
-<% article = @article_creation || %{} %>Ho raccolto tutto per il nuovo draft:
+<% article = @article_creation || %{} %>I have collected everything for the new draft:
 
-- Titolo: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :title), 160) %>
-- Categoria: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :category), 80) %>
-- Lingua: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :lang), 32) %>
+- Title: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :title), 160) %>
+- Category: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :category), 80) %>
+- Language: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :lang), 32) %>
 - Brief: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :brief), 1_000) %>
-- Articolo: generato con OpenRouter (modello deep)
-- SEO e tag: <%= if Map.get(article, :generate_seo) do %>generati con OpenRouter<% else %>non richiesti<% end %>
-- Copertina: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :cover) || "nessuna", 512) %>
+- Article: generated with OpenRouter (deep model)
+- SEO and tags: <%= if Map.get(article, :generate_seo) do %>generated with OpenRouter<% else %>not requested<% end %>
+- Cover: <%= ExBlogWeb.Prompt.escape_text(Map.get(article, :cover) || "none", 512) %>
 
-Conferma con “sì” per generare e salvare l'articolo, oppure rispondi “no” per annullare.
+Reply “yes” to generate and save the article, or “no” to cancel.
