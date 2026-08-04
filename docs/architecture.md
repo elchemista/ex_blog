@@ -10,7 +10,7 @@ Repository Git
 └── Markdown, metadati editoriali e cronologia dei contenuti
 
 DETS sul volume
-└── stato Spectre, costi, storico Git e hash OAuth revocabili
+└── stato Spectre, cache semantica, costi, storico Git e hash OAuth revocabili
 
 Asset sul volume + priv/static
 └── backing durevole e copia pubblica delle immagini Telegram
@@ -68,6 +68,21 @@ Prism riceve marker non sensibili (`runtime-fast`, `runtime-balanced`,
 `runtime-deep`). L’adapter li risolve sui nomi ENV al momento della chiamata. Il
 classificatore usa il proprio modello configurato, anche quando condivide il
 livello fast.
+
+L’agente e tutti i prompt operativi usano l’inglese. La lingua di un articolo è
+un valore separato e validato dal flow: una regex risolve codice o nome inglese contro
+`EX_BLOG_SUPPORTED_LANGUAGES`, mentre generazione SEO, corpo e traduzione
+ricevono esplicitamente la lingua target.
+
+Il router prova prima regex e continuation del flow, poi la cache semantica, e
+usa `:llm_classifier` soltanto come fallback. Gli embedding OpenRouter usano
+`perplexity/pplx-embed-v1-0.6b` a 1024 dimensioni attraverso lo stesso transport
+Req e lo stesso budget delle completion. Gli esempi online nascono non
+verificati, vengono salvati in DETS e possono essere auto-verificati soltanto a
+similarità coseno almeno `0.985` con margine inter-label almeno `0.05`; la
+ricerca verificata richiede `0.94`. Solo route read-only dichiarate
+`learn: true` partecipano all’apprendimento, quindi la cache non può sostituire
+una conferma di policy o autorizzare una scrittura Git.
 
 Il budget viene autorizzato prima della richiesta HTTP. Dopo una risposta
 valida, token, modello, scopo, soggetto e costi sono registrati in DETS. Le
