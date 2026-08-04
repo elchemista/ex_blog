@@ -4,6 +4,16 @@ defmodule ExBlog.AI.OpenRouter do
 
   The Stack contains stable semantic placeholders only. This bridge resolves
   the deployed model names and credential at the instant of each call.
+
+  Classification is forced onto the configured fast classifier model even when
+  Prism passes the normal fast marker. Other purposes resolve fast, balanced,
+  or deep independently. Prompts and structured prompt fragments receive a
+  final credential-redaction pass before the Req-backed adapter is invoked.
+
+  The module also implements Spectre's embedding behaviour for Prism's optional
+  hosted embedding capability. Agent intent routing deliberately uses
+  `ExBlog.Agent.Embedding` instead, keeping the trained classifier and semantic
+  cache on one local, dimension-compatible encoder.
   """
 
   @behaviour Spectre.Prism.Adapter
@@ -55,6 +65,8 @@ defmodule ExBlog.AI.OpenRouter do
   def marker(level), do: Map.fetch!(@markers, level)
 
   defp runtime_opts(opts) do
+    # Resolve configuration on every call so a release restart can change model
+    # ids and credentials without recompiling the agent DSL.
     config = Config.get()
     selected = Keyword.get(opts, :model)
     level = selected_level(selected, opts)
