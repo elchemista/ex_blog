@@ -18,7 +18,7 @@ defmodule ExBlog.AI do
         deep: "ex-blog/runtime-deep"
       ],
       classifier: :fast,
-      embedding: false
+      embedding: [model: "ex-blog/runtime-embedding", dimensions: 1024]
     )
 
     purpose(:route_classification, prefer: :fast)
