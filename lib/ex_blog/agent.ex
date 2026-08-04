@@ -6,9 +6,9 @@ defmodule ExBlog.Agent do
   own the different phases of one administrator turn:
 
     * input plugs normalize and redact the message before any provider sees it;
-    * the router combines regex evidence, a trained local classifier, learned
-      semantic search, and the LLM classifier instead of treating regex as the
-      only routing mechanism;
+    * the router combines regex evidence, an optional development classifier,
+      learned semantic search, and the LLM classifier instead of treating regex
+      as the only routing mechanism;
     * skills describe the available conversations and policy-protected actions;
     * the action provider exposes the typed Spectre Kinetic catalog;
     * state and memory adapters persist only the data needed across turns.
@@ -46,10 +46,9 @@ defmodule ExBlog.Agent do
     llm_opts: [temperature: 0.0, max_tokens: 16]
   )
 
-  # Keep the embedding boundary explicit on the Agent. The local classifier and
-  # learned semantic cache intentionally share this encoder, so trained rows and
-  # live queries always have compatible dimensions and never need OpenRouter for
-  # vector creation.
+  # Keep the embedding boundary explicit on the Agent. Development/test select
+  # ExFastembed for local classifier evaluation; production selects the hosted
+  # OpenRouter adapter and never loads the incompatible native artifact.
   # `via: [:embedding]` can also enable Spectre's static-example matcher in a
   # test or a deployment backed by a local/cached encoder.
   embedding(ExBlog.Agent.Embedding)
@@ -59,9 +58,9 @@ defmodule ExBlog.Agent do
   state(ExBlog.Agent.StateStore)
   memory(ExBlog.Agent.Memory)
 
-  # Production routing uses deterministic controls first, exact cache and
-  # trained local evidence next, then learned vector search, with the LLM
-  # classifier only as fallback. Static
+  # Routing uses deterministic controls first, exact cache and any enabled local
+  # evidence next, then learned vector search, with the LLM classifier only as
+  # fallback. Static
   # `:embedding` similarity is supported by RouterPipeline but is not global:
   # Spectre's stock plug embeds every declared example per request, which would
   # replace one local query embedding with dozens of redundant inferences.
