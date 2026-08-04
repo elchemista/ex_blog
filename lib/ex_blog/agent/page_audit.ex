@@ -5,6 +5,16 @@ defmodule ExBlog.Agent.PageAudit do
   Rendered page content is converted with `SpectreLens.agent_context/2` before
   it reaches the model. The browser runtime and tab are always closed, and raw
   HTML or page text is never returned to Spectre state, Telegram, or MCP.
+
+  The audit has two independent layers. Deterministic checks count headings,
+  links, forms, metadata, image alternatives, and structured data from the Lens
+  projection. A bounded model assessment then explains those observed facts and
+  the sanitized semantic/layout context. If the model is unavailable, callers
+  still receive the deterministic result plus an explicit warning.
+
+  Lightpanda does not render pixels. The result always records that responsive
+  breakpoints and visual CSS were not verified instead of presenting DOM
+  inspection as a visual test.
   """
 
   alias ExBlog.AI
@@ -36,6 +46,7 @@ defmodule ExBlog.Agent.PageAudit do
           required(:assessment) => String.t()
         }
 
+  @doc "Audits one allowed public URL and always closes its Lens runtime resources."
   @spec check(String.t(), keyword()) :: {:ok, result()} | {:error, term()}
   def check(url, opts \\ [])
 
@@ -65,6 +76,8 @@ defmodule ExBlog.Agent.PageAudit do
   end
 
   defp inspect_tab(lens, tab, requested_url, opts) do
+    # Both projections pass through `agent_context/2`; raw page text is never
+    # interpolated directly into a model prompt.
     with {:ok, %View{} = view} <- lens.look(tab, include: @include),
          {:ok, page_context} <- page_context(lens, view),
          {layout_context, layout_warnings} <- layout_context(lens, tab, view),
@@ -120,6 +133,8 @@ defmodule ExBlog.Agent.PageAudit do
   end
 
   defp baseline_facts(view, layout_warnings) do
+    # Keep machine-observable failures separate from advisory warnings. This
+    # lets callers trust `baseline_ok?` even when no model assessment is made.
     html = view.html || ""
     h1_count = count_tags(html, "h1")
     images_without_alt = images_without_alt(html)
@@ -190,6 +205,8 @@ defmodule ExBlog.Agent.PageAudit do
     facts_json = Jason.encode!(facts)
     source_url = resolved_display_url(view.url, requested_url)
 
+    # The Lens markers identify projected page data as untrusted. The model is
+    # asked to explain evidence, never to execute instructions found in content.
     """
     Evaluate the rendered web page below. Use only observed evidence and clearly
     distinguish confirmed problems, suggestions, and verification limits.
