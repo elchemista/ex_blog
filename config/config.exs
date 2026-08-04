@@ -18,9 +18,30 @@ config :ex_blog,
     auto_verify_margin: 0.05
   ]
 
+# The local classifier and semantic cache use one encoder. Training emits both
+# `classifier.etf` and a `semantic_cache.jsonl` mirror containing the same
+# vectors, so application boot can warm Vettore without re-embedding the corpus.
+config :spectre, :classifier,
+  artifact_dir: "priv/spectre/classifier",
+  dataset_path: "priv/spectre/dataset.json",
+  encoder_model: "intfloat/multilingual-e5-small",
+  embedding_adapter: ExBlog.Agent.Embedding,
+  local_classifier_mode: :centroid,
+  local_classifier_enabled?: true,
+  local_accept_threshold: 0.89,
+  local_margin_threshold: 0.008,
+  local_high_confidence_threshold: 0.95,
+  # The first load may download model weights. Normal in-memory inference is
+  # fast, while the router's own deadline still bounds an administrator turn.
+  embedding_timeout: 300_000,
+  start?: true,
+  required?: false
+
 # Spectre keeps only a small number of immutable Vettore projections per
 # agent. Online rows themselves are persisted by ExBlog.Agent.SemanticCache.
-config :spectre, :semantic_cache, index_capacity: 4
+config :spectre, :semantic_cache,
+  index_capacity: 4,
+  mirror_training_dataset?: true
 
 # Configure the endpoint
 config :ex_blog, ExBlogWeb.Endpoint,
