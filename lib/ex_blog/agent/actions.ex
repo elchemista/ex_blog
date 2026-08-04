@@ -1,6 +1,23 @@
 defmodule ExBlog.Agent.Actions do
   @moduledoc """
-  Single operational surface shared by Spectre, Telegram, MCP, and tests.
+  Context-aware operational surface shared by Spectre, Telegram, MCP, and tests.
+
+  This module is the imperative half of the agent. Skills declare *what* may be
+  requested; `ExBlog.Agent.Actions.Provider` validates a Kinetic action and
+  dispatches it here with the current `%Spectre.Context{}`. Functions then read
+  content, call an AI boundary, or delegate one filesystem/Git mutation to the
+  content layer.
+
+  Keeping execution here provides three useful boundaries:
+
+    * route classification never performs a side effect;
+    * policy confirmation happens before a write function is invoked;
+    * Telegram, MCP, and tests exercise the same argument normalization and
+      response projection instead of growing separate command implementations.
+
+  The optional context carries the normalized input, conversation identifier,
+  and injectable test adapters. Public functions also accept `nil` so trusted
+  internal callers can use the same operation with explicit arguments.
   """
 
   alias ExBlog.Agent.Language
@@ -13,6 +30,9 @@ defmodule ExBlog.Agent.Actions do
   alias ExBlog.Content.Writer
   alias ExBlogWeb.Prompt
 
+  # Read actions return small projections. Full Markdown is exposed only by
+  # `read_article/2`, which keeps list/search replies bounded for chat clients.
+  @doc "Lists article summaries using explicit arguments or language inferred from the turn."
   @spec list_articles(map(), term()) :: {:ok, map()}
   def list_articles(args, ctx \\ nil) do
     lang =
@@ -29,6 +49,7 @@ defmodule ExBlog.Agent.Actions do
      }}
   end
 
+  @doc "Reads one draft or published article identified by language and slug."
   @spec read_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def read_article(args, ctx \\ nil) do
     with {:ok, lang, slug} <- identifier(args, ctx),
@@ -37,6 +58,7 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
+  @doc "Searches indexed article metadata and Markdown without mutating content."
   @spec search_articles(map(), term()) :: {:ok, map()}
   def search_articles(args, ctx \\ nil) do
     text = input_text(ctx)
@@ -48,15 +70,19 @@ defmodule ExBlog.Agent.Actions do
      %{query: query, count: length(articles), articles: Enum.map(articles, &article_summary/1)}}
   end
 
+  @doc "Returns the redacted public configuration projection."
   @spec show_config(map(), term()) :: {:ok, map()}
   def show_config(_args \\ %{}, _ctx \\ nil), do: {:ok, Config.public()}
 
+  @doc "Checks OpenRouter reachability and configured model availability."
   @spec openrouter_status(map(), term()) :: {:ok, map()} | {:error, term()}
   def openrouter_status(_args \\ %{}, _ctx \\ nil), do: AI.health()
 
+  @doc "Returns current AI budget usage without exposing provider credentials."
   @spec budget_status(map(), term()) :: {:ok, map()}
   def budget_status(_args \\ %{}, _ctx \\ nil), do: {:ok, Budget.status()}
 
+  @doc "Runs the bounded Spectre Lens audit for one public blog URL."
   @spec check_page(map(), term()) :: {:ok, PageAudit.result()} | {:error, term()}
   def check_page(args, ctx \\ nil) do
     request = input_text(ctx)
@@ -70,6 +96,10 @@ defmodule ExBlog.Agent.Actions do
     )
   end
 
+  # AI-backed editorial actions generate data first, validate it second, and
+  # hand the final mutation to Writer. None of these functions performs policy
+  # confirmation; Spectre must have completed that before provider execution.
+  @doc "Generates a draft article and optional SEO, then writes it through the Git content layer."
   @spec create_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def create_article(args, ctx \\ nil) do
     request = argument(args, :brief) || input_text(ctx)
@@ -139,6 +169,7 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
+  @doc "Builds a revision preview or applies an explicitly supplied approved body."
   @spec revise_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def revise_article(args, ctx \\ nil) do
     with {:ok, lang, slug} <- identifier(args, ctx),
@@ -153,6 +184,7 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
+  @doc "Translates an article and creates a linked draft in the target language."
   @spec translate_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def translate_article(args, ctx \\ nil) do
     target = argument(args, :target_lang) || target_language(input_text(ctx))
@@ -189,6 +221,7 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
+  @doc "Generates bounded SEO metadata and commits it to an existing article."
   @spec generate_seo(map(), term()) :: {:ok, map()} | {:error, term()}
   def generate_seo(args, ctx \\ nil) do
     with {:ok, lang, slug} <- identifier(args, ctx),
@@ -201,16 +234,21 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
+  # Status and destructive operations share identifier parsing and delegate the
+  # actual transaction to Writer, which owns safe paths, commits, and pushes.
+  @doc "Publishes an existing draft through the canonical Writer transaction."
   @spec publish_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def publish_article(args, ctx \\ nil) do
     mutate_article(args, ctx, &Writer.publish/1)
   end
 
+  @doc "Returns a published article to draft status."
   @spec unpublish_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def unpublish_article(args, ctx \\ nil) do
     mutate_article(args, ctx, &Writer.unpublish/1)
   end
 
+  @doc "Deletes one identified article through the protected Writer boundary."
   @spec delete_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def delete_article(args, ctx \\ nil) do
     with {:ok, lang, slug} <- identifier(args, ctx),
@@ -220,9 +258,12 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
+  @doc "Synchronizes the canonical branch and rebuilds the in-memory content index."
   @spec sync_repository(map(), term()) :: {:ok, map()} | {:error, term()}
   def sync_repository(_args \\ %{}, _ctx \\ nil), do: Sync.sync_now()
 
+  # Revision previews are intentionally two-phase. The model may propose text,
+  # but applying it is a separate invocation with `proposed_body` present.
   defp preview_revision(article, instructions, args, ctx) do
     level = if truthy?(argument(args, :major)), do: :deep, else: :balanced
 
@@ -268,6 +309,8 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
+  # Argument helpers accept atom or string keys because Kinetic, MCP, and direct
+  # Elixir callers use different map conventions. No user value becomes an atom.
   defp identifier(args, ctx) do
     lang = argument(args, :lang)
     slug = argument(args, :slug)
@@ -366,6 +409,8 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
+  # Model output crosses a strict JSON boundary before Writer receives it. Each
+  # string and tag is length-limited again after decoding.
   defp seo_metadata(%ExBlog.Content.Article{} = article, args, ctx, subject_ref) do
     with {:ok, response} <-
            complete(
@@ -454,6 +499,8 @@ defmodule ExBlog.Agent.Actions do
     |> Map.put(:tags, Enum.take(Enum.uniq(article.tags ++ generated.tags), 8))
   end
 
+  # Tests can inject `:ai_complete`; production always reaches the budgeted
+  # `ExBlog.AI` boundary through the same call site.
   defp complete(level, prompt, opts, ctx) do
     opts = maybe_put_req_options(opts, ctx)
 
@@ -507,6 +554,7 @@ defmodule ExBlog.Agent.Actions do
     |> String.slice(0, 16_000)
   end
 
+  # Chat projections deliberately omit internal parser and Git bookkeeping.
   defp article_summary(article) do
     %{
       title: article.title,
