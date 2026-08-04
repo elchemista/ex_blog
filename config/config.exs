@@ -18,11 +18,11 @@ config :ex_blog,
     auto_verify_margin: 0.05
   ]
 
-# The local classifier and semantic cache use one encoder. Training emits both
-# `classifier.etf` and a `semantic_cache.jsonl` mirror containing the same
-# vectors, so application boot can warm Vettore without re-embedding the corpus.
+# Development and test can share one local encoder between classifier training
+# and semantic search. Production overrides the adapter and disables the local
+# artifact so hosted 1,024-dimensional vectors never mix with local 384d rows.
 config :spectre, :classifier,
-  artifact_dir: "priv/spectre/classifier",
+  artifact_dir: "artifacts/spectre",
   dataset_path: "priv/spectre/dataset.json",
   encoder_model: "intfloat/multilingual-e5-small",
   embedding_adapter: ExBlog.Agent.Embedding,
