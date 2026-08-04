@@ -1,56 +1,63 @@
 # ExBlog
 
-ExBlog è un blog Phoenix controllato da un unico amministratore via Telegram e
-MCP. I contenuti canonici sono file Markdown in una repository GitHub; Phoenix
-li indicizza in ETS e li pubblica senza interrogazioni SQL nel percorso di
-lettura. Spectre orchestra la conversazione, Prism sceglie il livello del
-modello, Kinetic valida le azioni `@al` e DETS conserva lo stato operativo
-locale senza un database SQL.
+ExBlog is a Phoenix blog controlled by a single administrator through Telegram
+and MCP. Canonical content lives as Markdown files in a GitHub repository;
+Phoenix indexes it in ETS and serves it without SQL queries on the read path.
+Spectre orchestrates the conversation, Prism selects the model tier, Kinetic
+validates `@al` actions, and DETS stores local operational state without a SQL
+database.
 
-## Cosa è incluso
+## What is included
 
-- boot deterministico e configurazione interamente da ENV;
-- clone, fetch, rebase e push Git con token effimero tramite `GIT_ASKPASS`;
-- parsing CommonMark con `MDEx`, front matter con `YamlElixir` e HTML sanificato;
-- indice ETS sostituito atomicamente e sync Git periodico;
-- blog multilingua, tag, categorie, traduzioni, RSS, Atom, sitemap e JSON-LD;
-- agente Spectre organizzato in skill di lettura, editoriale e operazioni, con
-  prompt HEEx e azioni `@al` pianificate da Kinetic;
-- lingua operativa dell’agente e di tutti i prompt fissata all’inglese, mentre
-  corpo, SEO e traduzioni rispettano la lingua scelta per ogni articolo;
-- cache semantica Spectre persistita in DETS con embedding OpenRouter, review
-  automatica soltanto oltre una soglia di similarità molto alta e nessuna
-  scorciatoia sulle conferme delle mutazioni;
-- creazione articolo guidata da flow annidati per brief, lingua, categoria,
-  titolo e SEO, con generazione OpenRouter campo per campo e conferma esplicita
-  prima di modificare Git;
-- foto di copertina ricevuta dall’admin tramite `ex_gram`, validata e salvata in
-  `priv/static/images/articles`, quindi collegata nel front matter Markdown;
-- verifica on demand delle pagine renderizzate con Spectre Lens e Lightpanda;
-- ledger dei token e limiti di spesa in euro;
-- area web amministratore protetta da password Argon2 per associare Telegram;
-- gate Telegram sull’ID numerico prima di prompt, log e chiamate al modello;
-- MCP Streamable HTTP con OAuth 2.1 per ChatGPT e gli stessi strumenti dell’agente.
+- deterministic boot and configuration entirely through environment variables;
+- Git clone, fetch, rebase, and push with an ephemeral token through
+  `GIT_ASKPASS`;
+- CommonMark parsing with `MDEx`, front matter with `YamlElixir`, and sanitized
+  HTML;
+- atomically replaced ETS index and periodic Git synchronization;
+- multilingual blog content, tags, categories, translations, RSS, Atom,
+  sitemap, and JSON-LD;
+- a Spectre agent organized into reader, editorial, and operations skills,
+  with HEEx prompts and Kinetic-planned `@al` actions;
+- English as the operational language for the agent and every prompt, while
+  article bodies, SEO metadata, and translations use the language selected for
+  each article;
+- a DETS-persisted Spectre semantic cache backed by OpenRouter embeddings,
+  with automatic review only above a very high similarity threshold and no
+  shortcut around mutation confirmations;
+- guided article creation through nested flows for the brief, language,
+  category, title, and SEO, with field-by-field OpenRouter generation and
+  explicit confirmation before Git is changed;
+- cover photos received from the administrator through `ex_gram`, validated,
+  stored in `priv/static/images/articles`, and linked from Markdown front
+  matter;
+- on-demand verification of rendered pages with Spectre Lens and Lightpanda;
+- a token ledger and spending limits in euros;
+- an Argon2 password-protected web administrator area for connecting Telegram;
+- a numeric Telegram ID gate before prompts, logs, and model calls;
+- MCP Streamable HTTP with OAuth 2.1 for ChatGPT and the same tools exposed by
+  the agent.
 
-Il [contratto dei contenuti](docs/content-contract.md) documenta struttura e
-front matter. Le [decisioni architetturali](docs/architecture.md) descrivono
-boot, dati e confini di sicurezza. Il
-[walkthrough dello showcase Spectre](docs/spectre-editorial-showcase.md) spiega
-flow dentro flow, skill, prompt HEEx, Kinetic `@al`, policy e foto Telegram.
+The [content contract](docs/content-contract.md) documents the directory
+structure and front matter. The [architecture decisions](docs/architecture.md)
+describe boot, data ownership, and security boundaries. The
+[Spectre showcase walkthrough](docs/spectre-editorial-showcase.md) explains
+nested flows, skills, HEEx prompts, Kinetic `@al`, policies, and Telegram
+photos.
 
-## Requisiti
+## Requirements
 
-- Elixir 1.19 o successivo e OTP compatibile;
+- Elixir 1.19 or later and a compatible OTP release;
 - Git;
-- Lightpanda compatibile con Spectre Lens (installato automaticamente
-  nell'immagine Docker);
-- una repository GitHub dedicata ai contenuti;
-- credenziali Telegram API e un account Telegram;
-- una chiave OpenRouter.
+- a Spectre Lens-compatible Lightpanda binary, installed automatically in the
+  Docker image;
+- a dedicated GitHub content repository;
+- Telegram API credentials and a Telegram account;
+- an OpenRouter API key.
 
-## Configurazione
+## Configuration
 
-Copia l’esempio e sostituisci tutti i placeholder:
+Copy the example, then replace every placeholder:
 
 ```bash
 cp .env.example .env
@@ -63,174 +70,174 @@ mix spectre.lens.doctor
 mix phx.server
 ```
 
-In sviluppo `SECRET_KEY_BASE` può essere quello già presente nella config. In
-produzione generane uno con `mix phx.gen.secret`.
+In development, `SECRET_KEY_BASE` can use the value already present in the
+configuration. Generate a production value with `mix phx.gen.secret`.
 
-Variabili obbligatorie dell’applicazione:
+Required application variables:
 
-| Variabile | Scopo |
+| Variable | Purpose |
 | --- | --- |
-| `EX_BLOG_ADMIN_PASSWORD_HASH` | hash Argon2 per l’area amministratore web |
-| `EX_BLOG_ADMIN_TELEGRAM_ID` | unica identità amministrativa autorizzata |
-| `EX_BLOG_TELEGRAM_API_ID` | API ID dell'applicazione Telegram |
-| `EX_BLOG_TELEGRAM_API_HASH` | API hash dell'applicazione Telegram |
-| `EX_BLOG_GITHUB_TOKEN` | accesso limitato alla repository dei contenuti |
-| `EX_BLOG_GITHUB_REPOSITORY` | repository nel formato `owner/name` |
-| `EX_BLOG_GITHUB_BRANCH` | branch canonico |
-| `OPENROUTER_API_KEY` | provider LLM |
-| `EX_BLOG_LLM_FAST_MODEL` | routing e trasformazioni brevi |
-| `EX_BLOG_LLM_BALANCED_MODEL` | SEO, sintesi e revisioni normali |
-| `EX_BLOG_LLM_DEEP_MODEL` | articoli, traduzioni e revisioni complesse |
-| `EX_BLOG_CLASSIFIER_MODEL` | fallback del router Spectre |
-| `EX_BLOG_MCP_TOKEN` | bearer operatore per client MCP diretti, separato da OAuth |
+| `EX_BLOG_ADMIN_PASSWORD_HASH` | Argon2 hash for the web administrator area |
+| `EX_BLOG_ADMIN_TELEGRAM_ID` | sole authorized administrator identity |
+| `EX_BLOG_TELEGRAM_API_ID` | Telegram application API ID |
+| `EX_BLOG_TELEGRAM_API_HASH` | Telegram application API hash |
+| `EX_BLOG_GITHUB_TOKEN` | access limited to the content repository |
+| `EX_BLOG_GITHUB_REPOSITORY` | repository in `owner/name` format |
+| `EX_BLOG_GITHUB_BRANCH` | canonical branch |
+| `OPENROUTER_API_KEY` | LLM provider credential |
+| `EX_BLOG_LLM_FAST_MODEL` | routing and short transformations |
+| `EX_BLOG_LLM_BALANCED_MODEL` | SEO, summaries, and normal revisions |
+| `EX_BLOG_LLM_DEEP_MODEL` | articles, translations, and complex revisions |
+| `EX_BLOG_CLASSIFIER_MODEL` | Spectre router fallback |
+| `EX_BLOG_MCP_TOKEN` | operator bearer for direct MCP clients, separate from OAuth |
 
-La cache semantica usa per default lo stesso contratto di `freelance`:
-`EX_BLOG_EMBEDDING_MODEL=openrouter:perplexity/pplx-embed-v1-0.6b` e
-`EX_BLOG_EMBEDDING_DIMENSIONS=1024`. Entrambe sono opzionali e possono essere
-sovrascritte, ma modello, dimensione e snapshot esistenti devono restare
-compatibili.
+By default, the semantic cache uses the same contract as `freelance`:
+`EX_BLOG_EMBEDDING_MODEL=openrouter:perplexity/pplx-embed-v1-0.6b` and
+`EX_BLOG_EMBEDDING_DIMENSIONS=1024`. Both settings are optional and may be
+overridden, but the model, dimensions, and existing snapshots must remain
+compatible.
 
-`LIGHTPANDA_PATH` è opzionale quando il binario non è nel `PATH` o in
-`~/.local/bin/lightpanda`. Spectre Lens usa una policy di rete pubblica per le
-URL scelte dall’agente e rifiuta loopback, reti private, credenziali nella URL e
-porte non standard.
+`LIGHTPANDA_PATH` is optional when the binary is not available in `PATH` or at
+`~/.local/bin/lightpanda`. Spectre Lens uses a public network policy for URLs
+selected by the agent and rejects loopback addresses, private networks,
+credentials embedded in URLs, and non-standard ports.
 
-`EX_BLOG_CHATGPT_PUBLIC_BASE_URL` è opzionale e serve soltanto quando il public
-origin OAuth differisce da `https://<PHX_HOST>`, per esempio con un tunnel HTTPS
-locale. Deve contenere l’origine, senza il percorso `/mcp`.
+`EX_BLOG_CHATGPT_PUBLIC_BASE_URL` is optional and is needed only when the public
+OAuth origin differs from `https://<PHX_HOST>`, for example when using a local
+HTTPS tunnel. It must contain the origin without the `/mcp` path.
 
-In produzione sono obbligatorie anche `PHX_HOST` e `SECRET_KEY_BASE`. Le
-variabili opzionali e i default sono elencati in [.env.example](.env.example).
-Se uno o più valori obbligatori mancano o sono invalidi, ExBlog elenca tutti i
-problemi e termina prima di avviare il blog in uno stato parziale.
+Production also requires `PHX_HOST` and `SECRET_KEY_BASE`. Optional variables
+and defaults are listed in [.env.example](.env.example). If one or more required
+values are missing or invalid, ExBlog reports every problem and exits before
+starting the blog in a partial state.
 
-## Avvio
+## Startup
 
-Il processo di boot segue quest’ordine:
+The boot process follows this order:
 
 ```text
-ENV → validazione → directory dati → storage DETS → cache semantica
-    → repository Git
-    → ripristino immagini → parsing Markdown → indice ETS
+ENV → validation → data directory → DETS storage → semantic cache
+    → Git repository
+    → image restoration → Markdown parsing → ETS index
     → Spectre/Prism/Kinetic → Telegram
-    → endpoint web/MCP
+    → web/MCP endpoint
 ```
 
-La directory dati predefinita è `/data`; in locale è consigliato
-`EX_BLOG_DATA_DIR="$PWD/data"` perché il path deve essere assoluto. Il checkout
-vive in `data/repo` e lo stato operativo in `data/runtime.dets`.
+The default data directory is `/data`; locally,
+`EX_BLOG_DATA_DIR="$PWD/data"` is recommended because the path must be absolute.
+The checkout lives in `data/repo`, and operational state lives in
+`data/runtime.dets`.
 
-## Superfici pubbliche
+## Public surfaces
 
-| URL | Funzione |
+| URL | Function |
 | --- | --- |
-| `/` e `/:lang` | indice degli articoli pubblicati |
-| `/:lang/:slug` | articolo |
-| `/tag/:tag` | filtro per tag; accetta `?lang=it` |
-| `/category/:category` | filtro per categoria |
-| `/feed.xml`, `/atom.xml` | feed RSS e Atom |
-| `/sitemap.xml`, `/robots.txt` | discovery crawler |
-| `/health` | health check senza segreti |
-| `/mcp` | endpoint MCP con OAuth 2.1 |
-| `/.well-known/*`, `/oauth/*` | discovery e protocollo OAuth per ChatGPT |
+| `/` and `/:lang` | published article index |
+| `/:lang/:slug` | article page |
+| `/tag/:tag` | tag filter; accepts `?lang=it` |
+| `/category/:category` | category filter |
+| `/feed.xml`, `/atom.xml` | RSS and Atom feeds |
+| `/sitemap.xml`, `/robots.txt` | crawler discovery |
+| `/health` | secret-free health check |
+| `/mcp` | MCP endpoint with OAuth 2.1 |
+| `/.well-known/*`, `/oauth/*` | ChatGPT OAuth discovery and protocol routes |
 
-Le pagine pubbliche usano un ETag derivato dal commit indicizzato. Le bozze non
-sono mai leggibili dalle route pubbliche, dai feed o dalla sitemap.
+Public pages use an ETag derived from the indexed commit. Drafts are never
+available through public routes, feeds, or the sitemap.
 
-## Area amministratore
+## Administrator area
 
-Genera localmente l’hash della password:
+Generate the password hash locally:
 
 ```bash
-mix ex_blog.admin.hash_password 'una-password-lunga'
+mix ex_blog.admin.hash_password 'a-long-password'
 ```
 
-Configura l’output come `EX_BLOG_ADMIN_PASSWORD_HASH`, quindi apri
-`/admin/login`. Dopo l’accesso, `/admin/telegram` mostra lo stato della sessione
-TDLib e guida l’associazione tramite QR, numero telefonico, codice ed eventuale
-password Telegram 2FA.
+Set the output as `EX_BLOG_ADMIN_PASSWORD_HASH`, then open `/admin/login`.
+After signing in, `/admin/telegram` shows the TDLib session status and guides
+the connection through a QR code, phone number, verification code, and an
+optional Telegram 2FA password.
 
-La sessione web è cifrata, dura al massimo otto ore e viene invalidata anche
-prima della scadenza quando cambia l’hash configurato. Le route amministrative
-inviano header `no-store`, non sono indicizzabili e applicano un limite ai
-tentativi di login.
+The web session is encrypted, lasts no more than eight hours, and is also
+invalidated before expiry when the configured password hash changes.
+Administrator routes send `no-store` headers, cannot be indexed, and rate-limit
+login attempts.
 
-`EX_BLOG_TELEGRAM_SESSION_ID` è opzionale e vale `ex_blog` per default. Il
-database TDLib persistente viene salvato in
+`EX_BLOG_TELEGRAM_SESSION_ID` is optional and defaults to `ex_blog`. The
+persistent TDLib database is stored at
 `$EX_BLOG_DATA_DIR/telegram/$EX_BLOG_TELEGRAM_SESSION_ID`.
 
 ## Telegram
 
-Il trasporto usa il client TDLib
-[`elchemista/ex_gram`](https://github.com/elchemista/ex_gram) e quindi un account
-Telegram reale, non la Bot API. L’associazione si esegue dalla pagina
-protetta `/admin/telegram`; gli avvii successivi riutilizzano il database TDLib
-persistente sul volume.
+The transport uses the TDLib client
+[`elchemista/ex_gram`](https://github.com/elchemista/ex_gram), and therefore a
+real Telegram account rather than the Bot API. Connect the account from the
+protected `/admin/telegram` page; later boots reuse the persistent TDLib
+database on the volume.
 
-Solo il mittente il cui ID coincide con `EX_BLOG_ADMIN_TELEGRAM_ID` raggiunge
-Beam, Spectre o OpenRouter. Gli altri update sono ignorati senza registrarne il
-testo. I comandi deterministici principali sono `/config`, `/budget`, `/sync`,
-`/articles` e `/check [URL]`; le operazioni editoriali sensibili richiedono
-conferma. L’agente risponde in inglese. `/create` avvia il flow editoriale: dopo
-il brief si può scrivere `generate category`, `generate title`, `generate SEO`
-o `skip`. La lingua si può indicare
-con il codice o il nome, per esempio `en`, `English`, `it` o `Italian`, senza
-invocare il classificatore LLM. Durante il flow una
-foto con didascalia diventa la copertina del draft. L’immagine viene scaricata
-solo dopo il gate admin, salvata sotto `priv/static/images/articles` e replicata
-sul volume in `$EX_BLOG_DATA_DIR/assets/images/articles` per sopravvivere ai
-deploy.
+Only a sender whose ID matches `EX_BLOG_ADMIN_TELEGRAM_ID` reaches Beam,
+Spectre, or OpenRouter. Other updates are ignored without logging their text.
+The main deterministic commands are `/config`, `/budget`, `/sync`, `/articles`,
+and `/check [URL]`; sensitive editorial operations require confirmation. The
+agent replies in English. `/create` starts the editorial flow: after the brief,
+use `generate category`, `generate title`, `generate SEO`, or `skip`. Select the
+article language by code or English name, for example `en`, `English`, `it`, or
+`Italian`, without invoking the LLM classifier. During the flow, a photo with a
+caption becomes the draft cover. The image is downloaded only after the
+administrator gate, stored under `priv/static/images/articles`, and replicated
+to `$EX_BLOG_DATA_DIR/assets/images/articles` so it survives deployments.
 
-`/check` usa la URL canonica del blog quando la URL è omessa, apre la
-pagina con Spectre Lens, esegue controlli tecnici di base e chiede al modello
-balanced una valutazione basata esclusivamente sul contenuto osservato.
-Lightpanda verifica DOM, semantica e metadati ma non il rendering pixel-level;
-il report dichiara esplicitamente questo limite.
+When the URL is omitted, `/check` uses the canonical blog URL. It opens the page
+with Spectre Lens, runs baseline technical checks, and asks the balanced model
+for an assessment based only on observed content. Lightpanda verifies the DOM,
+semantics, and metadata but not pixel-level rendering; the report states this
+limit explicitly.
 
-Lo username è puramente informativo: non viene usato come identità.
+The Telegram username is informational only and is never used as identity.
 
 ## MCP
 
-Per collegare ChatGPT, crea un’app MCP personalizzata indicando soltanto:
+To connect ChatGPT, create a custom MCP app with only these settings:
 
 - URL: `https://<PHX_HOST>/mcp`;
-- trasporto: Streamable HTTP, protocollo `2025-11-25`.
+- transport: Streamable HTTP, protocol `2025-11-25`.
 
-ChatGPT legge i documenti `/.well-known/`, registra un client pubblico, apre
-`/oauth/authorize` e avvia authorization code con PKCE S256. Se la sessione
-amministratore non è già attiva, ExBlog conserva la richiesta OAuth nella
-sessione cifrata, mostra `/admin/login` e torna automaticamente al consenso dopo
-la password. Gli scope sono `articles:read` e `articles:write`; il refresh usa
-`offline_access`.
+ChatGPT reads the `/.well-known/` documents, registers a public client, opens
+`/oauth/authorize`, and starts an authorization code flow with PKCE S256. If the
+administrator session is not already active, ExBlog stores the OAuth request in
+the encrypted session, shows `/admin/login`, and returns automatically to the
+consent screen after authentication. The scopes are `articles:read` and
+`articles:write`; refresh uses `offline_access`.
 
-L’access token dura 15 minuti e il refresh token 30 giorni. Ogni refresh ruota
-la coppia e revoca quella precedente. I valori in chiaro sono consegnati una
-sola volta a ChatGPT; `$EX_BLOG_DATA_DIR/runtime.dets` conserva solamente hash
-SHA-256, scadenze, scope e revoche. Nulla viene scritto nella repository Git.
-Con il volume Fly montato il collegamento sopravvive ai deploy; una nuova login
-serve solo se il volume viene perso, cancellato o sostituito.
+The access token lasts 15 minutes, and the refresh token lasts 30 days. Every
+refresh rotates the pair and revokes the previous pair. Plaintext values are
+delivered to ChatGPT only once; `$EX_BLOG_DATA_DIR/runtime.dets` stores only
+SHA-256 hashes, expiry times, scopes, and revocations. Nothing is written to the
+Git repository. With the Fly volume mounted, the connection survives
+deployments; a new login is needed only if the volume is lost, deleted, or
+replaced.
 
-`EX_BLOG_MCP_TOKEN` rimane un bearer amministrativo separato per client MCP
-diretti e script operativi. Non deve essere configurato dentro ChatGPT.
+`EX_BLOG_MCP_TOKEN` remains a separate administrator bearer for direct MCP
+clients and operational scripts. Do not configure it inside ChatGPT.
 
-`tools/list` espone strumenti di lettura, verifica pagine, generazione e
-gestione editoriale con annotazioni `readOnlyHint`, `destructiveHint`,
-`idempotentHint` e `openWorldHint`. `show_config` restituisce solo una
-proiezione sicura. Errori degli strumenti sono deliberatamente normalizzati per
-non propagare header, token o dettagli infrastrutturali.
+`tools/list` exposes reading, page verification, generation, and editorial
+management tools with `readOnlyHint`, `destructiveHint`, `idempotentHint`, and
+`openWorldHint` annotations. `show_config` returns only a safe projection. Tool
+errors are deliberately normalized so headers, tokens, and infrastructure
+details are not propagated.
 
 ## Budget
 
-`EX_BLOG_MONTHLY_BUDGET_EUR` limita la spesa mensile e
-`EX_BLOG_MAX_ARTICLE_COST_EUR` limita una singola operazione editoriale. Quando
-un limite sarebbe superato, le nuove generazioni balanced/deep vengono
-bloccate prima della richiesta HTTP. Lettura, rendering, audit deterministici,
-sync e canali restano disponibili.
+`EX_BLOG_MONTHLY_BUDGET_EUR` limits monthly spending, while
+`EX_BLOG_MAX_ARTICLE_COST_EUR` limits one editorial operation. When a request
+would exceed a limit, new balanced/deep generations are blocked before the HTTP
+request. Reading, rendering, deterministic audits, synchronization, and
+channels remain available.
 
-Il cambio USD/EUR contabile è configurabile con `EX_BLOG_USD_EUR_RATE`; non è
-un servizio di cambio in tempo reale.
+The accounting USD/EUR rate is configured with `EX_BLOG_USD_EUR_RATE`; it is
+not a real-time currency exchange service.
 
-## Test e qualità
+## Tests and quality
 
 ```bash
 mix compile --warnings-as-errors
@@ -240,25 +247,25 @@ mix test
 mix precommit
 ```
 
-Credo usa la configurazione strict del repository. Dialyzer controlla anche i
-return non consumati e i percorsi di errore. `mix precommit` compila con warning
-trattati come errori, rimuove lock non più usati, formatta, esegue entrambi i
-controlli statici e avvia l’intera suite.
+Credo uses the repository's strict configuration. Dialyzer also checks ignored
+return values and error paths. `mix precommit` compiles with warnings treated as
+errors, removes unused lock entries, formats the project, runs both static
+checks, and starts the complete test suite.
 
-## Deploy su Fly.io
+## Deploying to Fly.io
 
-1. Cambia `app` e `PHX_HOST` in [fly.toml](fly.toml).
-2. Crea app e volume nella stessa regione:
+1. Change `app` and `PHX_HOST` in [fly.toml](fly.toml).
+2. Create the app and volume in the same region:
 
    ```bash
-   fly apps create nome-ex-blog
+   fly apps create your-ex-blog-name
    fly volumes create ex_blog_data --region fra --size 1
    ```
 
-3. Imposta i segreti:
+3. Set the secrets:
 
    ```bash
-   EX_BLOG_DEPLOY_ADMIN_HASH="$(mix ex_blog.admin.hash_password 'una-password-lunga')"
+   EX_BLOG_DEPLOY_ADMIN_HASH="$(mix ex_blog.admin.hash_password 'a-long-password')"
 
    fly secrets set \
      SECRET_KEY_BASE="$(mix phx.gen.secret)" \
@@ -278,15 +285,15 @@ controlli statici e avvia l’intera suite.
      EX_BLOG_MCP_TOKEN="$(openssl rand -hex 32)"
    ```
 
-4. Esegui `fly deploy`.
+4. Run `fly deploy`.
 
-Non va configurato un `release_command`: lo storage DETS e il checkout vengono
-aperti direttamente sulla macchina che possiede il volume. La configurazione
-mantiene una sola macchina attiva (`min_machines_running = 1`) perché DETS e il
-checkout sono locali al volume; GitHub resta la sorgente durevole dei contenuti.
-Lo stesso volume conserva gli hash OAuth, quindi un deploy normale non scollega
+Do not configure a `release_command`: DETS storage and the checkout are opened
+directly on the machine that owns the volume. The configuration keeps exactly
+one active machine (`min_machines_running = 1`) because DETS and the checkout
+are local to that volume; GitHub remains the durable source of content. The
+same volume stores OAuth hashes, so a normal deployment does not disconnect
 ChatGPT.
 
-Per cambiare credenziali, repository, modelli o amministratore, aggiorna ENV o
-Fly Secrets e riavvia. L’agente può spiegare quale variabile modificare, ma non
-può leggere o ruotare quei valori.
+To change credentials, repository, models, or administrator, update the
+environment variables or Fly Secrets and restart. The agent can explain which
+variable to change, but it cannot read or rotate those values.
