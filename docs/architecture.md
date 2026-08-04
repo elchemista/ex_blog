@@ -10,7 +10,7 @@ Repository Git
 └── Markdown, metadati editoriali e cronologia dei contenuti
 
 DETS sul volume
-└── stato Spectre, memoria di routing, costi e storico operativo Git
+└── stato Spectre, costi, storico Git e hash OAuth revocabili
 
 Asset sul volume + priv/static
 └── backing durevole e copia pubblica delle immagini Telegram
@@ -19,9 +19,11 @@ ETS
 └── snapshot di lettura ricostruibile degli articoli
 ```
 
-Nessun token viene salvato in Git, DETS, ETS, stato Spectre o memoria. La
-configurazione completa ha un’implementazione `Inspect` redatta; l’agente e MCP
-ricevono soltanto `ExBlog.Config.public/0`.
+Nessun token in chiaro viene salvato in Git, DETS, ETS, stato Spectre o memoria.
+Per OAuth, DETS conserva esclusivamente hash SHA-256, scadenze, scope e stato di
+revoca; access token e refresh token in chiaro vengono consegnati al client una
+sola volta. La configurazione completa ha un’implementazione `Inspect` redatta;
+l’agente e MCP ricevono soltanto `ExBlog.Config.public/0`.
 
 ## Boot deterministico
 
@@ -49,8 +51,16 @@ eliminata. I lettori ritentano se si trovano esattamente durante lo swap.
   prima di Beam, download media, prompt, log o contabilità. Le foto diventano
   input Beam autenticati con il solo file id TDLib e vengono scaricate da
   `ex_gram` soltanto dentro un flow editoriale attivo.
-- MCP: ogni richiesta verifica Origin, versione protocollo e bearer tramite
-  confronto costante. Le risposte di errore non serializzano eccezioni interne.
+- MCP: ogni richiesta verifica Origin e versione protocollo. Un bearer OAuth
+  viene confrontato con l’hash DETS, la risorsa, la scadenza, la revoca e gli
+  scope; il token operatore ENV resta disponibile per client amministrativi
+  diretti. Le risposte di errore non serializzano eccezioni interne.
+- OAuth ChatGPT: discovery RFC 8414/RFC 9728, registrazione dinamica, consenso
+  nella sessione admin, PKCE S256, codici monouso, access token di 15 minuti e
+  refresh token ruotati sono gestiti senza Ecto. La singola transazione DETS
+  rende atomici consumo del codice e rotazione; il volume conserva il
+  collegamento tra deploy, mentre la sua perdita richiede una nuova login.
+  Phoenix filtra token, codici e verifier dai parametri scritti nei log.
 
 ## Modelli e costi
 
