@@ -31,6 +31,61 @@ config :ex_blog,
   runtime_environment: config_env(),
   runtime_data_dir: data_dir
 
+# The checked-in dataset is always release-safe. Classifier artifacts are
+# generated during the image build and resolved through the release priv dir;
+# explicit paths remain available for operators mounting prebuilt artifacts.
+classifier_config = Application.get_env(:spectre, :classifier, [])
+
+classifier_env_path = fn name ->
+  case System.get_env(name) do
+    value when is_binary(value) ->
+      value = String.trim(value)
+      if value == "", do: nil, else: value
+
+    _missing ->
+      nil
+  end
+end
+
+classifier_dataset_path =
+  classifier_env_path.("SPECTRE_CLASSIFIER_DATASET_PATH") ||
+    if(config_env() == :prod,
+      do: ExBlog.Agent.ClassifierConfig.release_dataset_path(),
+      else: Keyword.fetch!(classifier_config, :dataset_path)
+    )
+
+classifier_artifact_dir =
+  classifier_env_path.("SPECTRE_CLASSIFIER_ARTIFACT_DIR") ||
+    if(config_env() == :prod,
+      do: ExBlog.Agent.ClassifierConfig.release_artifact_dir(),
+      else: Keyword.fetch!(classifier_config, :artifact_dir)
+    )
+
+local_classifier_enabled? =
+  case System.get_env("SPECTRE_LOCAL_CLASSIFIER") do
+    nil ->
+      Keyword.get(classifier_config, :local_classifier_enabled?, true)
+
+    value when is_binary(value) ->
+      case value |> String.trim() |> String.downcase() do
+        enabled when enabled in ["1", "true", "yes"] ->
+          true
+
+        disabled when disabled in ["0", "false", "no"] ->
+          false
+
+        invalid ->
+          raise "SPECTRE_LOCAL_CLASSIFIER must be true or false, got: #{inspect(invalid)}"
+      end
+  end
+
+config :spectre, :classifier,
+  dataset_path: classifier_dataset_path,
+  artifact_dir: classifier_artifact_dir,
+  local_classifier_enabled?: local_classifier_enabled?,
+  start?: local_classifier_enabled? and Keyword.get(classifier_config, :start?, true),
+  required?: config_env() == :prod and local_classifier_enabled?
+
 case System.get_env("EX_BLOG_CHATGPT_PUBLIC_BASE_URL") do
   value when is_binary(value) and value != "" ->
     case URI.parse(value) do
