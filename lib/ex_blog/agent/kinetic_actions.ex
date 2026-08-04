@@ -17,7 +17,6 @@ defmodule ExBlog.Agent.KineticActions do
 
   AL: LIST ARTICLES
   AL: SHOW BLOG POSTS
-  AL: ELENCA ARTICOLI
   """
   @spec list_articles() :: {:ok, map()}
   def list_articles, do: {:ok, %{}}
@@ -28,7 +27,6 @@ defmodule ExBlog.Agent.KineticActions do
 
   AL: READ ARTICLE LANG="en" SLUG="spectre-agents"
   AL: SHOW ARTICLE LANG="it" SLUG="phoenix-liveview"
-  AL: LEGGI ARTICOLO LANG="it" SLUG="phoenix-liveview"
   """
   @spec read_article(lang :: String.t(), slug :: String.t()) :: {:ok, map()}
   def read_article(lang, slug), do: {:ok, %{lang: lang, slug: slug}}
@@ -39,7 +37,6 @@ defmodule ExBlog.Agent.KineticActions do
 
   AL: SEARCH ARTICLES QUERY="Spectre Kinetic"
   AL: FIND BLOG POSTS QUERY="Telegram"
-  AL: CERCA ARTICOLI QUERY="Phoenix"
   """
   @spec search_articles(query :: String.t()) :: {:ok, map()}
   def search_articles(query), do: {:ok, %{query: query}}
@@ -49,7 +46,6 @@ defmodule ExBlog.Agent.KineticActions do
   Show the safe blog configuration without credential values.
 
   AL: SHOW BLOG CONFIG
-  AL: MOSTRA CONFIGURAZIONE BLOG
   """
   @spec show_config() :: {:ok, map()}
   def show_config, do: {:ok, %{}}
@@ -59,7 +55,6 @@ defmodule ExBlog.Agent.KineticActions do
   Check OpenRouter reachability and configured model availability.
 
   AL: CHECK OPENROUTER STATUS
-  AL: VERIFICA OPENROUTER
   """
   @spec openrouter_status() :: {:ok, map()}
   def openrouter_status, do: {:ok, %{}}
@@ -69,7 +64,6 @@ defmodule ExBlog.Agent.KineticActions do
   Show the current daily and monthly AI spend.
 
   AL: SHOW AI BUDGET
-  AL: MOSTRA BUDGET AI
   """
   @spec budget_status() :: {:ok, map()}
   def budget_status, do: {:ok, %{}}
@@ -80,19 +74,17 @@ defmodule ExBlog.Agent.KineticActions do
 
   AL: CHECK BLOG PAGE URL="https://example.com/articles/example"
   AL: AUDIT ARTICLE PAGE URL="https://example.com/articles/example"
-  AL: CONTROLLA PAGINA BLOG URL="https://example.com/articles/example"
   """
   @spec check_page(url :: String.t()) :: {:ok, map()}
   def check_page(url), do: {:ok, %{url: url}}
 
-  @al ~s(CREATE ARTICLE TITLE="Phoenix and Spectre Kinetic" LANG="it" CATEGORY="Tecnologia" BRIEF="Explain the architecture" GENERATE_SEO=true COVER="/images/articles/example.jpg" COVER_ALT="A Spectre workflow diagram")
+  @al ~s(CREATE ARTICLE TITLE="Phoenix and Spectre Kinetic" LANG="en" CATEGORY="Technology" BRIEF="Explain the architecture" GENERATE_SEO=true COVER="/images/articles/example.jpg" COVER_ALT="A Spectre workflow diagram")
   @doc """
   Generate and commit a new draft article, optional SEO metadata, and its
   already-ingested static cover reference.
 
   AL: CREATE ARTICLE TITLE="Building an editorial agent" LANG="en" CATEGORY="AI" BRIEF="Explain the design and safety boundaries" GENERATE_SEO=true COVER="" COVER_ALT=""
   AL: WRITE BLOG POST TITLE="Safe Git automation" LANG="en" CATEGORY="Engineering" BRIEF="Show a practical workflow" GENERATE_SEO=false COVER="" COVER_ALT=""
-  AL: CREA ARTICOLO TITLE="Phoenix LiveView in produzione" LANG="it" CATEGORY="Elixir" BRIEF="Spiega architettura e deploy" GENERATE_SEO=true COVER="/images/articles/example.jpg" COVER_ALT="Diagramma del flusso editoriale"
   """
   @spec create_article(
           title :: String.t(),
@@ -121,8 +113,7 @@ defmodule ExBlog.Agent.KineticActions do
   Generate a revision proposal for an existing article.
 
   AL: REVISE ARTICLE LANG="en" SLUG="spectre-agents" INSTRUCTIONS="Add a deployment section"
-  AL: EDIT ARTICLE LANG="it" SLUG="phoenix-liveview" INSTRUCTIONS="Correggi i refusi"
-  AL: REVISIONA ARTICOLO LANG="it" SLUG="phoenix-liveview" INSTRUCTIONS="Rendi il testo più chiaro"
+  AL: EDIT ARTICLE LANG="it" SLUG="phoenix-liveview" INSTRUCTIONS="Improve clarity and fix typos"
   """
   @spec revise_article(lang :: String.t(), slug :: String.t(), instructions :: String.t()) ::
           {:ok, map()}
@@ -134,7 +125,6 @@ defmodule ExBlog.Agent.KineticActions do
   Translate an article and commit the translation as a draft.
 
   AL: TRANSLATE ARTICLE LANG="en" SLUG="spectre-agents" TARGET_LANG="it"
-  AL: TRADUCI ARTICOLO LANG="it" SLUG="phoenix-liveview" TARGET_LANG="en"
   """
   @spec translate_article(
           lang :: String.t(),
@@ -149,7 +139,6 @@ defmodule ExBlog.Agent.KineticActions do
   Generate and commit SEO metadata for an existing article.
 
   AL: GENERATE ARTICLE SEO LANG="en" SLUG="spectre-agents"
-  AL: CREA SEO ARTICOLO LANG="it" SLUG="phoenix-liveview"
   """
   @spec generate_seo(lang :: String.t(), slug :: String.t()) :: {:ok, map()}
   def generate_seo(lang, slug), do: {:ok, %{lang: lang, slug: slug}}
@@ -159,7 +148,6 @@ defmodule ExBlog.Agent.KineticActions do
   Publish an existing draft article.
 
   AL: PUBLISH ARTICLE LANG="en" SLUG="spectre-agents"
-  AL: PUBBLICA ARTICOLO LANG="it" SLUG="phoenix-liveview"
   """
   @spec publish_article(lang :: String.t(), slug :: String.t()) :: {:ok, map()}
   def publish_article(lang, slug), do: {:ok, %{lang: lang, slug: slug}}
@@ -169,7 +157,6 @@ defmodule ExBlog.Agent.KineticActions do
   Return a published article to draft status.
 
   AL: UNPUBLISH ARTICLE LANG="en" SLUG="spectre-agents"
-  AL: RITIRA ARTICOLO LANG="it" SLUG="phoenix-liveview"
   """
   @spec unpublish_article(lang :: String.t(), slug :: String.t()) :: {:ok, map()}
   def unpublish_article(lang, slug), do: {:ok, %{lang: lang, slug: slug}}
@@ -179,7 +166,6 @@ defmodule ExBlog.Agent.KineticActions do
   Delete an article from the Git repository.
 
   AL: DELETE ARTICLE LANG="en" SLUG="spectre-agents"
-  AL: ELIMINA ARTICOLO LANG="it" SLUG="phoenix-liveview"
   """
   @spec delete_article(lang :: String.t(), slug :: String.t()) :: {:ok, map()}
   def delete_article(lang, slug), do: {:ok, %{lang: lang, slug: slug}}
@@ -190,7 +176,6 @@ defmodule ExBlog.Agent.KineticActions do
 
   AL: SYNC BLOG REPOSITORY
   AL: UPDATE BLOG REPOSITORY
-  AL: SINCRONIZZA REPOSITORY BLOG
   """
   @spec sync_repository() :: {:ok, map()}
   def sync_repository, do: {:ok, %{}}
