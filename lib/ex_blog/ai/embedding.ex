@@ -1,15 +1,15 @@
 defmodule ExBlog.AI.Embedding do
   @moduledoc """
-  Optional OpenRouter embedding boundary exposed through Spectre Prism.
+  OpenRouter embedding boundary used by production Spectre routing and Prism.
 
   Calls pass through ExBlog's Req-backed Prism transport, so the same timeout,
   redaction, budget, and usage-accounting boundaries apply to embeddings and
   text generation.
 
-  This is not the editorial Agent's intent encoder. Trained routing and learned
-  semantic search use `ExBlog.Agent.Embedding`, backed by ExFastembed, so the
-  routing hot path does not spend OpenRouter budget and its stored vectors match
-  the classifier artifact dimensions.
+  `ExBlog.Agent.Embedding` delegates here in production. Development and test
+  may instead select ExFastembed to train and evaluate the optional local
+  classifier. Keeping that choice in the environment-aware boundary prevents
+  local 384-dimensional artifacts from mixing with hosted 1,024d vectors.
   """
 
   @behaviour Spectre.Classifier.Embedding
