@@ -1,6 +1,17 @@
 defmodule ExBlog.Agent.Presenter do
-  @moduledoc false
+  @moduledoc """
+  Converts typed action results into bounded, administrator-facing text.
 
+  Action execution returns maps because Telegram, MCP, and tests need structured
+  outcomes. Beam uses this module only at the presentation boundary. Sensitive
+  configuration is already projected by `ExBlog.Config.public/0`; unexpected
+  errors receive a final redaction pass before they become visible text.
+
+  Pattern order is intentional: specific result shapes are rendered first and
+  the JSON/inspection clauses are a safe fallback for new read-only actions.
+  """
+
+  @doc "Renders a known action result or failure as concise English text."
   @spec present(term()) :: String.t()
   def present({:ok, value}), do: present(value)
   def present({:error, reason}), do: "Operation failed: #{reason_text(reason)}"
@@ -26,8 +37,9 @@ defmodule ExBlog.Agent.Presenter do
     Fast model: #{models.fast}
     Balanced model: #{models.balanced}
     Deep model: #{models.deep}
-    Classifier: #{models.classifier}
-    Embedding model: #{Map.get(models, :embedding, "not configured")}
+    Local classifier / semantic encoder: #{Map.get(models, :local_classifier, "not configured")}
+    Remote classifier fallback: #{models.classifier}
+    Optional Prism embedding model: #{Map.get(models, :embedding, "not configured")}
 
     GitHub token: #{configured(config.github_token)}
     OpenRouter token: #{configured(config.openrouter_token)}
