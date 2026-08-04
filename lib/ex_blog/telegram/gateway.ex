@@ -53,7 +53,7 @@ defmodule ExBlog.Telegram.Gateway do
         :ignore
 
       {:error, :telegram_image_too_large} ->
-        {:reply, ["Immagine troppo grande: il limite è 10 MB."]}
+        {:reply, ["The image is too large. The limit is 10 MB."]}
 
       {:error, reason}
       when reason in [
@@ -61,7 +61,7 @@ defmodule ExBlog.Telegram.Gateway do
              :invalid_telegram_image_size,
              :unauthenticated_telegram_image
            ] ->
-        {:reply, ["Non riesco a usare questa immagine Telegram. Invia una foto valida."]}
+        {:reply, ["I cannot use this Telegram image. Send a valid photo."]}
 
       {:error, _reason} = error ->
         error
@@ -90,7 +90,7 @@ defmodule ExBlog.Telegram.Gateway do
         visible_text(result)
 
       true ->
-        {:ok, "Operazione completata."}
+        {:ok, "Operation completed."}
     end
   end
 
@@ -101,13 +101,13 @@ defmodule ExBlog.Telegram.Gateway do
     case Result.action_outcome(result) do
       {:ok, value} -> {:ok, Presenter.present(value)}
       {:error, reason} -> {:ok, Presenter.present({:error, reason})}
-      {:cancelled, _reason} -> {:ok, "Operazione annullata."}
+      {:cancelled, _reason} -> {:ok, "Operation cancelled."}
       nil -> visible_text(result)
     end
   end
 
   defp visible_text(%Result{reply_text: text}) when is_binary(text) do
-    if String.trim(text) == "", do: {:ok, "Operazione completata."}, else: {:ok, text}
+    if String.trim(text) == "", do: {:ok, "Operation completed."}, else: {:ok, text}
   end
 
   defp spectre_opts(opts, conversation_id) do
