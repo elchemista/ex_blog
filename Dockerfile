@@ -1,10 +1,22 @@
 ARG ELIXIR_IMAGE="hexpm/elixir:1.20.2-erlang-29.0.4-debian-bookworm-20260713-slim"
 ARG DEBIAN_IMAGE="debian:bookworm-20260713-slim"
+ARG RUST_IMAGE="rust:1.93.1-slim-bookworm"
+
+FROM ${RUST_IMAGE} AS rust-toolchain
 
 FROM ${ELIXIR_IMAGE} AS builder
 
+ENV CARGO_HOME=/usr/local/cargo
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV PATH=/usr/local/cargo/bin:${PATH}
+ENV CC=/usr/bin/clang
+ENV CXX=/usr/bin/clang++
+
+COPY --from=rust-toolchain /usr/local/cargo /usr/local/cargo
+COPY --from=rust-toolchain /usr/local/rustup /usr/local/rustup
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential git \
+    && apt-get install -y --no-install-recommends build-essential clang git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -22,6 +34,10 @@ COPY lib lib
 COPY assets assets
 
 RUN mix compile
+# This validates ExBlog's checked-in corpus, downloads the shared local encoder,
+# and emits both the classifier and the vectorized semantic-cache mirror into
+# priv before Mix assembles the release.
+RUN mix spectre.classifier.setup
 RUN mix run --no-start -e 'Application.ensure_all_started(:req); {:ok, _path} = SpectreLens.Lightpanda.install(out: "/build/bin", channel: "nightly", force: true)'
 RUN mix assets.deploy
 RUN mix release
@@ -56,6 +72,7 @@ WORKDIR /app
 RUN mkdir -p /data && chown exblog:exblog /data
 
 COPY --from=builder --chown=exblog:exblog /build/_build/prod/rel/ex_blog ./
+COPY --from=builder --chown=exblog:exblog /build/.fastembed_cache ./.fastembed_cache
 COPY --from=builder --chown=root:root /build/bin/lightpanda /usr/local/bin/lightpanda
 COPY --chown=root:root rel/overlays/bin/docker-entrypoint /usr/local/bin/ex-blog-entrypoint
 
