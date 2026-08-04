@@ -25,10 +25,12 @@ defmodule ExBlogWeb.Admin.SessionController do
     if AdminAuth.authenticate_password(password) do
       LoginThrottle.reset(requester)
 
+      conn = AdminAuth.log_in(conn)
+      {conn, destination} = AdminAuth.pop_return_to(conn)
+
       conn
-      |> AdminAuth.log_in()
       |> put_flash(:info, "Accesso effettuato.")
-      |> redirect(to: ~p"/admin/telegram")
+      |> redirect(to: destination)
     else
       conn
       |> put_flash(:error, "Password non valida.")
