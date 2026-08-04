@@ -16,6 +16,11 @@ locale senza un database SQL.
 - blog multilingua, tag, categorie, traduzioni, RSS, Atom, sitemap e JSON-LD;
 - agente Spectre organizzato in skill di lettura, editoriale e operazioni, con
   prompt HEEx e azioni `@al` pianificate da Kinetic;
+- lingua operativa dell’agente e di tutti i prompt fissata all’inglese, mentre
+  corpo, SEO e traduzioni rispettano la lingua scelta per ogni articolo;
+- cache semantica Spectre persistita in DETS con embedding OpenRouter, review
+  automatica soltanto oltre una soglia di similarità molto alta e nessuna
+  scorciatoia sulle conferme delle mutazioni;
 - creazione articolo guidata da flow annidati per brief, lingua, categoria,
   titolo e SEO, con generazione OpenRouter campo per campo e conferma esplicita
   prima di modificare Git;
@@ -79,6 +84,12 @@ Variabili obbligatorie dell’applicazione:
 | `EX_BLOG_CLASSIFIER_MODEL` | fallback del router Spectre |
 | `EX_BLOG_MCP_TOKEN` | bearer operatore per client MCP diretti, separato da OAuth |
 
+La cache semantica usa per default lo stesso contratto di `freelance`:
+`EX_BLOG_EMBEDDING_MODEL=openrouter:perplexity/pplx-embed-v1-0.6b` e
+`EX_BLOG_EMBEDDING_DIMENSIONS=1024`. Entrambe sono opzionali e possono essere
+sovrascritte, ma modello, dimensione e snapshot esistenti devono restare
+compatibili.
+
 `LIGHTPANDA_PATH` è opzionale quando il binario non è nel `PATH` o in
 `~/.local/bin/lightpanda`. Spectre Lens usa una policy di rete pubblica per le
 URL scelte dall’agente e rifiuta loopback, reti private, credenziali nella URL e
@@ -98,7 +109,8 @@ problemi e termina prima di avviare il blog in uno stato parziale.
 Il processo di boot segue quest’ordine:
 
 ```text
-ENV → validazione → directory dati → storage DETS → repository Git
+ENV → validazione → directory dati → storage DETS → cache semantica
+    → repository Git
     → ripristino immagini → parsing Markdown → indice ETS
     → Spectre/Prism/Kinetic → Telegram
     → endpoint web/MCP
@@ -159,8 +171,11 @@ Solo il mittente il cui ID coincide con `EX_BLOG_ADMIN_TELEGRAM_ID` raggiunge
 Beam, Spectre o OpenRouter. Gli altri update sono ignorati senza registrarne il
 testo. I comandi deterministici principali sono `/config`, `/budget`, `/sync`,
 `/articles` e `/check [URL]`; le operazioni editoriali sensibili richiedono
-conferma. `/create` avvia il flow editoriale: dopo il brief si può scrivere
-`genera categoria`, `genera titolo`, `genera SEO` o `salta`. Durante il flow una
+conferma. L’agente risponde in inglese. `/create` avvia il flow editoriale: dopo
+il brief si può scrivere `generate category`, `generate title`, `generate SEO`
+o `skip`. La lingua si può indicare
+con il codice o il nome, per esempio `en`, `English`, `it` o `Italian`, senza
+invocare il classificatore LLM. Durante il flow una
 foto con didascalia diventa la copertina del draft. L’immagine viene scaricata
 solo dopo il gate admin, salvata sotto `priv/static/images/articles` e replicata
 sul volume in `$EX_BLOG_DATA_DIR/assets/images/articles` per sopravvivere ai
@@ -258,6 +273,8 @@ controlli statici e avvia l’intera suite.
      EX_BLOG_LLM_BALANCED_MODEL="openai/gpt-5.6-terra" \
      EX_BLOG_LLM_DEEP_MODEL="openai/gpt-5.6-sol" \
      EX_BLOG_CLASSIFIER_MODEL="openai/gpt-5.6-luna" \
+     EX_BLOG_EMBEDDING_MODEL="openrouter:perplexity/pplx-embed-v1-0.6b" \
+     EX_BLOG_EMBEDDING_DIMENSIONS="1024" \
      EX_BLOG_MCP_TOKEN="$(openssl rand -hex 32)"
    ```
 
