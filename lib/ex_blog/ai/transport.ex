@@ -45,7 +45,7 @@ defmodule ExBlog.AI.Transport do
     |> maybe_put_body(include_usage(body))
   end
 
-  defp include_usage(body) when is_map(body) do
+  defp include_usage(%{"messages" => messages} = body) when is_list(messages) do
     Map.put_new(body, "usage", %{"include" => true})
   end
 
