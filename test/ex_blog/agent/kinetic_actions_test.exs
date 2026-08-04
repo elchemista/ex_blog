@@ -61,7 +61,7 @@ defmodule ExBlog.Agent.KineticActionsTest do
   test "Kinetic plans a typed provider action and Spectre keeps its policy" do
     context = %Context{
       agent: Agent,
-      input: Input.new("pubblica it phoenix-liveview"),
+      input: Input.new("publish it phoenix-liveview"),
       state: %State{}
     }
 
@@ -90,8 +90,8 @@ defmodule ExBlog.Agent.KineticActionsTest do
   end
 
   test "builds escaped Action Language that Kinetic maps back to typed arguments" do
-    title = ~s(Phoenix "senza sorprese")
-    brief = "Prima riga\nSeconda riga con \\ percorso"
+    title = ~s(Phoenix "without surprises")
+    brief = "First line\nSecond line with \\ path"
 
     command =
       KineticActions.create_article_command(
@@ -101,7 +101,7 @@ defmodule ExBlog.Agent.KineticActionsTest do
         brief,
         true,
         "/images/articles/cover.jpg",
-        "Schema del flusso"
+        "Workflow diagram"
       )
 
     context = %Context{
@@ -116,7 +116,7 @@ defmodule ExBlog.Agent.KineticActionsTest do
         effect_scope: {:skill, :editorial}
       )
 
-    assert command =~ ~S(TITLE="Phoenix \"senza sorprese\"")
+    assert command =~ ~S(TITLE="Phoenix \"without surprises\"")
 
     assert {:ok, effect} = ActionPlanner.plan(command, context, planner_opts)
 
@@ -124,10 +124,10 @@ defmodule ExBlog.Agent.KineticActionsTest do
              "title" => title,
              "lang" => "it",
              "category" => "Elixir",
-             "brief" => "Prima riga Seconda riga con \\ percorso",
+             "brief" => "First line Second line with \\ path",
              "generate_seo" => true,
              "cover" => "/images/articles/cover.jpg",
-             "cover_alt" => "Schema del flusso"
+             "cover_alt" => "Workflow diagram"
            }
   end
 
