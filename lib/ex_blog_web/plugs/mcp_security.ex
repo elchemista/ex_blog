@@ -3,6 +3,7 @@ defmodule ExBlogWeb.Plugs.MCPSecurity do
 
   import Plug.Conn
 
+  alias ExBlog.ChatGPT.OAuth
   alias ExBlog.Config
 
   @supported_versions ["2025-03-26", "2025-06-18", "2025-11-25"]
@@ -14,7 +15,7 @@ defmodule ExBlogWeb.Plugs.MCPSecurity do
   def call(conn, _opts) do
     with :ok <- valid_origin(conn),
          :ok <- valid_protocol_version(conn),
-         :ok <- authenticated(conn) do
+         {:ok, conn} <- authenticate(conn) do
       conn
     else
       {:error, :invalid_origin} ->
@@ -58,23 +59,55 @@ defmodule ExBlogWeb.Plugs.MCPSecurity do
     end
   end
 
-  defp authenticated(conn) do
-    expected = Config.fetch_secret!(:mcp_token)
-
+  defp authenticate(conn) do
     case get_req_header(conn, "authorization") do
       ["Bearer " <> supplied] ->
-        if Plug.Crypto.secure_compare(supplied, expected),
-          do: :ok,
-          else: {:error, :unauthorized}
+        authenticate_bearer(conn, supplied)
+
+      [] ->
+        {:ok, assign_identity(conn, nil, MapSet.new(), :anonymous)}
 
       _other ->
         {:error, :unauthorized}
     end
   end
 
+  defp authenticate_bearer(conn, supplied) do
+    if static_token?(supplied) do
+      principal = %{subject: :admin, client_id: "operator-token"}
+      {:ok, assign_identity(conn, principal, MapSet.new(OAuth.allowed_scopes()), :static)}
+    else
+      case OAuth.authenticate_access_token(supplied) do
+        {:ok, principal, scopes} ->
+          {:ok, assign_identity(conn, principal, scopes, :oauth)}
+
+        {:error, _reason} ->
+          {:error, :unauthorized}
+      end
+    end
+  end
+
+  defp static_token?(supplied) do
+    expected = Config.fetch_secret!(:mcp_token)
+
+    byte_size(supplied) == byte_size(expected) and
+      Plug.Crypto.secure_compare(supplied, expected)
+  end
+
+  defp assign_identity(conn, principal, scopes, method) do
+    conn
+    |> assign(:mcp_authenticated?, not is_nil(principal))
+    |> assign(:mcp_principal, principal)
+    |> assign(:mcp_scopes, scopes)
+    |> assign(:mcp_auth_method, method)
+  end
+
   defp unauthorized(conn) do
     conn
-    |> put_resp_header("www-authenticate", ~s(Bearer realm="ExBlog MCP"))
+    |> put_resp_header(
+      "www-authenticate",
+      OAuth.authorization_challenge(nil, "invalid_token", "The Bearer token is invalid")
+    )
     |> reject(:unauthorized, "unauthorized")
   end
 
