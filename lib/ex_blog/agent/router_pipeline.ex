@@ -5,7 +5,7 @@ defmodule ExBlog.Agent.RouterPipeline do
   The ordering combines Spectre's trained routing providers with ExBlog's
   deterministic article-intake cursor:
 
-    * regex commands and safety interrupts are hard evidence;
+    * safety and cancellation interrupts are hard regex evidence;
     * an active nested flow owns its current free-text answer;
     * the learned cache gets an exact lookup before any embedding call;
     * an optional development/test classifier can handle known paraphrases

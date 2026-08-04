@@ -3,11 +3,11 @@
 > A Git-native editorial agent built with Phoenix and the Spectre ecosystem.
 
 ExBlog is a working showcase of an agent that does more than answer questions.
-An administrator can talk to it through Telegram or MCP, enter a guided
-editorial workflow, generate multilingual content with OpenRouter, approve a
-repository mutation, and publish a real Markdown article. GitHub remains the
-canonical content store; Phoenix serves a fast ETS projection without a SQL
-database.
+As the administrator, you talk to it through Telegram or MCP: it walks you
+through a guided editorial workflow, drafts multilingual content with
+OpenRouter, asks you to approve every repository change, and publishes a real
+Markdown article. GitHub remains the canonical content store; Phoenix serves a
+fast ETS projection without a SQL database.
 
 The project brings the Spectre stack together in one deliberately visible
 workflow:
@@ -18,6 +18,8 @@ workflow:
 - **Spectre Prism** selects fast, balanced, or deep OpenRouter models by purpose;
 - **Spectre Beam** normalizes Telegram text and images through ExGram;
 - **Spectre Lens** audits rendered public blog pages from inside the agent;
+- **Spectre Work** runs the durable sync-and-verify maintenance procedure on
+  the operational runtime;
 - **HEEx prompt templates** keep prompts reviewable and next to their skill;
 - **dataset-driven semantic routing** uses an ExBlog-specific English corpus,
   optional local classification in development, OpenRouter embeddings in
@@ -36,8 +38,8 @@ flowchart LR
     ChatGPT[ChatGPT or MCP client] --> MCP[OAuth 2.1 / MCP]
     Beam --> Agent[Spectre Agent]
     MCP --> Agent
-    Agent --> Skills[Reader · Editorial · Operations skills]
-    Skills --> Router[Slash commands · active flow · exact dataset · optional local classifier · semantic search · LLM fallback]
+    Agent --> Router[Safety interrupts · active flow · exact dataset · optional local classifier · semantic search · LLM fallback]
+    Router --> Skills[Reader · Editorial · Operations skills]
     Skills --> Kinetic[Spectre Kinetic @al validation]
     Skills --> Prism[Spectre Prism model routing]
     Skills --> Lens[Spectre Lens public-page audit]
@@ -62,14 +64,49 @@ There are four different persistence responsibilities:
 Article images are content-addressed on the data volume and restored into
 `priv/static/images/articles` at boot.
 
-## Why Spectre is useful here
+## How the agent works
 
-This application treats an agent as a typed workflow, not as an unrestricted
-chat completion.
+The agent treats every administrator message as a routing problem, not as a
+chat completion. When a message arrives, it walks down an ordered list of
+questions, from the cheapest and most predictable to the most expensive, and
+stops at the first confident answer:
+
+1. **Is it a safety interrupt or a cancellation?** Prompt-injection patterns
+   and the natural phrases `stop`, `cancel`, and `never mind` are matched by a
+   handful of regex guards. This is hard evidence: when one matches, no model
+   is consulted at all. Nothing else in the agent is command-shaped — there
+   are no bot-style `/commands` to memorize.
+2. **Is a conversation already in progress?** If the article wizard is waiting
+   for a title, the next free-text message *is* the title. The persisted flow
+   cursor claims that reply directly instead of sending it to a classifier
+   that would have to guess what it means.
+3. **Has this exact sentence been seen before?** The versioned English dataset
+   and previously verified learned phrases answer exact matches from cache,
+   with no inference of any kind.
+4. **Does the local classifier recognize the phrasing?** In development and
+   test, a small locally trained model routes known paraphrases without a
+   network call. It answers only when clearly confident; otherwise it steps
+   aside. Production does not ship this model.
+5. **Is it close to something the agent already learned?** The message is
+   embedded once and compared against stored request vectors; a close enough
+   match reuses the earlier routing decision.
+6. **Only then, ask a model.** When every cheaper signal misses or providers
+   disagree, one fast OpenRouter completion classifies the intent.
+
+Understanding a request is deliberately separate from acting on it. Whatever
+path routing takes, a write still becomes a typed Kinetic action, is validated
+against the `@al` catalog, and waits for an explicit `yes` or `confirm` before
+anything touches Git. A learned shortcut can speed up understanding; it can
+never skip a confirmation.
+
+The rest of this section describes the pieces that make this behavior
+concrete.
 
 ### Skills and nested flows
 
-[`ExBlog.Agent`](lib/ex_blog/agent.ex) installs three focused skills:
+Instead of one monolithic prompt, the agent is split into three skills, each
+owning a coherent slice of the work.
+[`ExBlog.Agent`](lib/ex_blog/agent.ex) installs them:
 
 | Skill | Scope |
 | --- | --- |
@@ -77,7 +114,7 @@ chat completion.
 | `editorial` | create, revise, translate, optimize, publish, unpublish, and delete |
 | `operations` | safe configuration, provider health, budget, and Git synchronization |
 
-The `/create` conversation is implemented as nested Spectre flows:
+The article-creation conversation is implemented as nested Spectre flows:
 
 ```text
 article_creation
@@ -90,8 +127,8 @@ article_creation
 
 `Spectre.State.current_flow` is the cursor. A free-text answer is therefore
 interpreted as the field currently being requested instead of being sent back
-through a generic classifier. `/cancel` and authenticated Telegram images are
-global interrupts, so they remain available at every step.
+through a generic classifier. Cancellation phrases and authenticated Telegram
+images are global interrupts, so they remain available at every step.
 
 The implementation is in
 [`editorial.ex`](lib/ex_blog/agent/skills/editorial.ex).
@@ -133,15 +170,17 @@ DELETE ARTICLE LANG="en" SLUG="spectre-agents"
 SYNC BLOG REPOSITORY
 ```
 
-The administrator normally sends the shorter commands described below.
+The administrator never types this syntax: they ask in plain English, and
 Kinetic AL is the validated internal contract between planning and execution.
 
 ### Policies before side effects
 
 Create, revise, translate, generate SEO, publish, unpublish, delete, and
 repository synchronization are protected Spectre actions. The agent stages the
-effect and accepts only `yes` or `confirm`; `no` or `cancel` rejects it. Three
-invalid confirmation attempts cancel the operation.
+effect, shows what it is about to do, and waits: only a plain `yes` or
+`confirm` from the administrator executes it, `no` or `cancel` rejects it, and
+three invalid confirmation attempts cancel the operation. No model output can
+approve a staged action.
 
 Read actions never mutate Git. Semantic learning is also restricted to
 explicitly learnable read routes, so a learned match can never approve a write.
@@ -160,26 +199,78 @@ Budget checks happen before balanced or deep requests. Model identifiers remain
 runtime configuration, so changing providers or models does not alter the
 skills.
 
-### Dataset-driven routing plus semantic reuse
+### A durable Work: sync and verify
 
-Routing is deliberately multi-provider. Regex is reserved for deterministic
-operator controls, never used as a substitute for language understanding:
+Conversational turns are short-lived; maintenance is not. For procedures that
+must outlive one reply, Spectre provides `Spectre.Work`: a versioned,
+deterministic state machine whose registered operations run on the shared
+operational runtime. ExBlog ships one as a showcase,
+[`SyncAndVerify`](lib/ex_blog/agent/works/sync_and_verify.ex):
 
 ```text
-slash command or safety regex → active nested-flow continuation
-→ exact versioned dataset / verified cache → optional local classifier
-→ vector semantic search → arbitration → remote LLM classifier fallback
+Administrator: Sync the repository and verify all public pages.
+Agent: Sync and verification started. …
+
+sync_repository → collect_pages → audit_page (one per URL) → report
+```
+
+The Work owns a closed catalog of three operations, implemented in
+[`Verification`](lib/ex_blog/agent/verification.ex):
+
+| Operation | Effect | Classification |
+| --- | --- | --- |
+| `sync_repository` | the same fetch/reset/rebuild the periodic sync performs | idempotent, retried once |
+| `collect_pages` | bounded list of public URLs from the ETS index, at most 16 | pure read |
+| `audit_page` | one Spectre Lens audit per page, deterministic checks only | idempotent, retried once |
+
+The controller callbacks (`init`, `next`, `apply_result`, `complete`) are
+deterministic reducers: they only decide *which* operation runs next, while
+the operational runtime executes attempts, applies retry policy, and commits
+every transition. The Work performs no Git push and no model inference, so it
+needs no policy confirmation and spends no OpenRouter budget; a page that
+fails to load is recorded as unhealthy instead of aborting the run.
+
+The agent side is two ordinary routes in the operations skill. `VERIFY_BLOG`
+uses the `work(...)` handler, which starts the loop on the blog's Agent
+Instance and immediately acknowledges the conversation; `SHOW_VERIFICATION`
+is a cacheable read that projects the newest committed loop view — status,
+phase, page counts, and the problems found — back into a reply:
+
+```elixir
+on :VERIFY_BLOG, embedding: [...], cache: false,
+  via: [:embedding, :classifier, :llm_classifier] do
+  work(SyncAndVerify, input: %{}, reply: :verification_started)
+end
+```
+
+The Instance is supervised under `ExBlog.SpectreSupervisor` and created
+lazily by [`Instance`](lib/ex_blog/agent/instance.ex). It holds only
+in-memory operational state: restarting the application loses a running
+verification loop but never blog content.
+
+### Dataset-driven routing plus semantic reuse
+
+Routing is deliberately multi-provider: regex is reserved for safety
+interrupts and cancellation phrases, and everything that needs actual
+language understanding falls through to progressively smarter — and more
+expensive — providers:
+
+```text
+safety or cancellation regex → active nested-flow continuation
+→ exact versioned dataset / verified cache → optional static embeddings
+→ optional local classifier → vector semantic search → arbitration
+→ remote LLM classifier fallback
 ```
 
 Every skill route declares its own `via:` list. Read routes expose
-`[:regex, :embedding, :classifier, :semantic_cache, :llm_classifier]`;
-editorial and Git mutations expose slash-command regex, optional static
-embeddings, the trained classifier, and the LLM classifier but exclude
-semantic-cache learning; intake capture leaves expose only the private
-`:creation_continuation` provider.
+`[:embedding, :classifier, :semantic_cache, :llm_classifier]`; editorial and
+Git mutations expose optional static embeddings, the trained classifier, and
+the LLM classifier but exclude semantic-cache learning; intake capture leaves
+expose only the private `:creation_continuation` provider.
 
 The agent enables `[:regex, :classifier, :semantic_cache, :llm_classifier]`
-globally. `:embedding` remains an opt-in static matcher because it embeds every
+globally; `:regex` stays in that list only for the safety and cancellation
+interrupts. `:embedding` remains an opt-in static matcher because it embeds every
 visible skill example during a request. The local-classifier provider is part
 of the pipeline but can report itself unavailable, allowing semantic search and
 the remote classifier to continue normally.
@@ -204,8 +295,8 @@ margin gates make ambiguous predictions fall through instead of treating them
 as authoritative. Hosted models receive the original redacted text without the
 E5-specific prefix.
 
-The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 204 original
-English examples: 12 for each of the 17 classifier-visible ExBlog intents. The
+The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 228 original
+English examples: 12 for each of the 19 classifier-visible ExBlog intents. The
 dataset includes contrastive cases such as reading versus searching, auditing
 an existing page versus generating SEO, and publishing versus repository
 synchronization. Capture fields from the nested creation wizard are excluded
@@ -215,9 +306,9 @@ The optional development bootstrap produces two artifacts from the same
 corpus under ignored `artifacts/spectre`:
 
 - `classifier.etf`, used by the warm local intent classifier;
-- `semantic_cache.jsonl`, containing precomputed local vectors for all 204
+- `semantic_cache.jsonl`, containing precomputed local vectors for all 228
   examples; development boot filters them through route policy and warms
-  Vettore with the 84 cacheable read examples.
+  Vettore with the 96 cacheable read examples.
 
 Production does not load either artifact. It still reads the release-safe
 dataset for exact matches. New eligible semantic rows are embedded through
@@ -225,15 +316,16 @@ OpenRouter and persisted in a namespace containing the hosted model and
 dimension identity, so a DETS store cannot mix them with local 384d rows.
 
 Spectre mirrors dataset rows into exact cache only when their route is
-cacheable. Consequently, the seven read-only intents can answer exact matches
-with no inference, while writes, deletes, sync, unsafe input, and unknown input
-train the classifier but can never become cached authorization.
+cacheable. Consequently, the eight read-only intents can answer exact matches
+with no inference, while writes, deletes, sync, verification starts, unsafe
+input, and unknown input train the classifier but can never become cached
+authorization.
 
 The provider responsibilities are:
 
 | Provider | When it wins | External model call |
 | --- | --- | --- |
-| regex | an explicit `/...` command, safety interrupt, cancel, or image control matches | none |
+| regex | a safety interrupt, a cancellation phrase, or the internal Telegram image marker matches | none |
 | creation continuation | a persisted article-intake cursor owns the next free-text answer | none |
 | semantic exact | a trusted dataset, skill, or verified learned phrase matches exactly | none |
 | local classifier | a development/test artifact recognizes the intent above its score and margin gates | one local embedding; disabled in production |
@@ -241,17 +333,21 @@ The provider responsibilities are:
 | static embedding | explicitly enabled for experiments | selected environment adapter per visible example |
 | LLM classifier | all local evidence misses or conflicts | one fast OpenRouter completion |
 
-`regex_strength: :hard` is provider-specific. An actual regex match stops
-probabilistic routing, but the same rule's embedding candidate remains subject
-to score and margin thresholds. Global safety interrupts intentionally do not
-use static embedding candidates because interrupt evidence is always hard.
+Interrupt regex evidence is always hard: an actual match stops probabilistic
+routing outright, while a rule's embedding candidate remains subject to score
+and margin thresholds. Global safety interrupts intentionally do not use
+static embedding candidates because a low-score embedding candidate must
+never turn an unrelated request into an interrupt.
 
-When enabled locally, the classifier must reach `0.89` with a `0.008` label
-margin. The default semantic threshold is `0.94`. An unreviewed learned read intent
-can become verified automatically only at `0.985` similarity with at least a
-`0.05` margin over the next label. Online learned rows and their embeddings are
-persisted in DETS. Editorial mutations have `learn: false` and still require
-policy confirmation.
+The gates are strict on purpose. The local classifier must reach `0.89` with a
+`0.008` margin over the runner-up label; optional static-embedding candidates
+need `0.84` with a `0.03` margin; learned semantic matches need `0.94`
+similarity. An unreviewed learned read intent becomes verified automatically
+only at `0.985` similarity with at least a `0.05` margin over the next label.
+A candidate that cannot clear its gate simply falls through to the next
+provider instead of routing the request on a guess. Online learned rows and
+their embeddings are persisted in DETS. Editorial mutations have
+`learn: false` and still require policy confirmation.
 
 ### Reading the agent implementation
 
@@ -267,7 +363,10 @@ effects:
 | [`Embedding`](lib/ex_blog/agent/embedding.ex) | environment-aware boundary: ExFastembed locally, OpenRouter in production |
 | [`Reader`](lib/ex_blog/agent/skills/reader.ex) | cacheable read intents and Lens audit route |
 | [`Editorial`](lib/ex_blog/agent/skills/editorial.ex) | nested creation flow and protected editorial intents |
-| [`Operations`](lib/ex_blog/agent/skills/operations.ex) | diagnostics and protected repository synchronization |
+| [`Operations`](lib/ex_blog/agent/skills/operations.ex) | diagnostics, protected repository synchronization, and verification routes |
+| [`Works.SyncAndVerify`](lib/ex_blog/agent/works/sync_and_verify.ex) | durable sync-and-verify Work controller |
+| [`Verification`](lib/ex_blog/agent/verification.ex) | registered operation executors for the verification Work |
+| [`Instance`](lib/ex_blog/agent/instance.ex) | lazy Subject-scoped Agent Instance owning Work loops |
 | [`KineticActions`](lib/ex_blog/agent/kinetic_actions.ex) | typed `@al` catalog visible to the action planner |
 | [`Actions.Provider`](lib/ex_blog/agent/actions/provider.ex) | safe bridge from validated Kinetic actions to execution |
 | [`Actions`](lib/ex_blog/agent/actions.ex) | context-aware read, AI, and repository operations |
@@ -277,10 +376,11 @@ effects:
 
 ## A complete editorial conversation
 
-The shortest way to understand the project is to run `/create` in Telegram:
+The shortest way to understand the project is to ask for a new article in
+Telegram:
 
 ```text
-Administrator: /create
+Administrator: I'd like to write a new article.
 Agent: Describe the topic, goal, audience, important points, and tone.
 
 Administrator: Explain how typed agent actions make Git publishing safer.
@@ -309,50 +409,58 @@ Agent: Generates the article, writes one Markdown file, commits, rebases,
 Publishing is a separate protected action:
 
 ```text
-Administrator: /publish en typed-agent-actions
+Administrator: Publish the English article typed-agent-actions.
 Agent: Asks for confirmation.
 Administrator: yes
 Agent: Updates the Markdown status, commits, pushes, and refreshes the index.
 ```
 
-The photo can be sent at any point while the article-creation flow is active.
-`/cancel` exits the flow without creating an article.
+The wizard accepts natural replies, not only the exact keywords shown above:
+`propose a title` or `you choose for me` also trigger generation, plain `yes`
+and `no` work at the SEO step, and `stop`, `cancel`, or `never mind` leave the
+flow at any moment. The photo can be sent at any point while the
+article-creation flow is active; cancelling exits without creating an article.
 
-## Agent command reference
+## Talking to the agent
 
-Commands and natural-language requests are English-first. Regex handles only
-the predictable operator shortcuts below; equivalent English requests are
-understood by the dataset, optional local classifier, semantic cache, and LLM
-fallback.
+There are no bot commands to memorize. You write what you want in English,
+and routing matches it against the dataset, the optional local classifier,
+the learned semantic cache, and finally the LLM classifier. When a request
+concerns one specific article, mention its language code and slug anywhere in
+the sentence — for example `en spectre-agents` or `en/spectre-agents`.
 
 ### Reading and diagnostics
 
-| Command | Result | Side effect |
+| You say, for example | Result | Side effect |
 | --- | --- | --- |
-| `/articles [language]` | list article summaries, including drafts for the administrator | none |
-| `/read <language> <slug>` | return one complete article | none |
-| `/search <query>` | search title, category, tags, and Markdown body | none |
-| `/check [https://public-url]` | audit the canonical blog URL or the supplied public page with Spectre Lens | browser read plus optional balanced-model assessment |
-| `/config` | show a redacted, safe runtime configuration | none |
-| `/budget` | show daily and monthly AI accounting | none |
-| `/openrouter` | check provider reachability and configured model availability | external read |
-| `/sync` | fetch the canonical branch and rebuild ETS | protected Git write operation |
-
-Article identifiers use a supported language followed by a slug, for example
-`/read en spectre-agents`.
+| “List the blog articles” | article summaries, including drafts for the administrator | none |
+| “Open the article en/spectre-agents” | one complete article | none |
+| “Find articles that discuss semantic routing” | search across title, category, tags, and Markdown body | none |
+| “Audit https://blog.example.com/en/spectre-agents” | Spectre Lens audit of the given public page, or of the canonical blog URL when none is given | browser read plus optional balanced-model assessment |
+| “Show the safe blog configuration” | redacted, safe runtime configuration | none |
+| “How much budget have we spent this month?” | daily and monthly AI accounting | none |
+| “Is OpenRouter reachable?” | provider reachability and configured model availability | external read |
+| “Sync the content repository” | fetch the canonical branch and rebuild ETS | protected Git write operation |
+| “Sync the repository and verify all public pages” | durable sync-and-verify Work: fetch/rebuild plus a Lens audit of every published page | Git fetch/reset plus browser reads; no model calls |
+| “How did the last site verification go?” | status and report of the newest verification run | none |
 
 ### Editorial work
 
-| Command | Result | Model / confirmation |
+| You say, for example | Result | Model / confirmation |
 | --- | --- | --- |
-| `/create` | start the brief → language → category → title → SEO flow | fast/balanced/deep as needed; confirmation before generation and Git |
-| `/revise <lang> <slug> <instructions>` | prepare a Markdown revision; an exact approved body can then be applied | balanced by default; protected |
-| `/translate <lang> <slug> to <target-lang>` | create a translated draft linked to its source | deep; protected |
-| `/seo <lang> <slug>` | generate SEO title, description, tags, and optional alt text | balanced; protected |
-| `/publish <lang> <slug>` | change a draft to `published` | protected |
-| `/unpublish <lang> <slug>` | return a published article to `draft` | protected |
-| `/delete <lang> <slug>` | remove the Markdown file | destructive and protected |
-| `/cancel` | leave article creation or reject a pending confirmation | no side effect |
+| “I want to write a new article” | guided brief → language → category → title → SEO conversation | fast/balanced/deep as needed; confirmation before generation and Git |
+| “Revise en/spectre-agents: add a deployment section” | Markdown revision preview; an exact approved body can then be applied | balanced by default; protected |
+| “Translate en/spectre-agents to Italian” | translated draft linked to its source | deep; protected |
+| “Generate SEO for en/spectre-agents” | SEO title, description, tags, and optional alt text | balanced; protected |
+| “Publish en/spectre-agents” | change a draft to `published` | protected |
+| “Unpublish en/spectre-agents” | return a published article to `draft` | protected |
+| “Delete en/spectre-agents” | remove the Markdown file | destructive and protected |
+| “Cancel”, “stop”, or “never mind” | leave article creation or reject a pending confirmation | no side effect |
+
+The example phrasings are not templates: any English sentence with the same
+meaning routes to the same intent. Only the cancellation words, prompt-safety
+guards, and the confirmation replies `yes`/`confirm` and `no`/`cancel` are
+matched literally.
 
 ## Prepare the content repository
 
@@ -468,8 +576,7 @@ partially configured state.
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
 | `EX_BLOG_ADMIN_PASSWORD_HASH` | yes | — | Argon2id hash accepted by `/admin/login`; generate it locally with the included Mix task |
-| `EX_BLOG_ADMIN_TELEGRAM_ID` | yes | — | positive numeric Telegram user ID of the only allowed command sender |
-| `EX_BLOG_ADMIN_TELEGRAM_USERNAME` | no | unset | informational label only; never used for authorization |
+| `EX_BLOG_ADMIN_TELEGRAM_USERNAME` | yes | — | Telegram username of the only allowed command sender; `name` and `@name` are equivalent |
 | `TG_API_ID` | yes | — | positive Telegram application API ID obtained from `my.telegram.org/apps` |
 | `TG_API_HASH` | yes | — | Telegram application API hash; secret |
 | `EX_BLOG_TELEGRAM_SESSION_ID` | no | `ex_blog` | TDLib session name; letters, numbers, `_`, and `-` only |
@@ -539,7 +646,7 @@ Requirements:
 - an OpenRouter API key;
 - a Telegram application and user account;
 - the native `tdlib-json-cli` backend required by ExGram;
-- Lightpanda only when using `/check`.
+- Lightpanda only when using public-page audits.
 
 Install dependencies and the TDLib backend:
 
@@ -638,8 +745,9 @@ end
 `ExBlog.Telegram.Transport` owns the ExGram session, subscribes to TDLib events,
 publishes a secret-free connection projection to Phoenix PubSub, and sends
 normalized inbound messages to `Spectre.Beam`. Beam converts provider-specific
-updates into Spectre inputs; the gateway then applies the numeric administrator
-gate before prompts, memory, logs, or OpenRouter can see the message.
+updates into Spectre inputs; the gateway resolves the sender's Telegram profile
+and applies the administrator username gate before prompts, memory, logs, or
+OpenRouter can see the message.
 
 Naming note: **ExWapp is not wired into ExBlog**. Spectre Beam can support other
 adapters, including an ExWapp channel in a different application, but this
@@ -666,9 +774,10 @@ Keep the quotes: `TG_API_ID` is parsed as a positive integer by ExBlog, while
 identify the Telegram application; they are not a Bot API token and they do
 not authorize a user session by themselves.
 
-Set `EX_BLOG_ADMIN_TELEGRAM_ID` to the numeric user ID that is allowed to send
-commands. The optional username is only a display hint and changing a username
-never changes authorization.
+Set `EX_BLOG_ADMIN_TELEGRAM_USERNAME` to the username that is allowed to send
+commands. Both `elchemista` and `@elchemista` are accepted, and comparison is
+case-insensitive. If the account changes its Telegram username, update this
+setting before sending more commands.
 
 ExBlog ignores messages marked by Telegram as `from_me`. In practice, the
 clearest topology is:
@@ -679,10 +788,10 @@ personal administrator account
 dedicated Telegram account connected to ExBlog through ExGram
 ```
 
-The personal account's numeric ID is
-`EX_BLOG_ADMIN_TELEGRAM_ID`; the dedicated account's phone number is the one
-paired from `/admin/telegram`. If the same connected account sends its own
-messages, TDLib marks them as outgoing and ExBlog intentionally ignores them.
+The personal account's username is `EX_BLOG_ADMIN_TELEGRAM_USERNAME`; the
+dedicated account's phone number is the one paired from `/admin/telegram`. If
+the same connected account sends its own messages, TDLib marks them as outgoing
+and ExBlog intentionally ignores them.
 
 ### Protect the connection page
 
@@ -733,8 +842,8 @@ the session ID, or Telegram revoking the session requires a new login.
 
 ### Telegram cover images
 
-While `/create` is active, the authorized administrator can send JPEG, PNG,
-GIF, or WebP images up to 10 MB. ExBlog:
+While article creation is active, the authorized administrator can send JPEG,
+PNG, GIF, or WebP images up to 10 MB. ExBlog:
 
 1. lets Beam authenticate and normalize the image update;
 2. downloads bytes from ExGram only inside the active editorial flow;
@@ -754,9 +863,9 @@ The durable copy is restored into the release's static tree at boot.
 
 ## Spectre Lens: public blog verification only
 
-`/check` is a reader-skill action for inspecting a rendered **public blog or
-article page**. It is not part of administrator login, QR pairing, or Telegram
-connection testing.
+Page auditing (“check the article page …”) is a reader-skill action for
+inspecting a rendered **public blog or article page**. It is not part of
+administrator login, QR pairing, or Telegram connection testing.
 
 For an audited page, Lens observes the document title, main content, semantic
 tree, links, forms, interactive elements, structured data, and browser
@@ -901,7 +1010,7 @@ ADMIN_HASH="$(mix ex_blog.admin.hash_password 'choose-at-least-12-characters')"
 fly secrets set \
   SECRET_KEY_BASE="$(mix phx.gen.secret)" \
   EX_BLOG_ADMIN_PASSWORD_HASH="$ADMIN_HASH" \
-  EX_BLOG_ADMIN_TELEGRAM_ID="123456789" \
+  EX_BLOG_ADMIN_TELEGRAM_USERNAME="elchemista" \
   TG_API_ID="12345" \
   TG_API_HASH="..." \
   EX_BLOG_GITHUB_TOKEN="github_pat_..." \

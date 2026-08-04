@@ -6,11 +6,30 @@ defmodule ExBlog.AgentTest do
   alias Spectre.Input.Pipeline
   alias Spectre.Result
 
-  test "a deterministic config command stages and executes the safe action" do
+  defmodule CheckPageClassifier do
+    @moduledoc false
+
+    # Deterministic stand-in for the optional trained classifier so a natural
+    # URL-bearing request routes without a model call in tests.
+    def classify(_text, _opts) do
+      {:ok,
+       %{
+         label: "CHECK_BLOG_PAGE",
+         accepted?: true,
+         confidence: 0.97,
+         margin: 0.2,
+         strategy: :local_classifier
+       }}
+    end
+  end
+
+  test "a natural configuration request stages and executes the safe action" do
     conversation_id = "config-#{System.unique_integer([:positive])}"
 
     assert {:ok, result} =
-             Spectre.ask(ExBlog.Agent, "/config", conversation_id: conversation_id)
+             Spectre.ask(ExBlog.Agent, "Show the safe blog configuration",
+               conversation_id: conversation_id
+             )
 
     assert result.route.label == :SHOW_BLOG_CONFIG
     assert result.route.scope == {:skill, :operations}
@@ -43,14 +62,15 @@ defmodule ExBlog.AgentTest do
     refute result.reply_text =~ ExBlog.Config.fetch_secret!(:openrouter_api_key)
   end
 
-  test "a page check command stages the Spectre Lens audit action" do
+  test "a natural page-check request stages the Spectre Lens audit action" do
     conversation_id = "check-page-#{System.unique_integer([:positive])}"
 
     assert {:ok, result} =
              Spectre.ask(
                ExBlog.Agent,
-               "/check https://example.com/article",
-               conversation_id: conversation_id
+               "Audit the page https://example.com/article and report what is broken",
+               conversation_id: conversation_id,
+               classifier_local: CheckPageClassifier
              )
 
     assert result.route.label == :CHECK_BLOG_PAGE
@@ -66,7 +86,8 @@ defmodule ExBlog.AgentTest do
       {"Audit the rendered article page for missing metadata", :CHECK_BLOG_PAGE},
       {"Show the safe blog configuration", :SHOW_BLOG_CONFIG},
       {"Show the current AI spending budget", :SHOW_AI_BUDGET},
-      {"Check whether OpenRouter is configured and reachable", :CHECK_OPENROUTER}
+      {"Check whether OpenRouter is configured and reachable", :CHECK_OPENROUTER},
+      {"Show the latest blog verification report", :SHOW_VERIFICATION}
     ]
 
     for {request, expected_label} <- routes do

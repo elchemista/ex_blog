@@ -7,6 +7,10 @@
 # General application configuration
 import Config
 
+# Source strings live in English; every other language ships as a Gettext
+# translation under priv/gettext.
+config :gettext, :default_locale, "en"
+
 config :ex_blog,
   validate_runtime_config?: true,
   start_content?: true,

@@ -10,6 +10,7 @@ defmodule ExBlogWeb.Router do
     plug :put_root_layout, html: {ExBlogWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug ExBlogWeb.Plugs.Locale
   end
 
   pipeline :api do
@@ -43,13 +44,16 @@ defmodule ExBlogWeb.Router do
     get "/sitemap.xml", SitemapController, :show
     get "/feed.xml", FeedController, :rss
     get "/atom.xml", FeedController, :atom
+    get "/cookies-policy", LegalController, :cookie_policy
+    get "/privacy-policy", LegalController, :privacy_policy
+    get "/gdpr-policy", LegalController, :gdpr_policy
   end
 
   scope "/admin", ExBlogWeb.Admin do
     pipe_through [:browser, :admin_browser, :redirect_if_admin_authenticated]
 
     live_session :redirect_if_admin_authenticated,
-      on_mount: [{ExBlogWeb.AdminAuth, :redirect_if_authenticated}] do
+      on_mount: [{ExBlogWeb.AdminAuth, :redirect_if_authenticated}, ExBlogWeb.LocaleLive] do
       live "/login", LoginLive, :new
     end
 
@@ -66,7 +70,7 @@ defmodule ExBlogWeb.Router do
     pipe_through [:browser, :admin_browser, :require_admin_authenticated]
 
     live_session :require_admin_authenticated,
-      on_mount: [{ExBlogWeb.AdminAuth, :require_authenticated}] do
+      on_mount: [{ExBlogWeb.AdminAuth, :require_authenticated}, ExBlogWeb.LocaleLive] do
       live "/telegram", TelegramLive, :show
     end
   end
@@ -108,6 +112,9 @@ defmodule ExBlogWeb.Router do
   scope "/", ExBlogWeb do
     pipe_through :browser
 
+    get "/:lang/cookies-policy", LegalController, :cookie_policy
+    get "/:lang/privacy-policy", LegalController, :privacy_policy
+    get "/:lang/gdpr-policy", LegalController, :gdpr_policy
     get "/:lang/:slug", BlogController, :show
     get "/:lang", BlogController, :index
   end

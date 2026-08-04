@@ -11,7 +11,8 @@ defmodule ExBlog.MixProject do
       aliases: aliases(),
       dialyzer: [
         flags: [:unmatched_returns, :error_handling],
-        plt_add_apps: [:ex_unit, :mix]
+        plt_add_apps: [:ex_unit, :mix],
+        ignore_warnings: ".dialyzer_ignore.exs"
       ],
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),

@@ -14,7 +14,7 @@ defmodule ExBlog.Config do
 
   @required ~w(
     EX_BLOG_ADMIN_PASSWORD_HASH
-    EX_BLOG_ADMIN_TELEGRAM_ID
+    EX_BLOG_ADMIN_TELEGRAM_USERNAME
     TG_API_ID
     TG_API_HASH
     EX_BLOG_GITHUB_TOKEN
@@ -41,7 +41,7 @@ defmodule ExBlog.Config do
   @derive {Inspect, except: @secret_fields}
   @enforce_keys [
     :admin_password_hash,
-    :admin_telegram_id,
+    :admin_telegram_username,
     :github_repository,
     :github_branch,
     :fast_model,
@@ -68,12 +68,11 @@ defmodule ExBlog.Config do
     :mcp_token
   ]
 
-  defstruct @enforce_keys ++ [:admin_telegram_username, :phx_host]
+  defstruct @enforce_keys ++ [:phx_host]
 
   @type t :: %__MODULE__{
           admin_password_hash: String.t(),
-          admin_telegram_id: pos_integer(),
-          admin_telegram_username: String.t() | nil,
+          admin_telegram_username: String.t(),
           github_repository: String.t(),
           github_branch: String.t(),
           fast_model: String.t(),
@@ -231,7 +230,7 @@ defmodule ExBlog.Config do
       load!(%{
         "EX_BLOG_ADMIN_PASSWORD_HASH" =>
           "$argon2id$v=19$m=65536,t=3,p=4$/ozmJANXqOhc51VZNhCDpA$ghgiVIIRxNcczcSsqt6Zk2IprX8zSc4fvl9p0+7Xc8c",
-        "EX_BLOG_ADMIN_TELEGRAM_ID" => "123456789",
+        "EX_BLOG_ADMIN_TELEGRAM_USERNAME" => "editorial_admin",
         "TG_API_ID" => "12345",
         "TG_API_HASH" => "test-telegram-api-hash",
         "EX_BLOG_GITHUB_TOKEN" => "test-github-token",
@@ -260,7 +259,7 @@ defmodule ExBlog.Config do
 
     validations = [
       admin_password_hash: password_hash(env),
-      admin_telegram_id: positive_integer(env, "EX_BLOG_ADMIN_TELEGRAM_ID"),
+      admin_telegram_username: telegram_username(env),
       telegram_api_id: positive_integer_value(telegram_api_id(env), "TG_API_ID"),
       telegram_session_id: telegram_session_id(env),
       github_repository: repository(env),
@@ -286,8 +285,7 @@ defmodule ExBlog.Config do
       {:ok,
        %__MODULE__{
          admin_password_hash: values.admin_password_hash,
-         admin_telegram_id: values.admin_telegram_id,
-         admin_telegram_username: optional(env, "EX_BLOG_ADMIN_TELEGRAM_USERNAME"),
+         admin_telegram_username: values.admin_telegram_username,
          github_repository: values.github_repository,
          github_branch: value(env, "EX_BLOG_GITHUB_BRANCH"),
          fast_model: value(env, "EX_BLOG_LLM_FAST_MODEL"),
@@ -323,7 +321,7 @@ defmodule ExBlog.Config do
     end
   end
 
-  defp positive_integer(env, name, default \\ nil) do
+  defp positive_integer(env, name, default) do
     raw = optional(env, name) || default
 
     positive_integer_value(raw, name)
@@ -335,6 +333,31 @@ defmodule ExBlog.Config do
       _other -> {:error, {name, "must be a positive integer"}}
     end
   end
+
+  defp telegram_username(env) do
+    username =
+      env
+      |> optional("EX_BLOG_ADMIN_TELEGRAM_USERNAME")
+      |> normalize_telegram_username()
+
+    if is_binary(username) and
+         Regex.match?(~r/^[a-z][a-z0-9_]{4,31}$/u, username) do
+      {:ok, username}
+    else
+      {:error,
+       {"EX_BLOG_ADMIN_TELEGRAM_USERNAME",
+        "must be a Telegram username of 5-32 letters, numbers, or underscores"}}
+    end
+  end
+
+  defp normalize_telegram_username(username) when is_binary(username) do
+    username
+    |> String.trim()
+    |> String.trim_leading("@")
+    |> String.downcase()
+  end
+
+  defp normalize_telegram_username(_username), do: nil
 
   # TG_API_ID and TG_API_HASH are ExGram's conventional deployment names. The
   # older EX_BLOG-prefixed names remain read-compatible so existing releases

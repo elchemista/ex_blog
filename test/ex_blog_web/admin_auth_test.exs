@@ -34,6 +34,8 @@ defmodule ExBlogWeb.AdminAuthTest do
     conn = get(conn, ~p"/admin/telegram")
 
     assert redirected_to(conn) == ~p"/admin/login"
+    # The browser pipeline resolves the configured default language, so the
+    # English source string is served through its Gettext translation.
     assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Accedi come amministratore"
   end
 

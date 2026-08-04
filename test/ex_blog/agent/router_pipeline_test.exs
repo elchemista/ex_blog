@@ -25,7 +25,7 @@ defmodule ExBlog.Agent.RouterPipelineTest do
           String.contains?(text, ["search", "find", "locate", "discusses"]) ->
             [0.0, 1.0, 0.0]
 
-          String.contains?(text, ["list", "every", "inventory", "complete archive"]) ->
+          String.contains?(text, ["inventory", "complete archive", "list the blog", "archived"]) ->
             [1.0, 0.0, 0.0]
 
           true ->
@@ -126,13 +126,13 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     :ok
   end
 
-  test "skill routes explicitly expose regex, semantic, and LLM providers" do
+  test "skill routes explicitly expose semantic and LLM providers without command regex" do
     assert Keyword.fetch!(Agent.__spectre_router__(), :via) ==
              [:regex, :classifier, :semantic_cache, :llm_classifier]
 
     rules = rules_by_label()
-    read_via = [:regex, :embedding, :classifier, :semantic_cache, :llm_classifier]
-    mutation_via = [:regex, :embedding, :classifier, :llm_classifier]
+    read_via = [:embedding, :classifier, :semantic_cache, :llm_classifier]
+    mutation_via = [:embedding, :classifier, :llm_classifier]
 
     for label <- [
           :LIST_ARTICLES,
@@ -141,14 +141,15 @@ defmodule ExBlog.Agent.RouterPipelineTest do
           :CHECK_BLOG_PAGE,
           :SHOW_BLOG_CONFIG,
           :SHOW_AI_BUDGET,
-          :CHECK_OPENROUTER
+          :CHECK_OPENROUTER,
+          :SHOW_VERIFICATION
         ] do
       rule = Map.fetch!(rules, label)
       assert rule.via == read_via
       assert rule.cache
       assert rule.learn
       assert length(rule.embedding) == 3
-      assert rule.opts[:regex_strength] == :hard
+      assert rule.regex == []
     end
 
     for label <- [
@@ -159,14 +160,15 @@ defmodule ExBlog.Agent.RouterPipelineTest do
           :PUBLISH_ARTICLE,
           :UNPUBLISH_ARTICLE,
           :DELETE_ARTICLE,
-          :SYNC_BLOG_REPOSITORY
+          :SYNC_BLOG_REPOSITORY,
+          :VERIFY_BLOG
         ] do
       rule = Map.fetch!(rules, label)
       assert rule.via == mutation_via
       refute rule.cache
       refute rule.learn
       assert length(rule.embedding) == 3
-      assert rule.opts[:regex_strength] == :hard
+      assert rule.regex == []
     end
 
     for label <- [
@@ -280,14 +282,14 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     assert Keyword.fetch!(opts, :purpose) == :classifier
   end
 
-  test "hard regex evidence avoids embedding and LLM calls" do
+  test "hard interrupt regex evidence avoids embedding and LLM calls" do
     assert {:ok, receipt} =
-             Router.evaluate(Agent, "/articles",
+             Router.evaluate(Agent, "never mind",
                via: [:regex, :embedding, :semantic_cache, :llm_classifier],
                embedding: SimilarityEmbedding
              )
 
-    assert receipt.label == :LIST_ARTICLES
+    assert receipt.label == :CANCEL_ARTICLE_CREATION
     assert receipt.strategy == :regex
     refute receipt.llm_called?
     refute_received {:embedding_called, _text}

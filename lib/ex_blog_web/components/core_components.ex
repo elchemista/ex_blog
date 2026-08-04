@@ -25,6 +25,67 @@ defmodule ExBlogWeb.CoreComponents do
   alias Phoenix.LiveView.JS
 
   @doc """
+  Renders a terminal window frame.
+
+  The whole UI is built out of these instead of generic cards: a title bar with
+  the traffic-light dots, an optional right-aligned status and the body slot.
+
+  ## Examples
+
+      <.term_window title="~/posts/hello.md" status="4 min">
+        content
+      </.term_window>
+  """
+  attr :id, :string, default: nil
+  attr :title, :string, default: nil
+  attr :status, :string, default: nil, doc: "right aligned text inside the title bar"
+  attr :class, :any, default: nil
+  attr :body_class, :any, default: nil
+  attr :interactive, :boolean, default: false, doc: "adds the hover treatment for linked windows"
+  attr :rest, :global
+
+  slot :bar, doc: "replaces the whole title bar content, dots aside"
+  slot :inner_block, required: true
+
+  def term_window(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={["term-window", @interactive && "term-window--link", @class]}
+      {@rest}
+    >
+      <div class="term-bar">
+        <span class="term-dots" aria-hidden="true">
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+        </span>
+        <%= if @bar != [] do %>
+          {render_slot(@bar)}
+        <% else %>
+          <span class="term-title">{@title}</span>
+          <span :if={@status} class="ml-auto flex-none t-faint">{@status}</span>
+        <% end %>
+      </div>
+      <div class={["term-body", @body_class]}>
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a blinking terminal cursor.
+  """
+  attr :class, :any, default: nil
+
+  def cursor(assigns) do
+    ~H"""
+    <span class={["term-cursor", @class]} aria-hidden="true"></span>
+    """
+  end
+
+  @doc """
   Renders flash notices.
 
   ## Examples
@@ -54,28 +115,41 @@ defmodule ExBlogWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
-      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="fixed right-4 top-4 z-50 sm:right-6 sm:top-6"
+      data-flash
+      class={[
+        "term-flash term-window term-window--raised pointer-events-auto w-full shadow-[0_24px_60px_-30px_rgba(0,0,0,0.95)]",
+        @kind == :error && "border-[color:var(--line-strong)]"
+      ]}
       {@rest}
     >
-      <div class={[
-        "flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-2xl backdrop-blur-xl sm:w-96",
-        @kind == :info &&
-          "border-sky-200 bg-sky-50/95 text-sky-950 dark:border-sky-900 dark:bg-sky-950/95 dark:text-sky-100",
-        @kind == :error &&
-          "border-red-200 bg-red-50/95 text-red-950 dark:border-red-900 dark:bg-red-950/95 dark:text-red-100"
-      ]}>
-        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
-        <div>
-          <p :if={@title} class="font-semibold">{@title}</p>
-          <p>{msg}</p>
-        </div>
-        <div class="flex-1" />
-        <button type="button" class="group self-start cursor-pointer" aria-label={gettext("close")}>
-          <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
+      <div class="term-bar">
+        <span class="term-dots" aria-hidden="true">
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+        </span>
+        <span class="term-title">
+          {if(@kind == :error, do: "stderr", else: "stdout")}
+        </span>
+        <button
+          type="button"
+          data-flash-dismiss
+          phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
+          class="ml-auto flex-none cursor-pointer t-faint transition hover:t-strong"
+          aria-label={gettext("close")}
+        >
+          [x]
         </button>
+      </div>
+      <div class="term-body flex items-start gap-2.5 py-3 text-[0.78rem] leading-6">
+        <span class="flex-none t-faint" aria-hidden="true">
+          {if(@kind == :error, do: "!", else: "›")}
+        </span>
+        <div class="min-w-0">
+          <p :if={@title} class="font-bold t-strong">{@title}</p>
+          <p class="break-words t-body">{msg}</p>
+        </div>
       </div>
     </div>
     """
@@ -96,19 +170,11 @@ defmodule ExBlogWeb.CoreComponents do
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
-    variants = %{
-      "primary" =>
-        "bg-stone-950 text-white hover:bg-amber-700 dark:bg-amber-400 dark:text-stone-950 dark:hover:bg-amber-300",
-      nil =>
-        "border border-stone-300 bg-white text-stone-900 hover:border-amber-400 hover:text-amber-800 dark:border-white/15 dark:bg-white/[0.05] dark:text-stone-100"
-    }
+    variants = %{"primary" => "term-btn--primary", nil => nil}
 
     assigns =
       assign_new(assigns, :class, fn ->
-        [
-          "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold shadow-sm transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:pointer-events-none disabled:opacity-50",
-          Map.fetch!(variants, assigns[:variant])
-        ]
+        ["term-btn", Map.fetch!(variants, assigns[:variant])]
       end)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
@@ -216,7 +282,7 @@ defmodule ExBlogWeb.CoreComponents do
 
     ~H"""
     <div class="mb-4">
-      <label for={@id}>
+      <label for={@id} class={@class || "term-check"}>
         <input
           type="hidden"
           name={@name}
@@ -224,20 +290,9 @@ defmodule ExBlogWeb.CoreComponents do
           disabled={@rest[:disabled]}
           form={@rest[:form]}
         />
-        <span class="flex items-center gap-2 text-sm font-semibold text-stone-700 dark:text-stone-200">
-          <input
-            type="checkbox"
-            id={@id}
-            name={@name}
-            value="true"
-            checked={@checked}
-            class={
-              @class ||
-                "size-4 rounded border-stone-300 accent-amber-700 focus:ring-2 focus:ring-amber-500/30 dark:border-white/20"
-            }
-            {@rest}
-          />{@label}
-        </span>
+        <input type="checkbox" id={@id} name={@name} value="true" checked={@checked} {@rest} />
+        <span class="term-check__box" aria-hidden="true"></span>
+        <span>{@label}</span>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
@@ -248,25 +303,22 @@ defmodule ExBlogWeb.CoreComponents do
     ~H"""
     <div class="mb-4">
       <label for={@id}>
-        <span
-          :if={@label}
-          class="mb-1.5 block text-sm font-semibold text-stone-700 dark:text-stone-200"
-        >{@label}</span>
-        <select
-          id={@id}
-          name={@name}
-          class={[
-            @class ||
-              "w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-stone-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 dark:border-white/15 dark:bg-stone-900 dark:text-stone-100",
-            @errors != [] &&
-              (@error_class || "border-red-500 focus:border-red-500 focus:ring-red-500/10")
-          ]}
-          multiple={@multiple}
-          {@rest}
-        >
-          <option :if={@prompt} value="">{@prompt}</option>
-          {Phoenix.HTML.Form.options_for_select(@options, @value)}
-        </select>
+        <span :if={@label} class="term-label">{@label}</span>
+        <span class="term-select">
+          <select
+            id={@id}
+            name={@name}
+            class={[
+              @class || "term-field",
+              @errors != [] && (@error_class || "term-field--error")
+            ]}
+            multiple={@multiple}
+            {@rest}
+          >
+            <option :if={@prompt} value="">{@prompt}</option>
+            {Phoenix.HTML.Form.options_for_select(@options, @value)}
+          </select>
+        </span>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
@@ -277,18 +329,13 @@ defmodule ExBlogWeb.CoreComponents do
     ~H"""
     <div class="mb-4">
       <label for={@id}>
-        <span
-          :if={@label}
-          class="mb-1.5 block text-sm font-semibold text-stone-700 dark:text-stone-200"
-        >{@label}</span>
+        <span :if={@label} class="term-label">{@label}</span>
         <textarea
           id={@id}
           name={@name}
           class={[
-            @class ||
-              "min-h-32 w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-stone-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 dark:border-white/15 dark:bg-stone-900 dark:text-stone-100",
-            @errors != [] &&
-              (@error_class || "border-red-500 focus:border-red-500 focus:ring-red-500/10")
+            @class || "term-field min-h-32",
+            @errors != [] && (@error_class || "term-field--error")
           ]}
           {@rest}
         >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
@@ -303,20 +350,15 @@ defmodule ExBlogWeb.CoreComponents do
     ~H"""
     <div class="mb-4">
       <label for={@id}>
-        <span
-          :if={@label}
-          class="mb-1.5 block text-sm font-semibold text-stone-700 dark:text-stone-200"
-        >{@label}</span>
+        <span :if={@label} class="term-label">{@label}</span>
         <input
           type={@type}
           name={@name}
           id={@id}
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
           class={[
-            @class ||
-              "w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-stone-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 dark:border-white/15 dark:bg-stone-900 dark:text-stone-100",
-            @errors != [] &&
-              (@error_class || "border-red-500 focus:border-red-500 focus:ring-red-500/10")
+            @class || "term-field",
+            @errors != [] && (@error_class || "term-field--error")
           ]}
           {@rest}
         />
@@ -329,8 +371,8 @@ defmodule ExBlogWeb.CoreComponents do
   # Helper used by inputs to generate form errors
   defp error(assigns) do
     ~H"""
-    <p class="mt-1.5 flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
-      <.icon name="hero-exclamation-circle" class="size-5" />
+    <p class="mt-1.5 flex items-start gap-2 text-xs leading-5 t-strong">
+      <span class="t-faint" aria-hidden="true">!</span>
       {render_slot(@inner_block)}
     </p>
     """
@@ -345,16 +387,19 @@ defmodule ExBlogWeb.CoreComponents do
 
   def header(assigns) do
     ~H"""
-    <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
-      <div>
-        <h1 class="text-lg font-semibold leading-8">
+    <header class={[
+      @actions != [] && "flex items-end justify-between gap-6",
+      "border-b border-dashed border-[color:var(--line)] pb-4"
+    ]}>
+      <div class="min-w-0">
+        <h1 class="text-lg font-bold tracking-tight t-strong">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-sm text-stone-500 dark:text-stone-400">
-          {render_slot(@subtitle)}
+        <p :if={@subtitle != []} class="mt-1.5 text-[0.78rem] leading-6 t-faint">
+          <span aria-hidden="true">// </span>{render_slot(@subtitle)}
         </p>
       </div>
-      <div class="flex-none">{render_slot(@actions)}</div>
+      <div :if={@actions != []} class="flex-none">{render_slot(@actions)}</div>
     </header>
     """
   end
@@ -391,34 +436,36 @@ defmodule ExBlogWeb.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
-      <thead>
-        <tr>
-          <th :for={col <- @col}>{col[:label]}</th>
-          <th :if={@action != []}>
-            <span class="sr-only">{gettext("Actions")}</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody id={@id} phx-update={is_struct(@rows, Phoenix.LiveView.LiveStream) && "stream"}>
-        <tr :for={row <- @rows} id={@row_id && @row_id.(row)}>
-          <td
-            :for={col <- @col}
-            phx-click={@row_click && @row_click.(row)}
-            class={@row_click && "hover:cursor-pointer"}
-          >
-            {render_slot(col, @row_item.(row))}
-          </td>
-          <td :if={@action != []} class="w-0 font-semibold">
-            <div class="flex gap-4">
-              <%= for action <- @action do %>
-                {render_slot(action, @row_item.(row))}
-              <% end %>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="w-full overflow-x-auto">
+      <table class="term-table">
+        <thead>
+          <tr>
+            <th :for={col <- @col}>{col[:label]}</th>
+            <th :if={@action != []}>
+              <span class="sr-only">{gettext("Actions")}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody id={@id} phx-update={is_struct(@rows, Phoenix.LiveView.LiveStream) && "stream"}>
+          <tr :for={row <- @rows} id={@row_id && @row_id.(row)}>
+            <td
+              :for={col <- @col}
+              phx-click={@row_click && @row_click.(row)}
+              class={@row_click && "cursor-pointer"}
+            >
+              {render_slot(col, @row_item.(row))}
+            </td>
+            <td :if={@action != []} class="w-0 whitespace-nowrap">
+              <div class="flex gap-3 t-dim">
+                <%= for action <- @action do %>
+                  {render_slot(action, @row_item.(row))}
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     """
   end
 
@@ -438,12 +485,10 @@ defmodule ExBlogWeb.CoreComponents do
 
   def list(assigns) do
     ~H"""
-    <ul class="list">
-      <li :for={item <- @item} class="list-row">
-        <div class="list-col-grow">
-          <div class="font-bold">{item.title}</div>
-          <div>{render_slot(item)}</div>
-        </div>
+    <ul class="term-list">
+      <li :for={item <- @item}>
+        <span class="term-list__key">{item.title}</span>
+        <span class="term-list__value">{render_slot(item)}</span>
       </li>
     </ul>
     """

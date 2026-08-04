@@ -55,7 +55,7 @@
   "spectre": {:git, "https://github.com/elchemista/spectre.git", "8a854ae6f1cddd66c303dffb2d7b2953f7f8472a", [branch: "main", depth: 1]},
   "spectre_beam": {:git, "https://github.com/elchemista/spectre_beam.git", "a2e4cb599011773cc3da7b51a4a730035fd536a0", [branch: "main", depth: 1]},
   "spectre_kinetic": {:git, "https://github.com/elchemista/spectre_kinetic.git", "7b283b93fd6159420e276b800db5b508c91b0b5b", [branch: "main", depth: 1]},
-  "spectre_lens": {:git, "https://github.com/elchemista/spectre_lens.git", "aafb67a945c9649a282d79c4e23a36a36041ca46", [branch: "main", depth: 1]},
+  "spectre_lens": {:git, "https://github.com/elchemista/spectre_lens.git", "249cc8c6d899a5a99f4d20e39a634dabe76b20f3", [branch: "main", depth: 1]},
   "spectre_prism": {:git, "https://github.com/elchemista/spectre_prism.git", "bb8bd2636e1d95e9ee3f65bfcae54f335fc91ff0", [branch: "main", depth: 1]},
   "tailwind": {:hex, :tailwind, "0.5.1", "35435b13158c90d37da11e1cfc808755fca1d7b6c5ab87b1b19c5de87e2f0a10", [:mix], [], "hexpm", "c4e26302a59fec72abc5610ecb6ad2116d9aa31f31aab2d4b8eb6e95d25a689c"},
   "telemetry": {:hex, :telemetry, "1.4.2", "a0cb522801dffb1c49fe6e30561badffc7b6d0e180db1300df759faa22062855", [:rebar3], [], "hexpm", "928f6495066506077862c0d1646609eed891a4326bee3126ba54b60af61febb1"},

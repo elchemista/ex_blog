@@ -62,7 +62,7 @@ defmodule ExBlog.Agent.Actions do
   @spec search_articles(map(), term()) :: {:ok, map()}
   def search_articles(args, ctx \\ nil) do
     text = input_text(ctx)
-    query = argument(args, :query) || strip_command(text, ["/search", "search", "find"])
+    query = argument(args, :query) || strip_command(text, ["search", "find"])
     lang = argument(args, :lang) || language_from_text(text) || Config.get().default_language
     articles = Content.search(query || "", lang: lang, status: :all)
 

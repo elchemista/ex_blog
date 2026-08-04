@@ -64,8 +64,9 @@ Article creation is declared in `ExBlog.Agent.Skills.Editorial` as the
 The DETS-backed state store persists `current_flow` and `current_scope` between
 messages. `CreationContinuation` reads that cursor and assigns free-text replies
 to the active leaf without paying for or risking a fresh classification on
-every field. Global `/cancel` and `/attach-image` controls keep precedence. An
-image attachment returns to the exact same workflow step.
+every field. Global cancellation phrases (`stop`, `cancel`, `never mind`) and
+the internal `/attach-image` image marker keep precedence. An image attachment
+returns to the exact same workflow step.
 
 The continuation boundary is also why an answer such as `English`, `Platform
 engineering`, or `generate SEO` is interpreted as field data while intake is
@@ -91,8 +92,8 @@ The administrator decides which fields the model should generate:
 | title | `generate title` | balanced | updates Spectre state only |
 | body | always generated after approval | deep | prepares canonical Markdown |
 | SEO and tags | `generate SEO` | balanced | adds validated front matter to the new draft |
-| existing SEO | `/seo en article-slug` | balanced | stages a protected Git update |
-| translation | `/translate en article-slug to it` | deep | stages creation of a translated draft |
+| existing SEO | “generate SEO for en/article-slug” | balanced | stages a protected Git update |
+| translation | “translate en/article-slug to Italian” | deep | stages creation of a translated draft |
 
 Intermediate generation passes through `ExBlog.Agent.EditorialAI`. Each helper
 is a read-only leaf: it returns one normalized, length-limited value, does not
@@ -151,8 +152,8 @@ pass score and margin gates.
 
 ## An ExBlog-specific trained dataset
 
-The canonical corpus is `priv/spectre/dataset.json`. It contains 204 original
-English examples: 12 examples for each of 17 classifier-visible ExBlog intents.
+The canonical corpus is `priv/spectre/dataset.json`. It contains 228 original
+English examples: 12 examples for each of 19 classifier-visible ExBlog intents.
 It deliberately includes nearby but distinct requests such as:
 
 - list the archive versus search the archive;
@@ -223,7 +224,7 @@ an ambiguous result falls through to later evidence.
 
 ## Semantic cache lifecycle
 
-The seven read-only intents declare `learn: true`. When the LLM fallback first
+The eight read-only intents declare `learn: true`. When the LLM fallback first
 classifies a new eligible phrase, Spectre may store it as an unverified online
 example. `ExBlog.Agent.SemanticCache` persists the row and its embedding in DETS
 so a deployment does not erase reviewed routing knowledge.
@@ -233,8 +234,8 @@ search. A later request may promote it only at `0.985` cosine similarity with at
 least a `0.05` margin over competing labels. Ordinary verified search remains
 at `0.94`.
 
-The local development artifact contains vectors for all 204 classifier
-examples, but route policy filters its runtime index to the 84 examples
+The local development artifact contains vectors for all 228 classifier
+examples, but route policy filters its runtime index to the 96 examples
 belonging to cacheable read intents. Production does not load that artifact: it
 uses the checked-in dataset for exact matches and OpenRouter for new learned
 semantic rows. Writes, deletion, synchronization, unsafe input, and unknown
@@ -284,9 +285,9 @@ sender_id == configured administrator
 ```
 
 Image bytes never enter DETS, memory, prompts, or chat history. The TDLib
-reference is transient, and download occurs only after the numeric
-administrator gate and active-flow check. ExBlog accepts JPEG, PNG, WebP, and
-GIF files up to 10 MB; SVG and arbitrary documents are rejected.
+reference is transient, and download occurs only after the administrator
+username gate and active-flow check. ExBlog accepts JPEG, PNG, WebP, and GIF
+files up to 10 MB; SVG and arbitrary documents are rejected.
 
 The public copy lives in `priv/static/images/articles`. A content-addressed
 copy is also kept under `$EX_BLOG_DATA_DIR/assets/images/articles` and restored
@@ -299,8 +300,8 @@ is still the accessible choice.
 
 ## Policies and trust boundaries
 
-- `EX_BLOG_ADMIN_TELEGRAM_ID` is checked before Beam, Spectre, downloads, logs,
-  and OpenRouter calls.
+- `EX_BLOG_ADMIN_TELEGRAM_USERNAME` is checked against the sender profile before
+  Beam, Spectre, downloads, logs, and OpenRouter calls.
 - Beam marks the authenticated source; `ExBlog.Telegram.Image` rejects input
   that did not originate from the authenticated Telegram mount.
 - Generated categories and titles are values, not commands. They are normalized

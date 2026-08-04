@@ -23,8 +23,11 @@ defmodule ExBlogWeb.Admin.TelegramLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Connessione Telegram")
-     |> assign(:meta_description, "Gestione riservata della sessione Telegram di ExBlog.")
+     |> assign(:page_title, gettext("Telegram connection"))
+     |> assign(
+       :meta_description,
+       gettext("Restricted management of the ExBlog Telegram session.")
+     )
      |> assign(:robots, "noindex,nofollow,noarchive")
      |> assign(:canonical_url, Config.canonical_url(config) <> "/admin/telegram")
      |> assign(:current_language, config.default_language)
@@ -41,11 +44,11 @@ defmodule ExBlogWeb.Admin.TelegramLive do
   end
 
   def handle_event("connect", _params, socket) do
-    run_action(socket, &Transport.connect/0, "Riconnessione Telegram avviata.")
+    run_action(socket, &Transport.connect/0, gettext("Telegram reconnection started."))
   end
 
   def handle_event("request_qr", _params, socket) do
-    run_action(socket, &Transport.request_qr/0, "QR richiesto a Telegram.")
+    run_action(socket, &Transport.request_qr/0, gettext("QR requested from Telegram."))
   end
 
   def handle_event("provide_phone", %{"telegram_phone" => params}, socket) do
@@ -53,14 +56,14 @@ defmodule ExBlogWeb.Admin.TelegramLive do
 
     if valid_phone?(phone) do
       socket = assign(socket, :phone_form, empty_form(:telegram_phone, "phone"))
-      run_action(socket, fn -> Transport.provide_phone_number(phone) end, "Numero inviato.")
+      run_action(socket, fn -> Transport.provide_phone_number(phone) end, gettext("Number sent."))
     else
       {:noreply,
        socket
        |> assign(:phone_form, empty_form(:telegram_phone, "phone"))
        |> put_flash(
          :error,
-         "Inserisci un numero internazionale valido, ad esempio +393331234567."
+         gettext("Enter a valid international number, for example +393331234567.")
        )}
     end
   end
@@ -70,12 +73,12 @@ defmodule ExBlogWeb.Admin.TelegramLive do
 
     if Regex.match?(~r/^\d{3,10}$/, code) do
       socket = assign(socket, :code_form, empty_form(:telegram_code, "code"))
-      run_action(socket, fn -> Transport.provide_auth_code(code) end, "Codice inviato.")
+      run_action(socket, fn -> Transport.provide_auth_code(code) end, gettext("Code sent."))
     else
       {:noreply,
        socket
        |> assign(:code_form, empty_form(:telegram_code, "code"))
-       |> put_flash(:error, "Inserisci il codice numerico ricevuto da Telegram.")}
+       |> put_flash(:error, gettext("Enter the numeric code received from Telegram."))}
     end
   end
 
@@ -88,13 +91,13 @@ defmodule ExBlogWeb.Admin.TelegramLive do
       run_action(
         socket,
         fn -> Transport.provide_password(password) end,
-        "Password di verifica inviata."
+        gettext("Verification password sent.")
       )
     else
       {:noreply,
        socket
        |> assign(:password_form, empty_form(:telegram_password, "password"))
-       |> put_flash(:error, "Inserisci la password di verifica in due passaggi.")}
+       |> put_flash(:error, gettext("Enter the two-step verification password."))}
     end
   end
 
@@ -116,180 +119,192 @@ defmodule ExBlogWeb.Admin.TelegramLive do
     >
       <section
         id="admin-telegram-page"
-        class="mx-auto min-h-[calc(100vh-10rem)] max-w-7xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14"
+        class="mx-auto min-h-[calc(100vh-8rem)] max-w-6xl px-4 py-10 sm:px-6 lg:px-8"
       >
-        <header class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <header class="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-400">
-              <span class="size-1.5 rounded-full bg-amber-500"></span> Area riservata
-            </p>
+            <p class="term-prompt text-[0.72rem] t-faint">ex_blog telegram status</p>
             <h1
               id="admin-telegram-heading"
-              class="font-serif text-4xl font-semibold tracking-tight text-stone-950 dark:text-white sm:text-5xl"
+              class="mt-3 text-2xl font-bold tracking-tight t-strong sm:text-3xl"
             >
-              Connessione Telegram
+              {gettext("Telegram connection")}
             </h1>
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-stone-600 dark:text-stone-400">
-              Collega l’account che controlla ExBlog e segui in tempo reale ogni passaggio dell’autenticazione TDLib.
+            <p class="mt-2 max-w-2xl text-[0.78rem] leading-6 t-faint">
+              <span aria-hidden="true">// </span>{gettext(
+                "Connect the account that controls ExBlog and follow every TDLib authentication step in real time."
+              )}
             </p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <button
-              id="telegram-refresh-button"
-              type="button"
-              phx-click="refresh"
-              class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-bold text-stone-700 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:border-white/15 dark:bg-white/[0.05] dark:text-stone-200 dark:hover:text-amber-300"
-            >
-              <.icon name="hero-arrow-path" class="size-4 phx-click-loading:animate-spin" /> Aggiorna
+            <button id="telegram-refresh-button" type="button" phx-click="refresh" class="term-btn">
+              <.icon name="hero-arrow-path" class="size-4 phx-click-loading:animate-spin" />
+              {gettext("refresh")}
             </button>
             <.link
               id="admin-logout-link"
               href={~p"/admin/logout"}
               method="delete"
-              class="inline-flex min-h-10 items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-stone-500 transition hover:bg-stone-200/70 hover:text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:text-stone-400 dark:hover:bg-white/[0.06] dark:hover:text-white"
+              class="term-btn border-transparent t-dim hover:t-strong"
             >
-              <.icon name="hero-arrow-left-on-rectangle" class="size-4" /> Esci
+              exit
             </.link>
           </div>
         </header>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]">
           <main class="order-2 lg:order-1">
-            <div class="overflow-hidden rounded-[2rem] border border-stone-200/90 bg-white/85 shadow-2xl shadow-stone-900/[0.06] backdrop-blur-xl dark:border-white/10 dark:bg-stone-900/80 dark:shadow-black/20">
-              <div class="border-b border-stone-200/80 px-6 py-5 dark:border-white/10 sm:px-8">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 class="font-serif text-2xl font-semibold text-stone-950 dark:text-white">
-                      Associazione account
-                    </h2>
-                    <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">
-                      {auth_state_description(@telegram.auth_state)}
-                    </p>
-                  </div>
-                  <span
-                    id="telegram-connection-status"
-                    role="status"
-                    aria-live="polite"
-                    class={[
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold",
-                      status_classes(@telegram.connection_status)
-                    ]}
-                  >
-                    <span class={[
-                      "size-2 rounded-full",
-                      status_dot_classes(@telegram.connection_status)
-                    ]}></span>
-                    {status_label(@telegram.connection_status)}
-                  </span>
-                </div>
+            <div class="term-window overflow-hidden">
+              <div class="term-bar">
+                <span class="term-dots" aria-hidden="true">
+                  <span class="term-dot"></span>
+                  <span class="term-dot"></span>
+                  <span class="term-dot"></span>
+                </span>
+                <span class="term-title">tdlib — auth</span>
+                <span
+                  id="telegram-connection-status"
+                  role="status"
+                  aria-live="polite"
+                  class={[
+                    "ml-auto flex flex-none items-center gap-2",
+                    status_classes(@telegram.connection_status)
+                  ]}
+                >
+                  <span class={[
+                    "size-1.5 rounded-full",
+                    status_dot_classes(@telegram.connection_status)
+                  ]}></span>
+                  {status_label(@telegram.connection_status)}
+                </span>
               </div>
 
-              <div class="p-6 sm:p-8">
+              <div class="border-b border-dashed border-[color:var(--line)] px-5 py-4 sm:px-7">
+                <h2 class="text-[0.92rem] font-bold t-strong">{gettext("Account pairing")}</h2>
+                <p class="term-out mt-1.5 text-[0.75rem] t-faint">
+                  {auth_state_description(@telegram.auth_state)}
+                </p>
+              </div>
+
+              <div class="p-5 sm:p-7">
                 <div
                   :if={@telegram.last_error?}
                   id="telegram-connection-error"
                   role="alert"
-                  class="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-100"
+                  class="mb-6 flex items-start gap-3 border border-[color:var(--line-strong)] bg-[color:var(--surface-bar)] px-4 py-3 text-[0.78rem] leading-6 t-body"
                 >
-                  <.icon name="hero-exclamation-triangle" class="mt-0.5 size-5 shrink-0" />
+                  <span class="t-faint" aria-hidden="true">!</span>
                   <p>
-                    Telegram ha segnalato un problema. Puoi aggiornare lo stato o riprovare la connessione.
+                    {gettext(
+                      "Telegram reported a problem. You can refresh the status or retry the connection."
+                    )}
                   </p>
                 </div>
 
                 <div
                   :if={@telegram.connection_status == :connected}
                   id="telegram-connected-panel"
-                  class="py-8 text-center"
+                  class="py-8"
                 >
-                  <div class="mx-auto flex size-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-8 ring-emerald-50 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/[0.06]">
-                    <.icon name="hero-check" class="size-10" />
-                  </div>
-                  <h2 class="mt-7 font-serif text-3xl font-semibold text-stone-950 dark:text-white">
-                    Telegram è collegato
+                  <p class="term-prompt text-[0.75rem] t-dim">telegram auth --check</p>
+                  <p class="term-out mt-2 text-[0.78rem] t-body">
+                    {gettext("OK — session authorized")}
+                  </p>
+                  <h2 class="mt-6 text-xl font-bold tracking-tight t-strong">
+                    {gettext("Telegram is connected")}
                   </h2>
-                  <p class="mx-auto mt-3 max-w-lg text-sm leading-6 text-stone-600 dark:text-stone-400">
-                    La sessione TDLib è autorizzata e pronta a ricevere i messaggi dell’amministratore configurato.
+                  <p class="mt-2 max-w-lg text-[0.78rem] leading-6 t-faint">
+                    <span aria-hidden="true">// </span>{gettext(
+                      "The TDLib session is authorized and ready to receive messages from the configured administrator."
+                    )}
                   </p>
                 </div>
 
                 <div
                   :if={@telegram.auth_state == :wait_phone_number}
                   id="telegram-pairing-options"
-                  class="grid gap-5 md:grid-cols-2"
+                  class="grid gap-4 md:grid-cols-2"
                 >
-                  <article class="flex flex-col rounded-2xl border border-amber-200 bg-amber-50/70 p-5 dark:border-amber-500/20 dark:bg-amber-500/[0.06]">
-                    <div class="mb-4 flex size-11 items-center justify-center rounded-xl bg-amber-500 text-stone-950 shadow-sm">
-                      <.icon name="hero-qr-code" class="size-6" />
+                  <article class="term-window term-window--raised flex flex-col overflow-hidden">
+                    <div class="term-bar">
+                      <span class="term-title">$ telegram login --qr</span>
+                      <span class="ml-auto flex-none t-faint">{gettext("recommended")}</span>
                     </div>
-                    <h3 class="font-serif text-xl font-semibold text-stone-950 dark:text-white">
-                      Collega con QR
-                    </h3>
-                    <p class="mt-2 flex-1 text-sm leading-6 text-stone-600 dark:text-stone-400">
-                      Metodo consigliato: apri Telegram su un dispositivo già autenticato e scansiona il codice.
-                    </p>
-                    <button
-                      id="telegram-request-qr-button"
-                      type="button"
-                      phx-click="request_qr"
-                      phx-disable-with="Richiesta in corso…"
-                      class="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-stone-950 px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-60 dark:bg-amber-400 dark:text-stone-950 dark:hover:bg-amber-300"
-                    >
-                      <.icon name="hero-qr-code" class="size-4" /> Genera il QR
-                    </button>
+                    <div class="term-body flex flex-1 flex-col">
+                      <h3 class="text-[0.92rem] font-bold t-strong">
+                        {gettext("Pair with a QR code")}
+                      </h3>
+                      <p class="mt-2 flex-1 text-[0.75rem] leading-6 t-faint">
+                        <span aria-hidden="true">// </span>{gettext(
+                          "Open Telegram on an already authenticated device and scan the code."
+                        )}
+                      </p>
+                      <button
+                        id="telegram-request-qr-button"
+                        type="button"
+                        phx-click="request_qr"
+                        phx-disable-with={gettext("Requesting…")}
+                        class="term-btn term-btn--primary mt-5 w-full"
+                      >
+                        <.icon name="hero-qr-code" class="size-4" /> {gettext("Generate the QR")}
+                      </button>
+                    </div>
                   </article>
 
-                  <article class="rounded-2xl border border-stone-200 bg-stone-50/70 p-5 dark:border-white/10 dark:bg-white/[0.03]">
-                    <div class="mb-4 flex size-11 items-center justify-center rounded-xl bg-stone-200 text-stone-700 dark:bg-white/10 dark:text-stone-200">
-                      <.icon name="hero-device-phone-mobile" class="size-6" />
+                  <article class="term-window term-window--raised overflow-hidden">
+                    <div class="term-bar">
+                      <span class="term-title">$ telegram login --phone</span>
                     </div>
-                    <h3 class="font-serif text-xl font-semibold text-stone-950 dark:text-white">
-                      Usa il numero
-                    </h3>
-                    <p class="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-400">
-                      In alternativa inserisci il numero internazionale associato all’account.
-                    </p>
-                    <.form
-                      for={@phone_form}
-                      id="telegram-phone-form"
-                      phx-submit="provide_phone"
-                      class="mt-4"
-                    >
-                      <.input
-                        field={@phone_form[:phone]}
-                        type="tel"
-                        label="Numero di telefono"
-                        placeholder="+393331234567"
-                        autocomplete="tel"
-                        required
-                      />
-                      <.button
-                        id="telegram-phone-submit"
-                        type="submit"
-                        class={submit_button_classes()}
+                    <div class="term-body">
+                      <h3 class="text-[0.92rem] font-bold t-strong">
+                        {gettext("Use the phone number")}
+                      </h3>
+                      <p class="mt-2 text-[0.75rem] leading-6 t-faint">
+                        <span aria-hidden="true">// </span>{gettext(
+                          "Alternatively, enter the international number linked to the account."
+                        )}
+                      </p>
+                      <.form
+                        for={@phone_form}
+                        id="telegram-phone-form"
+                        phx-submit="provide_phone"
+                        class="mt-4"
                       >
-                        Continua con il numero
-                      </.button>
-                    </.form>
+                        <.input
+                          field={@phone_form[:phone]}
+                          type="tel"
+                          label={gettext("phone number")}
+                          placeholder="+393331234567"
+                          autocomplete="tel"
+                          required
+                        />
+                        <.button
+                          id="telegram-phone-submit"
+                          type="submit"
+                          class={submit_button_classes()}
+                        >
+                          {gettext("Continue with the number")}
+                        </.button>
+                      </.form>
+                    </div>
                   </article>
                 </div>
 
                 <div
                   :if={@telegram.auth_state == :requesting_qr}
                   id="telegram-qr-loading"
-                  class="py-12 text-center"
+                  class="py-12"
                   role="status"
                 >
-                  <.icon
-                    name="hero-arrow-path"
-                    class="mx-auto size-10 animate-spin text-amber-600 dark:text-amber-400"
-                  />
-                  <h2 class="mt-5 font-serif text-2xl font-semibold text-stone-950 dark:text-white">
-                    Generazione del QR
-                  </h2>
-                  <p class="mt-2 text-sm text-stone-500 dark:text-stone-400">
-                    Attendo il link temporaneo da Telegram…
+                  <p class="term-prompt text-[0.75rem] t-dim">telegram qr --request</p>
+                  <p class="mt-3 flex items-center gap-2 text-[0.8rem] t-strong">
+                    {gettext("Generating the QR")} <.cursor />
+                  </p>
+                  <p class="mt-2 text-[0.75rem] t-faint">
+                    <span aria-hidden="true">// </span>{gettext(
+                      "Waiting for the temporary link from Telegram…"
+                    )}
                   </p>
                 </div>
 
@@ -303,57 +318,46 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                       :if={@qr_svg}
                       id="telegram-qr-code"
                       role="img"
-                      aria-label="Codice QR per collegare Telegram"
-                      class="aspect-square overflow-hidden rounded-3xl border border-stone-200 bg-white p-4 shadow-xl shadow-stone-900/10 [&_svg]:block [&_svg]:size-full"
+                      aria-label={gettext("QR code to pair Telegram")}
+                      class="aspect-square overflow-hidden rounded border border-[color:var(--line-strong)] bg-white p-4 [&_svg]:block [&_svg]:size-full"
                     >
                       {raw(@qr_svg)}
                     </div>
                     <div
                       :if={!@qr_svg}
                       id="telegram-qr-unavailable"
-                      class="flex aspect-square items-center justify-center rounded-3xl border border-dashed border-red-300 bg-red-50 p-6 text-center text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200"
+                      class="flex aspect-square items-center justify-center rounded border border-dashed border-[color:var(--line-strong)] bg-[color:var(--surface-bar)] p-6 text-center text-[0.75rem] leading-6 t-dim"
                     >
-                      Non è stato possibile renderizzare il QR. Richiedine uno nuovo.
+                      {gettext("The QR could not be rendered. Request a new one.")}
                     </div>
                   </div>
 
                   <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400">
-                      QR temporaneo
-                    </p>
-                    <h2 class="mt-2 font-serif text-3xl font-semibold text-stone-950 dark:text-white">
-                      Scansiona con Telegram
+                    <p class="term-prompt text-[0.72rem] t-faint">telegram qr --show</p>
+                    <h2 class="mt-3 text-xl font-bold tracking-tight t-strong">
+                      {gettext("Scan with Telegram")}
                     </h2>
-                    <ol class="mt-5 space-y-4 text-sm leading-6 text-stone-600 dark:text-stone-300">
+                    <ol class="mt-5 space-y-3 text-[0.78rem] leading-6 t-dim">
                       <li class="flex gap-3">
-                        <span
-                          aria-hidden="true"
-                          class="flex size-7 shrink-0 items-center justify-center rounded-full bg-stone-950 text-xs font-bold text-white dark:bg-amber-400 dark:text-stone-950"
-                        >1</span>
-                        Apri Telegram sul telefono già autenticato.
+                        <span aria-hidden="true" class="w-6 shrink-0 t-faint">[1]</span>
+                        {gettext("Open Telegram on the already authenticated phone.")}
                       </li>
                       <li class="flex gap-3">
-                        <span
-                          aria-hidden="true"
-                          class="flex size-7 shrink-0 items-center justify-center rounded-full bg-stone-950 text-xs font-bold text-white dark:bg-amber-400 dark:text-stone-950"
-                        >2</span>
-                        Vai in Impostazioni, Dispositivi, Collega dispositivo desktop.
+                        <span aria-hidden="true" class="w-6 shrink-0 t-faint">[2]</span>
+                        {gettext("Go to Settings, Devices, Link desktop device.")}
                       </li>
                       <li class="flex gap-3">
-                        <span
-                          aria-hidden="true"
-                          class="flex size-7 shrink-0 items-center justify-center rounded-full bg-stone-950 text-xs font-bold text-white dark:bg-amber-400 dark:text-stone-950"
-                        >3</span>
-                        Inquadra il codice e attendi la conferma su questa pagina.
+                        <span aria-hidden="true" class="w-6 shrink-0 t-faint">[3]</span>
+                        {gettext("Frame the code and wait for the confirmation on this page.")}
                       </li>
                     </ol>
                     <button
                       id="telegram-renew-qr-button"
                       type="button"
                       phx-click="request_qr"
-                      class="mt-6 inline-flex min-h-10 items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-bold text-stone-700 transition hover:border-amber-400 hover:text-amber-800 dark:border-white/15 dark:bg-white/[0.05] dark:text-stone-200 dark:hover:text-amber-300"
+                      class="term-btn mt-6"
                     >
-                      <.icon name="hero-arrow-path" class="size-4" /> Genera un nuovo QR
+                      <.icon name="hero-arrow-path" class="size-4" /> {gettext("Generate a new QR")}
                     </button>
                   </div>
                 </div>
@@ -363,14 +367,14 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                   id="telegram-code-panel"
                   class="mx-auto max-w-md py-6"
                 >
-                  <div class="mb-5 flex size-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
-                    <.icon name="hero-chat-bubble-left-right" class="size-6" />
-                  </div>
-                  <h2 class="font-serif text-3xl font-semibold text-stone-950 dark:text-white">
-                    Inserisci il codice
+                  <p class="term-prompt text-[0.72rem] t-faint">telegram auth --code</p>
+                  <h2 class="mt-3 text-xl font-bold tracking-tight t-strong">
+                    {gettext("Enter the code")}
                   </h2>
-                  <p class="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-400">
-                    Telegram ha inviato un codice all’account. Non verrà memorizzato da ExBlog.
+                  <p class="mt-2 text-[0.78rem] leading-6 t-faint">
+                    <span aria-hidden="true">// </span>{gettext(
+                      "Telegram sent a code to the account. ExBlog will not store it."
+                    )}
                   </p>
                   <.form
                     for={@code_form}
@@ -381,7 +385,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                     <.input
                       field={@code_form[:code]}
                       type="text"
-                      label="Codice Telegram"
+                      label={gettext("telegram code")}
                       autocomplete="one-time-code"
                       pattern="[0-9]{3,10}"
                       required
@@ -391,7 +395,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                       type="submit"
                       class={submit_button_classes()}
                     >
-                      Verifica codice
+                      {gettext("Verify code")}
                     </.button>
                   </.form>
                 </div>
@@ -401,21 +405,21 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                   id="telegram-password-panel"
                   class="mx-auto max-w-md py-6"
                 >
-                  <div class="mb-5 flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
-                    <.icon name="hero-key" class="size-6" />
-                  </div>
-                  <h2 class="font-serif text-3xl font-semibold text-stone-950 dark:text-white">
-                    Verifica in due passaggi
+                  <p class="term-prompt text-[0.72rem] t-faint">telegram auth --2fa</p>
+                  <h2 class="mt-3 text-xl font-bold tracking-tight t-strong">
+                    {gettext("Two-step verification")}
                   </h2>
-                  <p class="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-400">
-                    Inserisci la password Telegram 2FA. Viene inoltrata direttamente a TDLib e non viene salvata.
+                  <p class="mt-2 text-[0.78rem] leading-6 t-faint">
+                    <span aria-hidden="true">// </span>{gettext(
+                      "Enter the Telegram 2FA password. It is forwarded straight to TDLib and never stored."
+                    )}
                   </p>
                   <p
                     :if={@telegram.password_hint}
                     id="telegram-password-hint"
-                    class="mt-3 rounded-xl bg-stone-100 px-3 py-2 text-sm text-stone-600 dark:bg-white/[0.05] dark:text-stone-300"
+                    class="mt-4 border-l-2 border-[color:var(--line-strong)] bg-[color:var(--surface-bar)] px-3 py-2 text-[0.75rem] t-dim"
                   >
-                    Suggerimento: {@telegram.password_hint}
+                    {gettext("hint")}: {@telegram.password_hint}
                   </p>
                   <.form
                     for={@password_form}
@@ -426,7 +430,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                     <.input
                       field={@password_form[:password]}
                       type="password"
-                      label="Password Telegram"
+                      label={gettext("telegram password")}
                       autocomplete="current-password"
                       required
                     />
@@ -435,7 +439,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                       type="submit"
                       class={submit_button_classes()}
                     >
-                      Completa la verifica
+                      {gettext("Complete the verification")}
                     </.button>
                   </.form>
                 </div>
@@ -443,71 +447,69 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                 <div
                   :if={@telegram.auth_state in [:starting, :connecting, :unavailable, :disconnected]}
                   id="telegram-disconnected-panel"
-                  class="py-10 text-center"
+                  class="py-10"
                 >
-                  <div class="mx-auto flex size-16 items-center justify-center rounded-2xl bg-stone-100 text-stone-500 dark:bg-white/[0.06] dark:text-stone-300">
-                    <.icon name="hero-signal-slash" class="size-8" />
-                  </div>
-                  <h2 class="mt-5 font-serif text-2xl font-semibold text-stone-950 dark:text-white">
-                    Connessione non pronta
+                  <p class="term-prompt text-[0.75rem] t-dim">telegram status</p>
+                  <p class="mt-2 text-[0.8rem] t-body">{gettext("connection not ready")}</p>
+                  <h2 class="mt-6 text-xl font-bold tracking-tight t-strong">
+                    {gettext("TDLib session not started")}
                   </h2>
-                  <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-600 dark:text-stone-400">
-                    Avvia o riprova la sessione TDLib per ricevere il prossimo stato di autenticazione.
+                  <p class="mt-2 max-w-md text-[0.78rem] leading-6 t-faint">
+                    <span aria-hidden="true">// </span>{gettext(
+                      "Start or retry the session to receive the next authentication state."
+                    )}
                   </p>
                   <button
                     id="telegram-connect-button"
                     type="button"
                     phx-click="connect"
-                    phx-disable-with="Connessione…"
-                    class="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-stone-950 px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-amber-700 dark:bg-amber-400 dark:text-stone-950 dark:hover:bg-amber-300"
+                    phx-disable-with={gettext("Connecting…")}
+                    class="term-btn term-btn--primary mt-6"
                   >
-                    <.icon name="hero-signal" class="size-4" /> Connetti Telegram
+                    <.icon name="hero-signal" class="size-4" /> {gettext("Connect Telegram")}
                   </button>
                 </div>
               </div>
             </div>
           </main>
 
-          <aside class="order-1 space-y-4 lg:order-2" aria-label="Dettagli connessione">
-            <div class="rounded-2xl border border-stone-200/90 bg-white/75 p-5 shadow-lg shadow-stone-900/[0.04] backdrop-blur dark:border-white/10 dark:bg-stone-900/70">
-              <div class="flex items-center gap-3">
-                <div class="flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
-                  <.icon name="hero-paper-airplane" class="size-5" />
-                </div>
-                <div>
-                  <h2 class="text-sm font-bold text-stone-950 dark:text-white">Sessione TDLib</h2>
-                  <p
-                    id="telegram-session-id"
-                    class="mt-0.5 break-all font-mono text-xs text-stone-500 dark:text-stone-400"
-                  >
-                    {@telegram.session_id}
-                  </p>
-                </div>
+          <aside class="order-1 space-y-4 lg:order-2" aria-label={gettext("Connection details")}>
+            <div class="term-window overflow-hidden">
+              <div class="term-bar">
+                <span class="term-title">$ telegram session --info</span>
               </div>
-              <dl class="mt-5 space-y-3 border-t border-stone-200 pt-4 text-sm dark:border-white/10">
-                <div class="flex items-center justify-between gap-4">
-                  <dt class="text-stone-500 dark:text-stone-400">Trasporto</dt>
-                  <dd class="font-semibold text-stone-800 dark:text-stone-200">ExGram / TDLib</dd>
+              <dl class="term-body space-y-2.5 text-[0.72rem] leading-5">
+                <div class="flex gap-3">
+                  <dt class="w-20 shrink-0 t-faint">session</dt>
+                  <dd id="telegram-session-id" class="min-w-0 break-all t-dim">
+                    {@telegram.session_id}
+                  </dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
-                  <dt class="text-stone-500 dark:text-stone-400">Fase</dt>
-                  <dd
-                    id="telegram-auth-state"
-                    class="text-right font-semibold text-stone-800 dark:text-stone-200"
-                  >
+                <div class="flex gap-3">
+                  <dt class="w-20 shrink-0 t-faint">transport</dt>
+                  <dd class="t-dim">ExGram / TDLib</dd>
+                </div>
+                <div class="flex gap-3">
+                  <dt class="w-20 shrink-0 t-faint">phase</dt>
+                  <dd id="telegram-auth-state" class="t-strong">
                     {auth_state_label(@telegram.auth_state)}
                   </dd>
                 </div>
               </dl>
             </div>
 
-            <div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 text-sm leading-6 text-emerald-950 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06] dark:text-emerald-100">
-              <div class="flex items-center gap-2 font-bold">
-                <.icon name="hero-shield-check" class="size-5" /> Dati sensibili
+            <div class="term-window overflow-hidden">
+              <div class="term-bar">
+                <span class="term-title">$ cat SECURITY.md</span>
               </div>
-              <p class="mt-2 text-emerald-900/75 dark:text-emerald-100/70">
-                QR, codici e password Telegram restano transitori e non vengono scritti nel database o nei log.
-              </p>
+              <div class="term-body text-[0.72rem] leading-5 t-faint">
+                <p class="t-dim">{gettext("Sensitive data")}</p>
+                <p class="mt-2">
+                  <span aria-hidden="true">// </span>{gettext(
+                    "Telegram QR codes, codes and passwords stay transient and are never written to the database or the logs."
+                  )}
+                </p>
+              </div>
             </div>
           </aside>
         </div>
@@ -525,10 +527,10 @@ defmodule ExBlogWeb.Admin.TelegramLive do
          |> put_flash(:info, success_message)}
 
       {:error, :telegram_unavailable} ->
-        {:noreply, put_flash(socket, :error, "Telegram non è disponibile. Riprova tra poco.")}
+        {:noreply, put_flash(socket, :error, gettext("Telegram is unavailable. Try again soon."))}
 
       _unexpected ->
-        {:noreply, put_flash(socket, :error, "Telegram non è disponibile. Riprova tra poco.")}
+        {:noreply, put_flash(socket, :error, gettext("Telegram is unavailable. Try again soon."))}
     end
   end
 
@@ -587,62 +589,53 @@ defmodule ExBlogWeb.Admin.TelegramLive do
     is_binary(password) and String.trim(password) != "" and byte_size(password) <= 1_024
   end
 
-  defp submit_button_classes do
-    "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-stone-950 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:pointer-events-none disabled:opacity-50 dark:bg-amber-400 dark:text-stone-950 dark:hover:bg-amber-300"
-  end
+  defp submit_button_classes, do: "term-btn term-btn--primary mt-2 w-full"
 
-  defp status_label(:connected), do: "Connesso"
-  defp status_label(:authenticating), do: "Autenticazione"
-  defp status_label(:connecting), do: "Connessione"
-  defp status_label(:idle), do: "In attesa"
-  defp status_label(_status), do: "Disconnesso"
+  defp status_label(:connected), do: gettext("connected")
+  defp status_label(:authenticating), do: gettext("auth")
+  defp status_label(:connecting), do: gettext("connecting")
+  defp status_label(:idle), do: gettext("idle")
+  defp status_label(_status), do: gettext("disconnected")
 
-  defp status_classes(:connected),
-    do:
-      "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300"
-
-  defp status_classes(:authenticating),
-    do:
-      "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300"
-
-  defp status_classes(:connecting),
-    do:
-      "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-300"
-
-  defp status_classes(_status),
-    do:
-      "border-stone-200 bg-stone-100 text-stone-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-300"
+  defp status_classes(:connected), do: "t-strong"
+  defp status_classes(status) when status in [:authenticating, :connecting], do: "t-dim"
+  defp status_classes(_status), do: "t-faint"
 
   defp status_dot_classes(:connected),
-    do: "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
+    do: "bg-[color:var(--fg-strong)] shadow-[0_0_0_3px_rgba(255,255,255,0.08)]"
 
-  defp status_dot_classes(:authenticating), do: "animate-pulse bg-amber-500"
-  defp status_dot_classes(:connecting), do: "animate-pulse bg-sky-500"
-  defp status_dot_classes(_status), do: "bg-stone-400"
+  defp status_dot_classes(status) when status in [:authenticating, :connecting],
+    do: "animate-pulse bg-[color:var(--fg-dim)]"
 
-  defp auth_state_label(:wait_phone_number), do: "Scelta accesso"
-  defp auth_state_label(:requesting_qr), do: "Richiesta QR"
-  defp auth_state_label(:wait_other_device_confirmation), do: "Scansione QR"
-  defp auth_state_label(:wait_code), do: "Codice Telegram"
-  defp auth_state_label(:submitting_phone), do: "Invio numero"
-  defp auth_state_label(:submitting_code), do: "Verifica codice"
-  defp auth_state_label(:wait_password), do: "Password 2FA"
-  defp auth_state_label(:submitting_password), do: "Verifica 2FA"
-  defp auth_state_label(:ready), do: "Autorizzata"
-  defp auth_state_label(:starting), do: "Avvio"
-  defp auth_state_label(:connecting), do: "Connessione"
-  defp auth_state_label(_state), do: "Non disponibile"
+  defp status_dot_classes(_status), do: "bg-[color:var(--fg-faint)]"
+
+  defp auth_state_label(:wait_phone_number), do: gettext("Login choice")
+  defp auth_state_label(:requesting_qr), do: gettext("QR request")
+  defp auth_state_label(:wait_other_device_confirmation), do: gettext("QR scan")
+  defp auth_state_label(:wait_code), do: gettext("Telegram code")
+  defp auth_state_label(:submitting_phone), do: gettext("Sending number")
+  defp auth_state_label(:submitting_code), do: gettext("Verifying code")
+  defp auth_state_label(:wait_password), do: gettext("2FA password")
+  defp auth_state_label(:submitting_password), do: gettext("Verifying 2FA")
+  defp auth_state_label(:ready), do: gettext("Authorized")
+  defp auth_state_label(:starting), do: gettext("Starting")
+  defp auth_state_label(:connecting), do: gettext("Connecting")
+  defp auth_state_label(_state), do: gettext("Unavailable")
 
   defp auth_state_description(:wait_phone_number),
-    do: "Scegli il QR oppure continua con il numero di telefono."
+    do: gettext("Pick the QR code or continue with the phone number.")
 
-  defp auth_state_description(:requesting_qr), do: "Telegram sta preparando un QR temporaneo."
+  defp auth_state_description(:requesting_qr),
+    do: gettext("Telegram is preparing a temporary QR code.")
 
   defp auth_state_description(:wait_other_device_confirmation),
-    do: "Il QR è pronto per essere scansionato."
+    do: gettext("The QR code is ready to be scanned.")
 
-  defp auth_state_description(:wait_code), do: "Attendo il codice inviato da Telegram."
-  defp auth_state_description(:wait_password), do: "È richiesta la password Telegram 2FA."
-  defp auth_state_description(:ready), do: "La sessione è autorizzata e operativa."
-  defp auth_state_description(_state), do: "Controllo lo stato della sessione ExGram."
+  defp auth_state_description(:wait_code), do: gettext("Waiting for the code sent by Telegram.")
+
+  defp auth_state_description(:wait_password),
+    do: gettext("The Telegram 2FA password is required.")
+
+  defp auth_state_description(:ready), do: gettext("The session is authorized and running.")
+  defp auth_state_description(_state), do: gettext("Checking the ExGram session status.")
 end

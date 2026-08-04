@@ -72,13 +72,14 @@ they happen to access the index during the swap.
   public-network policy, and always closes the tab and runtime. Raw HTML and
   page text never enter Spectre state. Before projected content can reach a
   model, it passes through `SpectreLens.agent_context/2` as untrusted web data.
-- **Telegram:** the numeric sender ID is checked in the gateway before Beam,
-  media download, prompts, logging, or cost accounting. Photos become
-  authenticated Beam inputs containing only bounded metadata and a TDLib file
-  identifier. ExGram downloads the bytes only inside an active editorial flow.
+- **Telegram:** the sender username resolved from ExGram's contact projection
+  is checked in the gateway before Beam, media download, prompts, logging, or
+  cost accounting. Photos become authenticated Beam inputs containing only
+  bounded metadata and a TDLib file identifier. ExGram downloads the bytes only
+  inside an active editorial flow.
 - **Telegram application credentials:** `TG_API_ID` and `TG_API_HASH` identify
   the Telegram application used by ExGram. They are distinct from the allowed
-  administrator ID and from the persistent TDLib user session.
+  administrator username and from the persistent TDLib user session.
 - **MCP:** every request validates its Origin and protocol version. An OAuth
   bearer is checked against its DETS hash, resource, expiry, revocation state,
   and scopes. The environment-backed operator token remains available to
@@ -132,9 +133,9 @@ the LLM fallback.
   OpenRouter embedding model through Req and the shared budget ledger. The
   default dimension contract is 1,024.
 
-The checked-in corpus contains 204 original examples across 17
+The checked-in corpus contains 228 original examples across 19
 classifier-visible intents. Local training uses all examples for the centroid
-classifier and can index the 84 examples belonging to seven cacheable read
+classifier and can index the 96 examples belonging to eight cacheable read
 routes. Production ships neither local artifact. It keeps dataset exact matches
 and embeds new eligible semantic rows through OpenRouter.
 

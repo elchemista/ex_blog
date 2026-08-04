@@ -6,66 +6,59 @@
 >
   <section
     id="chatgpt-oauth-consent"
-    class="relative isolate flex min-h-[calc(100vh-10rem)] items-center justify-center overflow-hidden px-5 py-16 sm:px-8"
+    class="mx-auto flex min-h-[calc(100vh-8rem)] max-w-2xl items-center px-4 py-14 sm:px-6"
   >
-    <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-      <div class="absolute left-[12%] top-10 size-72 rounded-full bg-emerald-300/15 blur-3xl dark:bg-emerald-600/10">
+    <div class="term-window w-full overflow-hidden">
+      <div class="term-bar">
+        <span class="term-dots" aria-hidden="true">
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+        </span>
+        <span class="term-title">oauth — authorize</span>
+        <span class="ml-auto flex-none t-faint">mcp</span>
       </div>
-      <div class="absolute bottom-8 right-[10%] size-64 rounded-full bg-amber-300/20 blur-3xl dark:bg-amber-600/10">
-      </div>
-    </div>
 
-    <div class="w-full max-w-xl">
-      <div class="mb-7 text-center">
-        <div class="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-stone-950 text-emerald-300 shadow-xl shadow-stone-950/15 dark:bg-emerald-400 dark:text-stone-950">
-          <.icon name="hero-link" class="size-7" />
-        </div>
-        <p class="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-400">
-          Connessione protetta
+      <div class="term-body p-5 sm:p-8">
+        <p class="term-prompt text-[0.75rem] t-dim">
+          ex_blog oauth grant --client "{@request.client_name}"
         </p>
-        <h1
-          id="oauth-consent-heading"
-          class="font-serif text-4xl font-semibold tracking-tight text-stone-950 dark:text-white"
-        >
-          Autorizza {@request.client_name}
+        <h1 id="oauth-consent-heading" class="mt-4 text-xl font-bold tracking-tight t-strong">
+          {gettext("Authorize %{client}", client: @request.client_name)}
         </h1>
-        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-stone-600 dark:text-stone-400">
-          Stai collegando l’amministratore di ExBlog al client MCP. Controlla i permessi prima di continuare.
+        <p class="mt-2 text-[0.78rem] leading-6 t-faint">
+          <span aria-hidden="true">// </span>{gettext(
+            "You are connecting the ExBlog administrator to the MCP client. Review the permissions before continuing."
+          )}
         </p>
-      </div>
 
-      <div class="rounded-[1.75rem] border border-stone-200/90 bg-white/90 p-6 shadow-2xl shadow-stone-900/[0.08] backdrop-blur-xl dark:border-white/10 dark:bg-stone-900/85 dark:shadow-black/25 sm:p-8">
-        <div class="mb-6 rounded-2xl border border-stone-200 bg-stone-50/80 p-5 dark:border-white/10 dark:bg-white/[0.04]">
-          <h2 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-stone-700 dark:text-stone-200">
-            <.icon name="hero-shield-check" class="size-5 text-emerald-600 dark:text-emerald-400" />
-            Permessi richiesti
-          </h2>
-          <ul id="oauth-requested-scopes" class="space-y-3">
+        <div class="mt-7 border border-[color:var(--line)] bg-[color:var(--surface)]">
+          <p class="border-b border-[color:var(--line)] bg-[color:var(--surface-bar)] px-4 py-2 text-[0.68rem] uppercase tracking-[0.16em] t-dim">
+            {gettext("requested scopes")}
+          </p>
+          <ul id="oauth-requested-scopes" class="space-y-2 px-4 py-4">
             <li
               :for={scope <- @request.scopes}
-              class="flex items-start gap-3 text-sm leading-6 text-stone-600 dark:text-stone-300"
+              class="flex items-start gap-3 text-[0.78rem] leading-6 t-body"
             >
-              <span class="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300">
-                <.icon name="hero-check" class="size-3.5" />
-              </span>
+              <span class="t-faint" aria-hidden="true">[✓]</span>
               <span>{scope_label(scope)}</span>
             </li>
           </ul>
         </div>
 
-        <div class="mb-7 flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-950 dark:border-amber-400/20 dark:bg-amber-400/[0.07] dark:text-amber-100">
-          <.icon name="hero-key" class="mt-0.5 size-4 shrink-0" />
-          <p>
-            I token in chiaro vengono consegnati una sola volta al client. ExBlog conserva sul volume persistente esclusivamente hash revocabili e scadenze.
-          </p>
-        </div>
+        <p class="mt-5 border-l-2 border-[color:var(--line-strong)] pl-4 text-[0.72rem] leading-5 t-faint">
+          {gettext(
+            "Plaintext tokens are handed to the client only once. ExBlog stores nothing but revocable hashes and expiry dates on the persistent volume."
+          )}
+        </p>
 
         <.form
           for={@form}
           id="chatgpt-oauth-consent-form"
           action={~p"/oauth/authorize"}
           method="post"
-          class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
+          class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
         >
           <input
             :for={{key, value} <- @form.params}
@@ -78,18 +71,18 @@
             type="submit"
             name="oauth[decision]"
             value="deny"
-            class="min-h-12 rounded-xl border border-stone-200 px-5 py-3 text-sm font-bold text-stone-700 transition duration-200 hover:-translate-y-0.5 hover:border-stone-300 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-500 dark:border-white/10 dark:text-stone-200 dark:hover:bg-white/[0.05]"
+            class="term-btn"
           >
-            Nega
+            {gettext("Deny")}
           </button>
           <button
             id="oauth-approve-button"
             type="submit"
             name="oauth[decision]"
             value="approve"
-            class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-stone-950 px-5 py-3 text-sm font-bold text-white shadow-lg transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:bg-emerald-400 dark:text-stone-950 dark:hover:bg-emerald-300"
+            class="term-btn term-btn--primary"
           >
-            Autorizza <.icon name="hero-arrow-right" class="size-4" />
+            {gettext("Authorize")} <span aria-hidden="true">→</span>
           </button>
         </.form>
       </div>

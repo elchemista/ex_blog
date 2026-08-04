@@ -17,7 +17,7 @@ defmodule ExBlogWeb.Admin.SessionController do
   def delete(conn, _params) do
     conn
     |> AdminAuth.log_out()
-    |> put_flash(:info, "Sessione amministratore terminata.")
+    |> put_flash(:info, gettext("Administrator session closed."))
     |> redirect(to: ~p"/admin/login")
   end
 
@@ -29,18 +29,25 @@ defmodule ExBlogWeb.Admin.SessionController do
       {conn, destination} = AdminAuth.pop_return_to(conn)
 
       conn
-      |> put_flash(:info, "Accesso effettuato.")
+      |> put_flash(:info, gettext("Signed in."))
       |> redirect(to: destination)
     else
       conn
-      |> put_flash(:error, "Password non valida.")
+      |> put_flash(:error, gettext("Invalid password."))
       |> redirect(to: ~p"/admin/login")
     end
   end
 
   defp reject_throttled(conn, retry_after) do
     conn
-    |> put_flash(:error, "Troppi tentativi. Riprova tra #{retry_after} secondi.")
+    |> put_flash(
+      :error,
+      ngettext(
+        "Too many attempts. Try again in %{count} second.",
+        "Too many attempts. Try again in %{count} seconds.",
+        retry_after
+      )
+    )
     |> redirect(to: ~p"/admin/login")
   end
 end

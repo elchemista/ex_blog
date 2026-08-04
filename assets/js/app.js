@@ -24,8 +24,10 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/ex_blog"
 import topbar from "../vendor/topbar"
+import CookieConsent from "../vendor/cookieconsent.umd"
 
-const preferredTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+// The blog is designed black-first: dark is the default and light is opt-in.
+const preferredTheme = () => "dark"
 
 const storedTheme = () => {
   try {
@@ -38,6 +40,7 @@ const storedTheme = () => {
 const applyTheme = theme => {
   const resolved = theme === "dark" || theme === "light" ? theme : preferredTheme()
   document.documentElement.dataset.theme = resolved
+  document.documentElement.classList.toggle("cc--darkmode", resolved === "dark")
   document.querySelectorAll("[data-theme-toggle]").forEach(button => {
     button.setAttribute("aria-pressed", String(resolved === "dark"))
   })
@@ -64,8 +67,141 @@ window.addEventListener("storage", event => {
   if (event.key === "ex-blog:theme") applyTheme(event.newValue)
 })
 
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-  if (!storedTheme()) applyTheme(null)
+// Controller-rendered pages have no LiveView root, so their phx-click bindings
+// never run. Dismiss those flashes here; inside a LiveView the server command
+// stays in charge.
+document.addEventListener("click", event => {
+  const dismiss = event.target.closest("[data-flash-dismiss]")
+  if (!dismiss || dismiss.closest("[data-phx-session]")) return
+
+  dismiss.closest("[data-flash]")?.remove()
+})
+
+const siteDomain = "spectre.elchemista.com"
+const documentLanguage = document.documentElement.lang.toLowerCase().split("-")[0]
+const consentLanguage = ["it", "en"].includes(documentLanguage) ? documentLanguage : "it"
+
+CookieConsent.run({
+  cookie: {
+    name: "spectre_cookie_consent",
+    expiresAfterDays: 182,
+    sameSite: "Lax",
+  },
+  guiOptions: {
+    consentModal: {
+      layout: "box",
+      position: "bottom right",
+      equalWeightButtons: true,
+      flipButtons: false,
+    },
+    preferencesModal: {
+      layout: "box",
+      position: "right",
+      equalWeightButtons: true,
+      flipButtons: false,
+    },
+  },
+  categories: {
+    necessary: {
+      readOnly: true,
+    },
+    analytics: {},
+  },
+  language: {
+    default: consentLanguage,
+    translations: {
+      it: {
+        consentModal: {
+          title: "Cookie e privacy su " + siteDomain,
+          description:
+            "Usiamo cookie necessari per il funzionamento e, solo con il tuo consenso, eventuali cookie analitici. Puoi accettare, rifiutare quelli facoltativi o scegliere nel dettaglio.",
+          acceptAllBtn: "Accetta tutto",
+          acceptNecessaryBtn: "Solo necessari",
+          showPreferencesBtn: "Gestisci preferenze",
+          footer:
+            '<a href="/it/cookies-policy">Cookie Policy</a>\n<a href="/it/privacy-policy">Privacy Policy</a>\n<a href="/it/gdpr-policy">GDPR</a>',
+        },
+        preferencesModal: {
+          title: "Preferenze cookie e GDPR",
+          acceptAllBtn: "Accetta tutto",
+          acceptNecessaryBtn: "Solo necessari",
+          savePreferencesBtn: "Salva preferenze",
+          closeIconLabel: "Chiudi",
+          serviceCounterLabel: "Servizi",
+          sections: [
+            {
+              title: "Come usiamo i cookie",
+              description:
+                "I cookie essenziali mantengono il sito sicuro e ricordano la tua scelta. Le categorie facoltative restano spente finché non le autorizzi.",
+            },
+            {
+              title:
+                '<span>Cookie necessari</span> <span class="pm__badge">Sempre attivi</span>',
+              description:
+                "Servono per sicurezza, sessioni protette e memorizzazione del consenso. Non possono essere disattivati dal pannello.",
+              linkedCategory: "necessary",
+            },
+            {
+              title: "Cookie analitici",
+              description:
+                "Aiutano a capire come viene utilizzato il sito. Il bundle pubblico attuale non carica servizi analitici di terze parti.",
+              linkedCategory: "analytics",
+            },
+            {
+              title: "Altre informazioni",
+              description:
+                '<a class="cc__link" href="/it/cookies-policy">Leggi la Cookie Policy</a> oppure <a class="cc__link" href="mailto:elchemista@gmail.com">contattaci</a>.',
+            },
+          ],
+        },
+      },
+      en: {
+        consentModal: {
+          title: "Cookies and privacy on " + siteDomain,
+          description:
+            "We use necessary cookies for operation and, only with your consent, optional analytics cookies. You can accept, reject optional cookies, or choose in detail.",
+          acceptAllBtn: "Accept all",
+          acceptNecessaryBtn: "Necessary only",
+          showPreferencesBtn: "Manage preferences",
+          footer:
+            '<a href="/en/cookies-policy">Cookie Policy</a>\n<a href="/en/privacy-policy">Privacy Policy</a>\n<a href="/en/gdpr-policy">GDPR</a>',
+        },
+        preferencesModal: {
+          title: "Cookie and GDPR preferences",
+          acceptAllBtn: "Accept all",
+          acceptNecessaryBtn: "Necessary only",
+          savePreferencesBtn: "Save preferences",
+          closeIconLabel: "Close",
+          serviceCounterLabel: "Services",
+          sections: [
+            {
+              title: "How we use cookies",
+              description:
+                "Essential cookies keep the site secure and remember your choice. Optional categories stay disabled until you authorize them.",
+            },
+            {
+              title:
+                '<span>Necessary cookies</span> <span class="pm__badge">Always enabled</span>',
+              description:
+                "They support security, protected sessions, and consent storage and cannot be disabled in this panel.",
+              linkedCategory: "necessary",
+            },
+            {
+              title: "Analytics cookies",
+              description:
+                "They help understand how the site is used. The current public bundle does not load third-party analytics services.",
+              linkedCategory: "analytics",
+            },
+            {
+              title: "More information",
+              description:
+                '<a class="cc__link" href="/en/cookies-policy">Read the Cookie Policy</a> or <a class="cc__link" href="mailto:elchemista@gmail.com">contact us</a>.',
+            },
+          ],
+        },
+      },
+    },
+  },
 })
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
@@ -76,7 +212,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
 })
 
 // Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
+topbar.config({barColors: {0: "#f5f5f7"}, shadowColor: "rgba(0, 0, 0, .6)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 

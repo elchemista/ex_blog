@@ -7,7 +7,7 @@ defmodule ExBlog.Telegram.GatewayTest do
   alias ExBlog.Telegram.Gateway
 
   test "drops a non-admin update before invoking the processor or logging content" do
-    event = telegram_update(999_999, "github-token-that-must-not-be-logged")
+    event = telegram_update(999_999, "another_user", "github-token-that-must-not-be-logged")
 
     log =
       capture_log(fn ->
@@ -24,9 +24,9 @@ defmodule ExBlog.Telegram.GatewayTest do
     refute log =~ "github-token-that-must-not-be-logged"
   end
 
-  test "lets the configured numeric administrator reach the processor" do
-    admin_id = ExBlog.Config.get().admin_telegram_id
-    event = telegram_update(admin_id, "/config")
+  test "lets the configured administrator username reach the processor" do
+    admin_username = ExBlog.Config.get().admin_telegram_username
+    event = telegram_update(42, "@#{String.upcase(admin_username)}", "show the configuration")
 
     assert {:reply, ["ok"]} =
              Gateway.handle_update(event,
@@ -39,6 +39,33 @@ defmodule ExBlog.Telegram.GatewayTest do
     assert_received {:authorized, ^event}
   end
 
+  test "resolves the username from the ExGram contact projection" do
+    admin_username = ExBlog.Config.get().admin_telegram_username
+    event = telegram_update(73_921, nil, "show the configuration")
+    test_pid = self()
+
+    assert {:reply, ["ok"]} =
+             Gateway.handle_update(event,
+               username_resolver: fn sender_id ->
+                 send(test_pid, {:resolved_sender, sender_id})
+                 {:ok, %{username: "@#{String.upcase(admin_username)}"}}
+               end,
+               processor: fn _event -> {:reply, ["ok"]} end
+             )
+
+    assert_received {:resolved_sender, 73_921}
+  end
+
+  test "fails closed when Telegram cannot resolve the sender username" do
+    event = telegram_update(73_921, nil, "show the configuration")
+
+    assert :ignore =
+             Gateway.handle_update(event,
+               username_resolver: fn _sender_id -> {:error, :not_found} end,
+               processor: fn _event -> flunk("an unresolved sender must not be processed") end
+             )
+  end
+
   test "splits plain-text replies within Telegram's limit" do
     chunks = Gateway.split(String.duplicate("a", 8_500))
     assert length(chunks) == 3
@@ -47,8 +74,11 @@ defmodule ExBlog.Telegram.GatewayTest do
   end
 
   test "drops messages sent by the connected Telegram account" do
-    admin_id = ExBlog.Config.get().admin_telegram_id
-    {:ex_gram_message, jid, message} = telegram_update(admin_id, "/config")
+    admin_username = ExBlog.Config.get().admin_telegram_username
+
+    {:ex_gram_message, jid, message} =
+      telegram_update(42, admin_username, "show the configuration")
+
     event = {:ex_gram_message, jid, %{message | from_me: true}}
 
     assert :ignore =
@@ -58,7 +88,7 @@ defmodule ExBlog.Telegram.GatewayTest do
   end
 
   test "routes an authenticated photo through Beam without downloading outside creation mode" do
-    event = telegram_photo(ExBlog.Config.get().admin_telegram_id, 512)
+    event = telegram_photo(42, ExBlog.Config.get().admin_telegram_username, 512)
 
     assert {:reply, [reply]} =
              Gateway.handle_update(event,
@@ -73,7 +103,8 @@ defmodule ExBlog.Telegram.GatewayTest do
   test "rejects an oversized authenticated photo before Spectre or ExGram" do
     event =
       telegram_photo(
-        ExBlog.Config.get().admin_telegram_id,
+        42,
+        ExBlog.Config.get().admin_telegram_username,
         Asset.max_bytes() + 1
       )
 
@@ -81,7 +112,7 @@ defmodule ExBlog.Telegram.GatewayTest do
              Gateway.handle_update(event)
   end
 
-  defp telegram_update(sender_id, text) do
+  defp telegram_update(sender_id, sender_username, text) do
     jid = Integer.to_string(sender_id)
 
     {:ex_gram_message, jid,
@@ -90,6 +121,7 @@ defmodule ExBlog.Telegram.GatewayTest do
        jid: jid,
        chat_id: sender_id,
        sender_id: sender_id,
+       sender_username: sender_username,
        from_me: false,
        timestamp: 1_785_782_400,
        kind: :text,
@@ -98,7 +130,7 @@ defmodule ExBlog.Telegram.GatewayTest do
      }}
   end
 
-  defp telegram_photo(sender_id, size) do
+  defp telegram_photo(sender_id, sender_username, size) do
     jid = Integer.to_string(sender_id)
 
     {:ex_gram_message, jid,
@@ -107,6 +139,7 @@ defmodule ExBlog.Telegram.GatewayTest do
        jid: jid,
        chat_id: sender_id,
        sender_id: sender_id,
+       sender_username: sender_username,
        from_me: false,
        timestamp: 1_785_782_400,
        kind: :photo,

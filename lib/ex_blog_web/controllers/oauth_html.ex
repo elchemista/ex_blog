@@ -5,11 +5,14 @@ defmodule ExBlogWeb.OAuthHTML do
 
   embed_templates "oauth_html/*"
 
-  def scope_label("offline_access"), do: "Mantieni attiva la connessione fino alla revoca"
-  def scope_label("articles:read"), do: "Leggi articoli, configurazione sicura e stato operativo"
+  def scope_label("offline_access"),
+    do: gettext("Keep the connection alive until it is revoked")
+
+  def scope_label("articles:read"),
+    do: gettext("Read articles, safe configuration and operational status")
 
   def scope_label("articles:write"),
-    do: "Crea e modifica contenuti solamente attraverso gli strumenti autorizzati"
+    do: gettext("Create and edit content only through the authorized tools")
 
   def scope_label(scope), do: scope
 end

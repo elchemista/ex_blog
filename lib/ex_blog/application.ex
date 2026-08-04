@@ -27,7 +27,10 @@ defmodule ExBlog.Application do
           # production it warms only hosted-model DETS rows and exact sources.
           ExBlog.Agent.SemanticCache,
           {Phoenix.PubSub, name: ExBlog.PubSub},
-          ExBlog.Admin.LoginThrottle
+          ExBlog.Admin.LoginThrottle,
+          # Owns Subject-scoped Agent Instances so route handlers can start
+          # durable Work loops such as the sync-and-verify procedure.
+          {Spectre.Supervisor, name: ExBlog.SpectreSupervisor}
         ] ++ content_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
 
     # See https://elixir.hexdocs.pm/Supervisor.html

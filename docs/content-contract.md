@@ -103,7 +103,7 @@ An update never changes the slug or language of an existing article. A
 translation creates a new draft. Publishing, unpublishing, and deletion mutate
 the repository and require confirmation on agent-controlled surfaces.
 
-Inside `/create`, OpenRouter generates the body and optional SEO only after the
+During article creation, OpenRouter generates the body and optional SEO only after the
 Spectre confirmation policy succeeds. SEO output is decoded and normalized into
 `seo_title`, `seo_description`, `cover_alt`, and `tags` before the Writer applies
 the contract limits and serializes the file.

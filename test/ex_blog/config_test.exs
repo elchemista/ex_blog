@@ -22,11 +22,23 @@ defmodule ExBlog.ConfigTest do
     assert message =~ "- PHX_HOST"
   end
 
+  test "requires the Telegram username instead of a numeric administrator ID" do
+    required = Config.required_env_names()
+
+    assert "EX_BLOG_ADMIN_TELEGRAM_USERNAME" in required
+    refute "EX_BLOG_ADMIN_TELEGRAM_ID" in required
+
+    env = Map.put(full_env(), "EX_BLOG_ADMIN_TELEGRAM_ID", "123456789")
+
+    assert {:ok, config} = Config.load(env)
+    assert config.admin_telegram_username == "editorial_admin"
+  end
+
   test "aggregates invalid typed values" do
     env =
       full_env()
       |> Map.put("EX_BLOG_ADMIN_PASSWORD_HASH", "not-an-argon2-hash")
-      |> Map.put("EX_BLOG_ADMIN_TELEGRAM_ID", "not-an-id")
+      |> Map.put("EX_BLOG_ADMIN_TELEGRAM_USERNAME", "not a username")
       |> Map.put("TG_API_ID", "not-an-id")
       |> Map.put("EX_BLOG_TELEGRAM_SESSION_ID", "../unsafe")
       |> Map.put("EX_BLOG_GITHUB_REPOSITORY", "not a repository")
@@ -36,7 +48,7 @@ defmodule ExBlog.ConfigTest do
 
     assert {:error, message} = Config.load(env)
     assert message =~ "EX_BLOG_ADMIN_PASSWORD_HASH: must be an Argon2 encoded hash"
-    assert message =~ "EX_BLOG_ADMIN_TELEGRAM_ID: must be a positive integer"
+    assert message =~ "EX_BLOG_ADMIN_TELEGRAM_USERNAME: must be a Telegram username"
     assert message =~ "TG_API_ID: must be a positive integer"
     assert message =~ "EX_BLOG_TELEGRAM_SESSION_ID"
     assert message =~ "EX_BLOG_GITHUB_REPOSITORY: must use the owner/repository format"
@@ -73,6 +85,13 @@ defmodule ExBlog.ConfigTest do
              "local:intfloat/multilingual-e5-small"
 
     assert config.embedding_dimensions == 1024
+  end
+
+  test "normalizes the administrator Telegram username" do
+    env = Map.put(full_env(), "EX_BLOG_ADMIN_TELEGRAM_USERNAME", "  @Editorial_Admin  ")
+
+    assert {:ok, config} = Config.load(env)
+    assert config.admin_telegram_username == "editorial_admin"
   end
 
   test "accepts the legacy ExBlog-prefixed Telegram credential aliases" do
@@ -114,7 +133,7 @@ defmodule ExBlog.ConfigTest do
   defp full_env do
     %{
       "EX_BLOG_ADMIN_PASSWORD_HASH" => "$argon2id$admin-password-hash",
-      "EX_BLOG_ADMIN_TELEGRAM_ID" => "123456789",
+      "EX_BLOG_ADMIN_TELEGRAM_USERNAME" => "editorial_admin",
       "TG_API_ID" => "12345",
       "TG_API_HASH" => "telegram-api-secret-value",
       "EX_BLOG_GITHUB_TOKEN" => "github-secret-value",

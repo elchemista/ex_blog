@@ -12,57 +12,113 @@ defmodule ExBlogWeb.BlogHTML do
     ~H"""
     <article
       id={"article-card-#{@article.lang}-#{@article.slug}"}
-      class={[
-        "group relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-white/70 shadow-[0_24px_80px_-48px_rgba(28,25,23,0.45)] backdrop-blur-sm transition duration-500 hover:-translate-y-1 hover:border-amber-300/80 hover:shadow-[0_30px_90px_-42px_rgba(120,53,15,0.35)] dark:border-white/10 dark:bg-stone-900/65",
-        @featured && "md:grid md:grid-cols-[1.15fr_0.85fr]"
-      ]}
+      class="term-window term-window--link group relative overflow-hidden"
     >
-      <div class={[@featured && "p-8 sm:p-10", !@featured && "p-7 sm:p-8"]}>
-        <div class="flex flex-wrap items-center gap-3 text-[0.68rem] font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400">
-          <span :if={@article.category}>{@article.category}</span>
-          <span :if={@article.category} class="size-1 rounded-full bg-stone-300 dark:bg-stone-600"></span>
-          <time datetime={date_string(@article.date)} class="text-stone-500 dark:text-stone-400">
-            {format_date(@article.date)}
-          </time>
-        </div>
-        <h2 class={[
-          "mt-5 font-serif font-semibold leading-[1.08] tracking-[-0.035em] text-stone-950 transition-colors group-hover:text-amber-800 dark:text-stone-50 dark:group-hover:text-amber-300",
-          if(@featured, do: "text-3xl sm:text-5xl", else: "text-2xl sm:text-3xl")
-        ]}>
-          <.link href={~p"/#{@article.lang}/#{@article.slug}"} class="after:absolute after:inset-0">
-            {@article.title}
-          </.link>
-        </h2>
-        <p class="mt-4 line-clamp-3 text-[0.98rem] leading-7 text-stone-600 dark:text-stone-300">
-          {@article.excerpt}
-        </p>
-        <div class="mt-7 flex items-center justify-between gap-4 border-t border-stone-200/80 pt-5 dark:border-white/10">
-          <span class="text-xs font-semibold text-stone-500 dark:text-stone-400">
-            {reading_time(@article.body)} min di lettura
-          </span>
-          <span class="flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-stone-100">
-            Leggi
-            <.icon
-              name="hero-arrow-up-right"
-              class="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-            />
-          </span>
-        </div>
+      <div class="term-bar">
+        <span class="term-dots" aria-hidden="true">
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+        </span>
+        <span class="term-title">{file_path(@article)}</span>
+        <span class="ml-auto flex flex-none items-center gap-2 t-faint">
+          <span :if={@featured} class="hidden sm:inline">◆ {gettext("pinned")}</span>
+          <time datetime={date_string(@article.date)}>{format_date(@article.date)}</time>
+        </span>
       </div>
-      <div :if={@featured} class="relative hidden min-h-80 overflow-hidden bg-stone-950 md:block">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(251,191,36,0.32),transparent_38%),radial-gradient(circle_at_80%_70%,rgba(194,65,12,0.45),transparent_44%),linear-gradient(145deg,#1c1917,#0c0a09)]">
+
+      <div class={["md:grid", @featured && "md:grid-cols-[1.25fr_0.75fr]"]}>
+        <div class={["term-body", @featured && "sm:p-8"]}>
+          <p class="term-prompt text-[0.72rem] t-dim">
+            cat {file_path(@article)}
+          </p>
+
+          <h2 class={[
+            "mt-4 font-bold leading-tight tracking-tight t-strong",
+            if(@featured, do: "text-2xl sm:text-4xl", else: "text-xl sm:text-2xl")
+          ]}>
+            <.link
+              href={~p"/#{@article.lang}/#{@article.slug}"}
+              class="after:absolute after:inset-0 group-hover:underline group-hover:decoration-dashed group-hover:underline-offset-8"
+            >
+              {@article.title}
+            </.link>
+          </h2>
+
+          <p class={[
+            "mt-4 text-[0.85rem] leading-7 t-dim",
+            if(@featured, do: "line-clamp-4 sm:text-[0.9rem]", else: "line-clamp-3")
+          ]}>
+            <span class="t-faint" aria-hidden="true">// </span>{@article.excerpt}
+          </p>
+
+          <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-dashed border-[color:var(--line)] pt-4 text-[0.7rem] t-faint">
+            <span :if={@article.category} class="t-dim">#{@article.category}</span>
+            <span aria-hidden="true">·</span>
+            <span>{gettext("%{count} min", count: reading_time(@article.body))}</span>
+            <span aria-hidden="true">·</span>
+            <span>{@article.lang}</span>
+            <span class="ml-auto flex items-center gap-1.5 t-strong">
+              {gettext("open")}
+              <span class="transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+            </span>
+          </div>
         </div>
-        <div class="absolute inset-x-8 bottom-8 border-l border-amber-400/60 pl-5 text-sm leading-6 text-stone-300">
-          In evidenza<br />
-          <span class="font-serif text-xl text-white">Una lettura scelta per te.</span>
+
+        <div
+          :if={@featured}
+          class="hidden border-l border-[color:var(--line)] bg-[color:var(--surface-bar)] p-8 md:flex md:flex-col md:justify-between"
+          aria-hidden="true"
+        >
+          <div class="text-[0.8rem] leading-[1.1] tracking-[0.12em] t-faint">
+            <div>░░░░░░░░▒▒▒▒▒▓▓▓</div>
+            <div>░░░░░░▒▒▒▒▒▓▓▓██</div>
+            <div>░░░░▒▒▒▒▓▓▓█████</div>
+            <div>░░▒▒▒▓▓▓████████</div>
+            <div>▒▒▒▓▓▓██████████</div>
+            <div>▒▓▓▓████████████</div>
+          </div>
+          <dl class="mt-8 space-y-1.5 border-t border-dashed border-[color:var(--line)] pt-5 text-[0.68rem] leading-5">
+            <div class="flex gap-3">
+              <dt class="w-16 shrink-0 t-faint">branch</dt>
+              <dd class="t-dim">master</dd>
+            </div>
+            <div class="flex gap-3">
+              <dt class="w-16 shrink-0 t-faint">slug</dt>
+              <dd class="truncate t-dim">{@article.slug}</dd>
+            </div>
+            <div class="flex gap-3">
+              <dt class="w-16 shrink-0 t-faint">words</dt>
+              <dd class="t-dim">{word_count(@article.body)}</dd>
+            </div>
+            <div class="flex gap-3">
+              <dt class="w-16 shrink-0 t-faint">status</dt>
+              <dd class="t-strong">{gettext("published")}</dd>
+            </div>
+          </dl>
         </div>
       </div>
     </article>
     """
   end
 
+  def file_path(article), do: "posts/#{article.lang}/#{article.slug}.md"
+
+  def word_count(body) when is_binary(body) do
+    body |> String.split(~r/\s+/u, trim: true) |> length()
+  end
+
+  def word_count(_body), do: 0
+
+  @doc "Wraps a translated fragment in the inverted highlight block."
+  def highlight(text) do
+    escaped = text |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
+    ~s(<span class="t-invert px-2">#{escaped}</span>)
+  end
+
   def format_date(%Date{} = date), do: Calendar.strftime(date, "%d.%m.%Y")
-  def format_date(_date), do: "Senza data"
+  def format_date(_date), do: gettext("no date")
   def date_string(%Date{} = date), do: Date.to_iso8601(date)
   def date_string(_date), do: nil
 
@@ -98,6 +154,6 @@ defmodule ExBlogWeb.BlogHTML do
   def cover_source(_cover), do: nil
 
   def cover_alt(article) do
-    article.cover_alt || "Copertina di #{article.title}"
+    article.cover_alt || gettext("Cover image for %{title}", title: article.title)
   end
 end

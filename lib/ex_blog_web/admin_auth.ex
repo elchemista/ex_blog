@@ -7,6 +7,7 @@ defmodule ExBlogWeb.AdminAuth do
   """
 
   use ExBlogWeb, :verified_routes
+  use Gettext, backend: ExBlogWeb.Gettext
 
   import Plug.Conn
   import Phoenix.Controller
@@ -86,7 +87,7 @@ defmodule ExBlogWeb.AdminAuth do
     else
       conn
       |> remember_return_to()
-      |> put_flash(:error, "Accedi come amministratore per continuare.")
+      |> put_flash(:error, gettext("Sign in as administrator to continue."))
       |> redirect(to: ~p"/admin/login")
       |> halt()
     end
@@ -125,7 +126,7 @@ defmodule ExBlogWeb.AdminAuth do
     else
       socket =
         socket
-        |> Phoenix.LiveView.put_flash(:error, "Accedi come amministratore per continuare.")
+        |> Phoenix.LiveView.put_flash(:error, gettext("Sign in as administrator to continue."))
         |> Phoenix.LiveView.redirect(to: ~p"/admin/login")
 
       {:halt, socket}
@@ -165,7 +166,7 @@ defmodule ExBlogWeb.AdminAuth do
   defp handle_session_expiry({__MODULE__, :session_expired}, socket) do
     socket =
       socket
-      |> Phoenix.LiveView.put_flash(:error, "La sessione amministratore è scaduta.")
+      |> Phoenix.LiveView.put_flash(:error, gettext("The administrator session has expired."))
       |> Phoenix.LiveView.redirect(to: ~p"/admin/login")
 
     {:halt, socket}

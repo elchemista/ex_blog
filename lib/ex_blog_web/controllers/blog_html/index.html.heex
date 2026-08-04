@@ -3,26 +3,48 @@
   current_language={@current_language}
   supported_languages={@supported_languages}
 >
-  <section
-    id="blog-index"
-    class="mx-auto w-full max-w-7xl px-5 pb-24 pt-14 sm:px-8 sm:pt-20 lg:px-12"
-  >
-    <div class="relative overflow-hidden rounded-[2.5rem] border border-stone-200/80 bg-stone-950 px-7 py-14 text-white shadow-[0_40px_120px_-55px_rgba(28,25,23,0.8)] sm:px-12 sm:py-20 lg:px-16">
-      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_8%,rgba(251,191,36,0.23),transparent_28%),radial-gradient(circle_at_12%_90%,rgba(194,65,12,0.28),transparent_32%)]">
+  <section id="blog-index" class="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
+    <div class="term-window overflow-hidden">
+      <div class="term-bar">
+        <span class="term-dots" aria-hidden="true">
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+          <span class="term-dot"></span>
+        </span>
+        <span class="term-title">ex_blog — zsh — {@current_language}</span>
+        <span class="ml-auto hidden flex-none t-faint sm:block">132×40</span>
       </div>
-      <div class="pointer-events-none absolute -right-16 top-10 size-72 rounded-full border border-white/10">
-      </div>
-      <div class="pointer-events-none absolute -right-5 top-28 size-52 rounded-full border border-amber-400/20">
-      </div>
-      <div class="relative max-w-4xl">
-        <p class="flex items-center gap-3 text-[0.68rem] font-bold uppercase tracking-[0.28em] text-amber-400">
-          <span class="h-px w-9 bg-amber-400"></span> Quaderno digitale · {@current_language}
+
+      <div class="term-body p-5 sm:p-9">
+        <p class="term-prompt text-[0.78rem] t-dim">whoami</p>
+        <p class="term-out mt-1 text-[0.78rem] t-body">
+          {gettext("ExBlog — development notes, technical write-ups and things I broke")}
         </p>
-        <h1 class="mt-7 max-w-3xl font-serif text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-balance sm:text-7xl lg:text-[5.6rem]">
-          Idee che meritano <span class="text-amber-400">tempo.</span>
+
+        <p class="term-prompt mt-6 text-[0.78rem] t-dim">cat manifesto.md</p>
+        <h1 class="mt-4 max-w-3xl text-3xl font-bold leading-[1.12] tracking-tight text-balance t-strong sm:text-5xl lg:text-[3.4rem]">
+          {raw(
+            gettext("Code worth %{highlight}, not just attention.",
+              highlight: highlight(gettext("time"))
+            )
+          )}
         </h1>
-        <p class="mt-7 max-w-2xl text-base leading-8 text-stone-300 sm:text-lg">
-          Tecnologia, creatività e pensiero critico. Articoli indipendenti, scritti per essere riletti.
+        <p class="mt-5 max-w-2xl text-[0.85rem] leading-7 t-dim sm:text-[0.92rem]">
+          <span class="t-faint" aria-hidden="true">// </span>{gettext(
+            "Elixir, distributed systems, tooling and critical thinking. Independent articles, written to be read twice."
+          )}
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-dashed border-[color:var(--line)] pt-5 text-[0.72rem] t-faint">
+          <span class="term-prompt t-dim">ls -1 posts/ | wc -l</span>
+          <span class="term-out t-body">{length(@articles)}</span>
+          <span class="ml-auto flex items-center gap-2">
+            uptime <span class="t-dim">100%</span>
+          </span>
+        </div>
+
+        <p class="mt-6 text-[0.78rem] t-dim">
+          <span class="t-faint">$</span> <.cursor />
         </p>
       </div>
     </div>
@@ -30,56 +52,59 @@
     <div
       :if={@filter}
       id="active-filter"
-      class="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/80 px-5 py-4 text-sm dark:border-amber-900/60 dark:bg-amber-950/25"
+      class="term-window mt-6 flex flex-wrap items-center justify-between gap-4 px-4 py-3 text-[0.75rem]"
     >
-      <p class="font-semibold text-amber-950 dark:text-amber-100">
-        <span class="mr-2 text-[0.65rem] uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400">
-          {if(@filter.kind == :tag, do: "Tag", else: "Categoria")}
-        </span>
-        {@filter.value}
+      <p class="term-prompt t-dim">
+        grep --{if(@filter.kind == :tag, do: gettext("tag"), else: gettext("category"))}
+        <span class="t-strong">"{@filter.value}"</span> posts/
       </p>
       <.link
         href={~p"/#{@current_language}"}
-        class="relative z-10 rounded-full px-3 py-1.5 font-bold text-amber-800 transition hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/50"
+        class="relative z-10 t-faint transition hover:t-strong"
       >
-        Rimuovi filtro
+        [{gettext("clear filter")} ×]
       </.link>
     </div>
 
-    <div class="mt-14 flex items-end justify-between gap-6 border-b border-stone-200 pb-6 dark:border-white/10">
+    <div class="mt-12 flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--line)] pb-4">
       <div>
-        <p class="text-[0.68rem] font-bold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-400">
-          Archivio
-        </p>
-        <h2 class="mt-2 font-serif text-3xl font-semibold tracking-tight text-stone-950 dark:text-stone-50 sm:text-4xl">
-          Ultime pubblicazioni
+        <p class="term-prompt text-[0.72rem] t-faint">ls -lat posts/</p>
+        <h2 class="mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl">
+          {gettext("Latest posts")}
         </h2>
       </div>
-      <span class="hidden rounded-full border border-stone-200 px-4 py-2 text-xs font-semibold text-stone-500 dark:border-white/10 dark:text-stone-400 sm:block">
-        {length(@articles)} articoli
+      <span class="term-chip">
+        {ngettext("%{count} file", "%{count} files", length(@articles))}
       </span>
     </div>
 
-    <div id="articles" class="mt-8 space-y-7">
-      <div
-        :if={@articles == []}
-        id="articles-empty"
-        class="rounded-[2rem] border border-dashed border-stone-300 bg-white/40 px-6 py-20 text-center dark:border-white/15 dark:bg-white/[0.02]"
-      >
-        <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-          <.icon name="hero-document-text" class="size-6" />
+    <div id="articles" class="mt-6 space-y-6">
+      <div :if={@articles == []} id="articles-empty" class="term-window overflow-hidden">
+        <div class="term-bar">
+          <span class="term-dots" aria-hidden="true">
+            <span class="term-dot"></span>
+            <span class="term-dot"></span>
+            <span class="term-dot"></span>
+          </span>
+          <span class="term-title">stderr</span>
         </div>
-        <h3 class="mt-5 font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">
-          Qui c’è ancora spazio.
-        </h3>
-        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-500 dark:text-stone-400">
-          Nessun articolo pubblicato per questa selezione. Torna presto: il prossimo pezzo è già in lavorazione.
-        </p>
+        <div class="term-body py-12 text-center">
+          <p class="term-prompt text-[0.78rem] t-dim">ls posts/</p>
+          <p class="mt-3 text-[0.85rem] t-strong">
+            {gettext("ls: no matching file for this selection")}
+          </p>
+          <p class="mx-auto mt-3 max-w-md text-[0.78rem] leading-6 t-faint">
+            <span aria-hidden="true">// </span>{gettext(
+              "The next piece is already in the works. Come back soon, or subscribe to the feed."
+            )}
+          </p>
+          <p class="mt-5 text-[0.72rem] t-faint">exit status 1</p>
+        </div>
       </div>
 
       <.article_card :if={@featured} article={@featured} featured />
 
-      <div :if={@remaining != []} class="grid gap-7 md:grid-cols-2">
+      <div :if={@remaining != []} class="grid gap-6 md:grid-cols-2">
         <.article_card :for={article <- @remaining} article={article} />
       </div>
     </div>

@@ -107,8 +107,8 @@ defmodule ExBlogWeb.BlogController do
     |> render(:not_found,
       current_language: language_if_supported(language),
       supported_languages: Config.get().supported_languages,
-      page_title: "Pagina non trovata",
-      meta_description: "La pagina richiesta non esiste.",
+      page_title: gettext("Page not found"),
+      meta_description: gettext("The requested page does not exist."),
       robots: "noindex,follow",
       canonical_url: Config.canonical_url()
     )
@@ -127,18 +127,23 @@ defmodule ExBlogWeb.BlogController do
   defp split_featured([article | remaining]), do: {article, remaining}
 
   defp index_metadata(language, nil) do
+    language = String.upcase(language)
+
     {
-      "Archivio · #{String.upcase(language)}",
-      "Idee, appunti e storie pubblicate con cura in #{String.upcase(language)}."
+      gettext("Archive · %{language}", language: language),
+      gettext("Development notes, technical write-ups and stories published in %{language}.",
+        language: language
+      )
     }
   end
 
   defp index_metadata(_language, %{kind: :tag, value: value}) do
-    {"Tag: #{value}", "Tutti gli articoli associati al tag #{value}."}
+    {gettext("Tag: %{tag}", tag: value), gettext("Every article tagged %{tag}.", tag: value)}
   end
 
   defp index_metadata(_language, %{kind: :category, value: value}) do
-    {"Categoria: #{value}", "Tutti gli articoli della categoria #{value}."}
+    {gettext("Category: %{category}", category: value),
+     gettext("Every article in the %{category} category.", category: value)}
   end
 
   defp filter_key(nil), do: "all"

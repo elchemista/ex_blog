@@ -1,0 +1,6 @@
+The latest sync-and-verify run is <%= ExBlogWeb.Prompt.escape_text(@status, 40) %> (phase: <%= ExBlogWeb.Prompt.escape_text(@phase, 40) %>).
+Pages checked so far: <%= ExBlogWeb.Prompt.escape_text(@checked, 16) %> — healthy: <%= ExBlogWeb.Prompt.escape_text(@healthy, 16) %>, with issues: <%= ExBlogWeb.Prompt.escape_text(@unhealthy, 16) %>.<%= if @issues != [] do %>
+
+Problems found:
+<%= for line <- @issues do %>- <%= ExBlogWeb.Prompt.escape_text(line, 500) %>
+<% end %><% end %>

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang={assigns[:page_language] || "it"} class="scroll-smooth" data-theme="light">
+<html lang={assigns[:page_language] || "it"} class="scroll-smooth" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <meta name="description" content={assigns[:meta_description] || default_description()} />
     <meta name="robots" content={assigns[:robots] || "index,follow,max-image-preview:large"} />
-    <meta name="theme-color" content="#1c1917" />
+    <meta name="theme-color" content="#050506" />
 
     <title>{document_title(assigns[:page_title])}</title>
     <link rel="canonical" href={assigns[:canonical_url] || ExBlog.Config.canonical_url()} />
@@ -70,7 +70,7 @@
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
   </head>
-  <body class="min-h-screen bg-[color:var(--page-bg)] text-stone-800 antialiased dark:text-stone-200">
+  <body class="min-h-screen bg-[color:var(--page-bg)] font-mono text-[color:var(--fg)] antialiased">
     {@inner_content}
   </body>
 </html>

@@ -19,7 +19,7 @@ defmodule Mix.Tasks.ExBlog.Spectre.Dataset.Build do
 
   @default_source "priv/spectre/dataset.json"
   @default_output "training/dataset.json"
-  @minimum_examples_per_intent 12
+  @minimum_examples_per_intent 24
   @switches [source: :string, output: :keep, check: :boolean]
 
   @impl Mix.Task

@@ -5,8 +5,8 @@ defmodule ExBlog.Agent.Skills.Editorial do
   The nested flows are the workflow: each leaf captures exactly one editorial
   decision and `Spectre.State.current_flow` persists the cursor between
   Telegram messages. Free text is routed deterministically to that leaf by the
-  host router plug, while global interrupts keep `/cancel` and Telegram image
-  attachment available at every step.
+  host router plug, while global interrupts keep natural cancellation phrases
+  and Telegram image attachment available at every step.
 
   Title and category generation are read-only OpenRouter leaf calls. They fill
   state but never touch Git. Once the administrator selects article and SEO
@@ -14,12 +14,13 @@ defmodule ExBlog.Agent.Skills.Editorial do
   validates it against the `@al` catalog, and Spectre stages the protected
   repository mutation behind the skill policy.
 
-  Route declarations expose regex, optional embedding similarity, the optional
+  Route declarations expose optional embedding similarity, the optional
   local-classifier provider, and the LLM classifier. They deliberately exclude
   `:semantic_cache`: a historical vector match may identify an editorial
   intent, but it must never become a reusable authorization signal for a write.
-  `regex_strength: :hard` is scoped to regex evidence, while model evidence
-  remains confidence-gated.
+  There are no bot-style slash commands; the only remaining regex are the
+  natural cancellation phrases and the internal Telegram image marker, and
+  model evidence stays confidence-gated.
   """
 
   use Spectre.Skill,
@@ -80,10 +81,11 @@ defmodule ExBlog.Agent.Skills.Editorial do
   protect(:unpublish_article, with: :editorial_confirmation)
   protect(:delete_article, with: :editorial_confirmation)
 
-  # Cancellation is regex-only because it is a control command, not an intent
-  # that should be inferred or learned from a vaguely similar sentence.
+  # Cancellation is regex-only because it is a hard control, not an intent
+  # that should be inferred or learned from a vaguely similar sentence. The
+  # accepted phrases are natural words, not bot commands.
   interrupt :CANCEL_ARTICLE_CREATION,
-    regex: ~r/^\s*(?:\/cancel|stop|cancel|never\s*mind)\s*[.!]?\s*$/iu,
+    regex: ~r/^\s*(?:stop|cancel|never\s*mind)\s*[.!]?\s*$/iu,
     via: [:regex],
     cache: false do
     run(:cancel_creation)
@@ -104,14 +106,12 @@ defmodule ExBlog.Agent.Skills.Editorial do
     # active, the five child leaves are owned exclusively by CreationContinuation.
     flow :article_creation do
       on :START_ARTICLE_CREATION,
-        regex: ~r/^\/create(?:\s|$)/u,
         embedding: [
           "start a guided workflow for a new blog article",
           "help me prepare and write a new post",
           "begin creating a fresh editorial draft"
         ],
-        regex_strength: :hard,
-        via: [:regex, :embedding, :classifier, :llm_classifier],
+        via: [:embedding, :classifier, :llm_classifier],
         cache: false do
         run(:start_creation)
       end
@@ -155,80 +155,68 @@ defmodule ExBlog.Agent.Skills.Editorial do
     # write still passes through `editorial_confirmation` above.
     flow :article_changes do
       on :REVISE_ARTICLE,
-        regex: ~r/^\/(?:revise|edit|rewrite)(?:\s|$)/u,
         embedding: [
           "revise an existing article according to new instructions",
           "rewrite part of a published blog post",
           "improve the wording and structure of this draft"
         ],
-        regex_strength: :hard,
         cache: false,
-        via: [:regex, :embedding, :classifier, :llm_classifier] do
+        via: [:embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
       on :TRANSLATE_ARTICLE,
-        regex: ~r/^\/translate(?:\s|$)/u,
         embedding: [
           "translate an existing article into another language",
           "create a localized draft from this post",
           "make an Italian version of the English article"
         ],
-        regex_strength: :hard,
         cache: false,
-        via: [:regex, :embedding, :classifier, :llm_classifier] do
+        via: [:embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
       on :GENERATE_ARTICLE_SEO,
-        regex: ~r/^\/seo(?:\s|$)/u,
         embedding: [
           "generate search metadata for an existing article",
           "optimize this post title and description for SEO",
           "add tags and accessible metadata to the draft"
         ],
-        regex_strength: :hard,
         cache: false,
-        via: [:regex, :embedding, :classifier, :llm_classifier] do
+        via: [:embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
       on :PUBLISH_ARTICLE,
-        regex: ~r/^\/publish(?:\s|$)/u,
         embedding: [
           "publish a draft article on the public blog",
           "make this post visible to readers",
           "change the article status from draft to published"
         ],
-        regex_strength: :hard,
         cache: false,
-        via: [:regex, :embedding, :classifier, :llm_classifier] do
+        via: [:embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
       on :UNPUBLISH_ARTICLE,
-        regex: ~r/^\/unpublish(?:\s|$)/u,
         embedding: [
           "unpublish an article and return it to draft",
           "hide this post from public readers",
           "remove the published status without deleting the content"
         ],
-        regex_strength: :hard,
         cache: false,
-        via: [:regex, :embedding, :classifier, :llm_classifier] do
+        via: [:embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
       on :DELETE_ARTICLE,
-        regex: ~r/^\/delete(?:\s|$)/u,
         embedding: [
           "permanently delete an article from the content repository",
           "remove this blog post and its Markdown file",
           "erase an obsolete editorial draft"
         ],
-        regex_strength: :hard,
         cache: false,
-        via: [:regex, :embedding, :classifier, :llm_classifier] do
+        via: [:embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
     end

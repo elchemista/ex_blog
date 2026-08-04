@@ -9,8 +9,8 @@ defmodule ExBlogWeb.Admin.LoginLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Area amministratore")
-     |> assign(:meta_description, "Accesso riservato all'amministratore di ExBlog.")
+     |> assign(:page_title, gettext("Administrator area"))
+     |> assign(:meta_description, gettext("Restricted access for the ExBlog administrator."))
      |> assign(:robots, "noindex,nofollow,noarchive")
      |> assign(:canonical_url, Config.canonical_url(config) <> "/admin/login")
      |> assign(:current_language, config.default_language)
@@ -29,45 +29,41 @@ defmodule ExBlogWeb.Admin.LoginLive do
     >
       <section
         id="admin-login-page"
-        class="relative isolate flex min-h-[calc(100vh-10rem)] items-center justify-center overflow-hidden px-5 py-16 sm:px-8"
+        class="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-14 sm:px-6"
       >
-        <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          <div class="absolute left-1/2 top-16 size-72 -translate-x-1/2 rounded-full bg-amber-300/20 blur-3xl dark:bg-amber-500/10">
+        <div class="term-window w-full overflow-hidden">
+          <div class="term-bar">
+            <span class="term-dots" aria-hidden="true">
+              <span class="term-dot"></span>
+              <span class="term-dot"></span>
+              <span class="term-dot"></span>
+            </span>
+            <span class="term-title">admin@ex_blog — login</span>
+            <span class="ml-auto flex-none t-faint">tty1</span>
           </div>
-          <div class="absolute bottom-10 right-[12%] size-52 rounded-full bg-orange-200/25 blur-3xl dark:bg-orange-700/10">
-          </div>
-        </div>
 
-        <div class="w-full max-w-md">
-          <div class="mb-7 text-center">
-            <div class="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-stone-950 text-amber-300 shadow-xl shadow-stone-950/15 dark:bg-amber-400 dark:text-stone-950">
-              <.icon name="hero-lock-closed" class="size-7" />
-            </div>
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-400">
-              Accesso riservato
-            </p>
-            <h1
-              id="admin-login-heading"
-              class="font-serif text-4xl font-semibold tracking-tight text-stone-950 dark:text-white"
-            >
-              Area amministratore
+          <div class="term-body p-5 sm:p-7">
+            <p class="term-prompt text-[0.75rem] t-dim">sudo ex_blog admin</p>
+            <h1 id="admin-login-heading" class="mt-4 text-xl font-bold tracking-tight t-strong">
+              {gettext("Administrator area")}
             </h1>
-            <p class="mx-auto mt-3 max-w-sm text-sm leading-6 text-stone-600 dark:text-stone-400">
-              Inserisci la password configurata per gestire in sicurezza la connessione Telegram.
+            <p class="mt-2 text-[0.78rem] leading-6 t-faint">
+              <span aria-hidden="true">// </span>{gettext(
+                "Enter the configured password to manage the Telegram connection."
+              )}
             </p>
-          </div>
 
-          <div class="rounded-[1.75rem] border border-stone-200/90 bg-white/85 p-6 shadow-2xl shadow-stone-900/[0.07] backdrop-blur-xl dark:border-white/10 dark:bg-stone-900/80 dark:shadow-black/25 sm:p-8">
             <.form
               for={@form}
               id="admin-login-form"
               action={~p"/admin/login"}
               method="post"
+              class="mt-7"
             >
               <.input
                 field={@form[:password]}
                 type="password"
-                label="Password amministratore"
+                label={gettext("password")}
                 autocomplete="current-password"
                 required
               />
@@ -76,19 +72,17 @@ defmodule ExBlogWeb.Admin.LoginLive do
                 id="admin-login-submit"
                 type="submit"
                 variant="primary"
-                class="mt-2 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-stone-950 px-5 py-3 text-sm font-bold text-white shadow-lg transition duration-200 hover:-translate-y-0.5 hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:bg-amber-400 dark:text-stone-950 dark:hover:bg-amber-300"
+                class="term-btn term-btn--primary mt-2 w-full"
               >
-                Entra nell’area riservata <.icon name="hero-arrow-right" class="size-4" />
+                {gettext("Authenticate")} <span aria-hidden="true">→</span>
               </.button>
             </.form>
 
-            <div class="mt-6 flex items-start gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-xs leading-5 text-stone-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
-              <.icon
-                name="hero-shield-check"
-                class="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-              />
-              <p>La password viene verificata contro l’hash Argon2 configurato sul server.</p>
-            </div>
+            <p class="mt-6 border-t border-dashed border-[color:var(--line)] pt-4 text-[0.7rem] leading-5 t-faint">
+              <span aria-hidden="true">› </span>{gettext(
+                "The password is verified against the Argon2 hash configured on the server."
+              )}
+            </p>
           </div>
         </div>
       </section>

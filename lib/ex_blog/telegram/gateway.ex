@@ -4,6 +4,7 @@ defmodule ExBlog.Telegram.Gateway do
   Spectre, memory, logging, or provider calls.
   """
 
+  alias ExBlog.Agent.Instance
   alias ExBlog.Agent.Presenter
   alias ExBlog.Config
   alias ExBlog.Telegram.Image
@@ -13,10 +14,10 @@ defmodule ExBlog.Telegram.Gateway do
 
   @spec handle_update(term(), keyword()) :: :ignore | {:reply, [String.t()]} | {:error, term()}
   def handle_update(event, opts \\ []) do
-    admin_id = Config.get().admin_telegram_id
+    admin_username = Config.get().admin_telegram_username
 
-    case {sender_id(event), from_me?(event)} do
-      {^admin_id, false} -> authorized(event, opts)
+    case {sender_username(event, opts), from_me?(event)} do
+      {^admin_username, false} -> authorized(event, opts)
       _unauthorized_or_outgoing -> :ignore
     end
   end
@@ -122,6 +123,7 @@ defmodule ExBlog.Telegram.Gateway do
       :article_asset_root
     ])
     |> Keyword.put(:conversation_id, to_string(conversation_id))
+    |> Instance.put_instance()
   end
 
   defp sender_id({:ex_gram_message, _jid, message}), do: sender_id(message)
@@ -134,6 +136,65 @@ defmodule ExBlog.Telegram.Gateway do
   end
 
   defp sender_id(_event), do: nil
+
+  defp sender_username(event, opts) do
+    username = direct_sender_username(event) || resolved_sender_username(event, opts)
+    normalize_username(username)
+  end
+
+  defp direct_sender_username({:ex_gram_message, _jid, message}),
+    do: direct_sender_username(message)
+
+  defp direct_sender_username({:ex_gram_message, _session_id, _jid, message}),
+    do: direct_sender_username(message)
+
+  defp direct_sender_username(event) when is_map(event) do
+    message = field(event, :message) || event
+    sender = field(message, :from) || %{}
+
+    field(sender, :username) || field(message, :sender_username) || field(message, :username)
+  end
+
+  defp direct_sender_username(_event), do: nil
+
+  defp resolved_sender_username(event, opts) do
+    with sender_id when is_integer(sender_id) <- sender_id(event),
+         result <- resolve_username(sender_id, opts) do
+      username_from_result(result)
+    else
+      _missing_sender -> nil
+    end
+  end
+
+  defp resolve_username(sender_id, opts) do
+    resolver = Keyword.get(opts, :username_resolver, &default_username_resolver/1)
+
+    try do
+      resolver.(sender_id)
+    rescue
+      _error -> nil
+    catch
+      _kind, _reason -> nil
+    end
+  end
+
+  defp default_username_resolver(sender_id) do
+    ExGram.get_contact(Config.get().telegram_session_id, sender_id)
+  end
+
+  defp username_from_result({:ok, value}), do: username_from_result(value)
+  defp username_from_result(value) when is_binary(value), do: value
+  defp username_from_result(value) when is_map(value), do: field(value, :username)
+  defp username_from_result(_value), do: nil
+
+  defp normalize_username(username) when is_binary(username) do
+    username
+    |> String.trim()
+    |> String.trim_leading("@")
+    |> String.downcase()
+  end
+
+  defp normalize_username(_username), do: nil
 
   defp from_me?({:ex_gram_message, _jid, message}), do: from_me?(message)
   defp from_me?({:ex_gram_message, _session_id, _jid, message}), do: from_me?(message)
