@@ -67,7 +67,7 @@ defmodule ExBlog.Telegram.GatewayTest do
                end
              )
 
-    assert reply =~ "non c'è un draft in creazione"
+    assert reply =~ "no draft is being created"
   end
 
   test "rejects an oversized authenticated photo before Spectre or ExGram" do
@@ -77,7 +77,7 @@ defmodule ExBlog.Telegram.GatewayTest do
         Asset.max_bytes() + 1
       )
 
-    assert {:reply, ["Immagine troppo grande: il limite è 10 MB."]} =
+    assert {:reply, ["The image is too large. The limit is 10 MB."]} =
              Gateway.handle_update(event)
   end
 
