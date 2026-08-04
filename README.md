@@ -19,8 +19,9 @@ workflow:
 - **Spectre Beam** normalizes Telegram text and images through ExGram;
 - **Spectre Lens** audits rendered public blog pages from inside the agent;
 - **HEEx prompt templates** keep prompts reviewable and next to their skill;
-- **trained semantic routing** boots from an ExBlog-specific English dataset,
-  uses a local encoder/classifier, and learns only safe read intents in DETS.
+- **dataset-driven semantic routing** uses an ExBlog-specific English corpus,
+  optional local classification in development, OpenRouter embeddings in
+  production, and learns only safe read intents in DETS.
 
 The agent operates in English. Articles, metadata, and translations can use any
 language enabled in `EX_BLOG_SUPPORTED_LANGUAGES`.
@@ -36,7 +37,7 @@ flowchart LR
     Beam --> Agent[Spectre Agent]
     MCP --> Agent
     Agent --> Skills[Reader · Editorial · Operations skills]
-    Skills --> Router[Slash commands · active flow · exact dataset · local classifier · semantic search · LLM fallback]
+    Skills --> Router[Slash commands · active flow · exact dataset · optional local classifier · semantic search · LLM fallback]
     Skills --> Kinetic[Spectre Kinetic @al validation]
     Skills --> Prism[Spectre Prism model routing]
     Skills --> Lens[Spectre Lens public-page audit]
@@ -159,14 +160,14 @@ Budget checks happen before balanced or deep requests. Model identifiers remain
 runtime configuration, so changing providers or models does not alter the
 skills.
 
-### Trained local routing plus semantic reuse
+### Dataset-driven routing plus semantic reuse
 
 Routing is deliberately multi-provider. Regex is reserved for deterministic
 operator controls, never used as a substitute for language understanding:
 
 ```text
 slash command or safety regex → active nested-flow continuation
-→ exact versioned dataset / verified cache → trained local classifier
+→ exact versioned dataset / verified cache → optional local classifier
 → vector semantic search → arbitration → remote LLM classifier fallback
 ```
 
@@ -177,18 +178,31 @@ embeddings, the trained classifier, and the LLM classifier but exclude
 semantic-cache learning; intake capture leaves expose only the private
 `:creation_continuation` provider.
 
-The production agent enables
-`[:regex, :classifier, :semantic_cache, :llm_classifier]` globally.
-`:embedding` remains an opt-in static matcher because it embeds every visible
-skill example during a request. The trained classifier and semantic search are
-both backed by `intfloat/multilingual-e5-small`, so their vectors are local and
-dimension-compatible. The remote classifier is reached only after those
-providers miss or conflict.
+The agent enables `[:regex, :classifier, :semantic_cache, :llm_classifier]`
+globally. `:embedding` remains an opt-in static matcher because it embeds every
+visible skill example during a request. The local-classifier provider is part
+of the pipeline but can report itself unavailable, allowing semantic search and
+the remote classifier to continue normally.
 
-The shared embedding boundary applies E5's `query:` role prefix during both
-training and inference. A centroid head keeps the runtime artifact compact;
-the score and margin gates are calibrated so ambiguous local predictions fall
-through instead of being treated as authoritative.
+Embedding policy is environment-specific, following the same separation used
+by the reference Freelance application:
+
+| Environment | Spectre embedding boundary | Local classifier |
+| --- | --- | --- |
+| development/test | ExFastembed with `intfloat/multilingual-e5-small` at 384 dimensions | optional, trained locally |
+| production | `ExBlog.AI.Embedding` through OpenRouter/Req at the configured dimensions, 1024 by default | disabled and not shipped |
+
+`ex_fastembed` is a development/test-only dependency with `runtime: false`.
+The production image contains no Rust toolchain, native model cache, classifier
+artifact, or local semantic-vector mirror. `ExBlog.Agent.Embedding` dispatches
+to OpenRouter in production, so learned semantic rows use the hosted model and
+the same budget ledger as other provider calls.
+
+During local training, the shared boundary applies E5's `query:` prefix to both
+training and inference. A centroid head keeps the artifact compact; score and
+margin gates make ambiguous predictions fall through instead of treating them
+as authoritative. Hosted models receive the original redacted text without the
+E5-specific prefix.
 
 The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 204 original
 English examples: 12 for each of the 17 classifier-visible ExBlog intents. The
@@ -197,12 +211,18 @@ an existing page versus generating SEO, and publishing versus repository
 synchronization. Capture fields from the nested creation wizard are excluded
 because the persisted flow cursor, not a model, owns those replies.
 
-At build time Spectre produces two artifacts from the same corpus:
+The optional development bootstrap produces two artifacts from the same
+corpus under ignored `artifacts/spectre`:
 
 - `classifier.etf`, used by the warm local intent classifier;
-- `semantic_cache.jsonl`, containing precomputed vectors for all 204 examples;
-  boot filters them through the route policy and warms Vettore with the 84
-  cacheable read examples, without re-embedding the corpus.
+- `semantic_cache.jsonl`, containing precomputed local vectors for all 204
+  examples; development boot filters them through route policy and warms
+  Vettore with the 84 cacheable read examples.
+
+Production does not load either artifact. It still reads the release-safe
+dataset for exact matches. New eligible semantic rows are embedded through
+OpenRouter and persisted in a namespace containing the hosted model and
+dimension identity, so a DETS store cannot mix them with local 384d rows.
 
 Spectre mirrors dataset rows into exact cache only when their route is
 cacheable. Consequently, the seven read-only intents can answer exact matches
@@ -216,9 +236,9 @@ The provider responsibilities are:
 | regex | an explicit `/...` command, safety interrupt, cancel, or image control matches | none |
 | creation continuation | a persisted article-intake cursor owns the next free-text answer | none |
 | semantic exact | a trusted dataset, skill, or verified learned phrase matches exactly | none |
-| local classifier | the trained artifact recognizes the intent above its score and margin gates | one local embedding |
-| semantic search | a stored vector is close enough to the new request | one local embedding |
-| static embedding | explicitly enabled for experiments | local encoder work per visible example |
+| local classifier | a development/test artifact recognizes the intent above its score and margin gates | one local embedding; disabled in production |
+| semantic search | a stored vector is close enough to the new request | local in development/test; one OpenRouter embedding in production |
+| static embedding | explicitly enabled for experiments | selected environment adapter per visible example |
 | LLM classifier | all local evidence misses or conflicts | one fast OpenRouter completion |
 
 `regex_strength: :hard` is provider-specific. An actual regex match stops
@@ -226,9 +246,9 @@ probabilistic routing, but the same rule's embedding candidate remains subject
 to score and margin thresholds. Global safety interrupts intentionally do not
 use static embedding candidates because interrupt evidence is always hard.
 
-The local classifier must reach `0.89` with a `0.008` label margin at routing
-time. The default semantic threshold is `0.94`. An unreviewed learned read intent can
-become verified automatically only at `0.985` similarity with at least a
+When enabled locally, the classifier must reach `0.89` with a `0.008` label
+margin. The default semantic threshold is `0.94`. An unreviewed learned read intent
+can become verified automatically only at `0.985` similarity with at least a
 `0.05` margin over the next label. Online learned rows and their embeddings are
 persisted in DETS. Editorial mutations have `learn: false` and still require
 policy confirmation.
@@ -244,7 +264,7 @@ effects:
 | [`RouterPipeline`](lib/ex_blog/agent/router_pipeline.ex) | evidence ordering and LLM arbitration boundary |
 | [`ClassifierConfig`](lib/ex_blog/agent/classifier_config.ex) | source/release paths and local-classifier boot configuration |
 | [`LocalClassifier`](lib/ex_blog/agent/local_classifier.ex) | application-owned trained classifier boundary and recovery switch |
-| [`Embedding`](lib/ex_blog/agent/embedding.ex) | shared ExFastembed boundary for classifier and semantic vectors |
+| [`Embedding`](lib/ex_blog/agent/embedding.ex) | environment-aware boundary: ExFastembed locally, OpenRouter in production |
 | [`Reader`](lib/ex_blog/agent/skills/reader.ex) | cacheable read intents and Lens audit route |
 | [`Editorial`](lib/ex_blog/agent/skills/editorial.ex) | nested creation flow and protected editorial intents |
 | [`Operations`](lib/ex_blog/agent/skills/operations.ex) | diagnostics and protected repository synchronization |
@@ -302,7 +322,8 @@ The photo can be sent at any point while the article-creation flow is active.
 
 Commands and natural-language requests are English-first. Regex handles only
 the predictable operator shortcuts below; equivalent English requests are
-understood by the dataset, local classifier, semantic cache, and LLM fallback.
+understood by the dataset, optional local classifier, semantic cache, and LLM
+fallback.
 
 ### Reading and diagnostics
 
@@ -478,11 +499,11 @@ legacy aliases, but new deployments should use ExGram's conventional
 | `EX_BLOG_LLM_BALANCED_MODEL` | yes | — | title, SEO, normal revision, and page-audit model ID |
 | `EX_BLOG_LLM_DEEP_MODEL` | yes | — | full article and translation model ID |
 | `EX_BLOG_CLASSIFIER_MODEL` | yes | — | Spectre classifier fallback model ID; it may equal the fast model |
-| `EX_BLOG_EMBEDDING_MODEL` | no | `openrouter:perplexity/pplx-embed-v1-0.6b` | optional Prism/OpenRouter embedding capability; Agent intent routing uses the local model below |
-| `EX_BLOG_EMBEDDING_DIMENSIONS` | no | `1024` | dimension contract for the optional OpenRouter embedding capability |
+| `EX_BLOG_EMBEDDING_MODEL` | no | `openrouter:perplexity/pplx-embed-v1-0.6b` | OpenRouter embedding model used by production semantic routing and optional Prism work |
+| `EX_BLOG_EMBEDDING_DIMENSIONS` | no | `1024` | production hosted-vector dimension contract |
 | `SPECTRE_CLASSIFIER_DATASET_PATH` | no | release `priv/spectre/dataset.json` | override the checked-in routing corpus path |
-| `SPECTRE_CLASSIFIER_ARTIFACT_DIR` | no | release `priv/spectre/classifier` | override the generated classifier and semantic-vector artifact directory |
-| `SPECTRE_LOCAL_CLASSIFIER` | no | `true` | emergency switch; `false` leaves exact cache and the remote LLM fallback active |
+| `SPECTRE_CLASSIFIER_ARTIFACT_DIR` | dev/test only | `artifacts/spectre` | override locally generated classifier artifacts; production rejects this variable |
+| `SPECTRE_LOCAL_CLASSIFIER` | dev/test only | `true` | enable or disable local classification; production forces it off and rejects `true` |
 | `EX_BLOG_MONTHLY_BUDGET_EUR` | no | `20` | positive monthly AI spending ceiling |
 | `EX_BLOG_MAX_ARTICLE_COST_EUR` | no | `2` | positive ceiling for one editorial operation |
 | `EX_BLOG_USD_EUR_RATE` | no | `0.92` | fixed accounting conversion rate, not a live exchange-rate service |
@@ -511,7 +532,8 @@ Requirements:
 
 - Elixir 1.19 or later with a compatible OTP release;
 - Git;
-- Rust 1.91 or later and clang for the ExFastembed native dependency;
+- Rust 1.91 or later and clang only when training or exercising the optional
+  development/test classifier;
 - a writable absolute data directory;
 - a GitHub content repository and credential;
 - an OpenRouter API key;
@@ -523,18 +545,23 @@ Install dependencies and the TDLib backend:
 
 ```bash
 mix deps.get
-mix spectre.classifier.setup
 mix ex_gram.setup_tdlib --install
 mix setup
 ```
 
-`mix spectre.classifier.setup` validates the checked-in ExBlog corpus, writes a
+Optionally bootstrap the development/test classifier:
+
+```bash
+MIX_ENV=dev mix spectre.classifier.setup
+```
+
+This task validates the checked-in ExBlog corpus, writes a
 normalized copy to `training/dataset.json`, downloads
 `intfloat/multilingual-e5-small`, and generates the local classifier plus its
-semantic vector mirror under `priv/spectre/classifier`. The model download and
+semantic vector mirror under `artifacts/spectre`. The model download and
 generated artifacts are intentionally ignored by Git; rerun the task whenever
-the dataset changes. The production Docker build runs the same bootstrap and
-copies the model cache into the final image.
+the dataset changes. Production neither runs this task nor includes
+ExFastembed; it uses the configured OpenRouter embedding model.
 
 `--install` may use the system package manager and require `sudo`. If CMake,
 Make, a C++ compiler, gperf, OpenSSL headers, zlib headers, and `pkg-config` are
@@ -779,7 +806,7 @@ validate every ENV
 → create the data directory
 → restore durable article images
 → open DETS
-→ load the trained local classifier
+→ select OpenRouter embeddings in production (or the optional local adapter in dev/test)
 → restore online semantic examples and warm the versioned vector index
 → clone or synchronize the Git repository
 → parse Markdown and build ETS
@@ -838,10 +865,13 @@ The included Fly configuration assumes:
 - `PHX_SERVER=true` and HTTPS at the edge;
 - GitHub as the recoverable source of Markdown content.
 
-The image builds ExFastembed from source, trains the ExBlog classifier, embeds
-the semantic corpus once, and ships the downloaded model cache. The default Fly
-machine uses 2 GB RAM because Phoenix, TDLib, and the warm local model share one
-runtime.
+The production dependency set and runtime image exclude ExFastembed, local
+classifier artifacts, and native embedding-model caches. The Docker builder
+retains a build-only Rust toolchain because Spectre Kinetic's Ortex dependency
+compiles its own NIF; that toolchain is not copied into the runtime image.
+Semantic embeddings go through OpenRouter using the configured model and
+dimensions. The default Fly machine therefore remains at 1 GB RAM for Phoenix
+and TDLib.
 
 Generate production secrets locally:
 
