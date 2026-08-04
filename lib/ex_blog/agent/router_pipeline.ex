@@ -8,8 +8,8 @@ defmodule ExBlog.Agent.RouterPipeline do
     * regex commands and safety interrupts are hard evidence;
     * an active nested flow owns its current free-text answer;
     * the learned cache gets an exact lookup before any embedding call;
-    * the trained local classifier handles known paraphrases without a network
-      request;
+    * an optional development/test classifier can handle known paraphrases
+      without a network request;
     * optional static skill embeddings and learned semantic search add further
       probabilistic evidence;
     * arbitration invokes the configured LLM classifier when no candidate is
