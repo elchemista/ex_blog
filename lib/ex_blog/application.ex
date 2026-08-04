@@ -23,8 +23,8 @@ defmodule ExBlog.Application do
       ] ++
         classifier_children() ++
         [
-          # The semantic adapter starts after the classifier so its boot warmup
-          # can index generated vectors against an already loaded encoder.
+          # The semantic adapter starts after the optional classifier. In
+          # production it warms only hosted-model DETS rows and exact sources.
           ExBlog.Agent.SemanticCache,
           {Phoenix.PubSub, name: ExBlog.PubSub},
           ExBlog.Admin.LoginThrottle
