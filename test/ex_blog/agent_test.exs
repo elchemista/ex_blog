@@ -58,15 +58,15 @@ defmodule ExBlog.AgentTest do
     assert Result.pending_effect(result).name == :check_page
   end
 
-  test "natural-language regex routes use English commands" do
+  test "the English dataset provides exact routes without regex or model calls" do
     routes = [
-      {"list all articles", :LIST_ARTICLES},
-      {"read article it phoenix-liveview", :READ_ARTICLE},
-      {"search articles about Spectre", :SEARCH_ARTICLES},
-      {"check the blog https://example.com", :CHECK_BLOG_PAGE},
-      {"display the current configuration", :SHOW_BLOG_CONFIG},
-      {"show current costs", :SHOW_AI_BUDGET},
-      {"OpenRouter status", :CHECK_OPENROUTER}
+      {"Give me an inventory of all content entries", :LIST_ARTICLES},
+      {"Open the article about Phoenix LiveView", :READ_ARTICLE},
+      {"Find articles that discuss semantic routing", :SEARCH_ARTICLES},
+      {"Audit the rendered article page for missing metadata", :CHECK_BLOG_PAGE},
+      {"Show the safe blog configuration", :SHOW_BLOG_CONFIG},
+      {"Show the current AI spending budget", :SHOW_AI_BUDGET},
+      {"Check whether OpenRouter is configured and reachable", :CHECK_OPENROUTER}
     ]
 
     for {request, expected_label} <- routes do
@@ -76,7 +76,7 @@ defmodule ExBlog.AgentTest do
                Spectre.ask(ExBlog.Agent, request, conversation_id: conversation_id)
 
       assert result.route.label == expected_label
-      assert result.route.strategy == :regex
+      assert result.route.strategy == :semantic_cache_exact
     end
   end
 
