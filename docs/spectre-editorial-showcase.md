@@ -15,6 +15,7 @@ ExGram / Telegram
         ├── skill Editorial: workflow, generazione e mutazioni protette
         └── skill Operations: configurazione, budget e sync Git
             ├── Spectre Prism: scelta del livello OpenRouter
+            ├── Semantic Cache: riuso verificato degli intenti di lettura
             ├── Spectre Kinetic: AL → azione tipizzata
             └── Spectre Policy: conferma → effetto eseguibile
 ```
@@ -31,6 +32,11 @@ La separazione è intenzionale:
 - Spectre applica policy, persistenza, idempotenza ed esecuzione;
 - `ExBlog.Content.Writer` resta l’unico confine di scrittura del Markdown.
 
+La lingua operativa dell’agente è sempre inglese: prompt di classificazione,
+prompt delle skill, richieste di conferma, audit e risposte Telegram sono in
+inglese. La lingua editoriale è invece un dato del workflow; corpo, SEO e
+traduzioni vengono prodotti nel codice scelto dall’amministratore.
+
 ## Flow dentro flow
 
 La creazione è modellata in `ExBlog.Agent.Skills.Editorial` come una skill che
@@ -41,9 +47,9 @@ flow:
 /create
   → article_brief
   → article_language
-  → article_category ── “genera categoria” → OpenRouter fast
-  → article_title    ── “genera titolo”    → OpenRouter balanced
-  → article_seo      ── “genera SEO” | “salta”
+  → article_category ── “generate category” → OpenRouter fast
+  → article_title    ── “generate title”    → OpenRouter balanced
+  → article_seo      ── “generate SEO” | “skip”
   → CREATE ARTICLE ...
   → policy di conferma
   → OpenRouter deep per il corpo
@@ -57,6 +63,11 @@ corretto senza spendere una classificazione LLM a ogni campo. Gli interrupt
 globali `/cancel` e `/attach-image` conservano la precedenza e, dopo una foto,
 il cursore resta esattamente sul passaggio precedente.
 
+Anche la lingua è deterministica: `ExBlog.Agent.Language` riconosce codici e
+nomi inglesi con regex, poi accetta soltanto un valore presente in
+`EX_BLOG_SUPPORTED_LANGUAGES`. Una risposta come `English` o `write it in
+Italian` non chiama quindi `:llm_classifier`.
+
 Questa è una proprietà utile di Spectre: un flow può esprimere la forma della
 conversazione, mentre gli interrupt gestiscono eventi ortogonali senza spargere
 condizionali nel trasporto Telegram.
@@ -67,10 +78,10 @@ L’amministratore sceglie campo per campo:
 
 | Parte | Comando nel flow | Livello | Effetto immediato |
 | --- | --- | --- | --- |
-| categoria | `genera categoria` | fast | aggiorna solo stato Spectre |
-| titolo | `genera titolo` | balanced | aggiorna solo stato Spectre |
+| categoria | `generate category` | fast | aggiorna solo stato Spectre |
+| titolo | `generate title` | balanced | aggiorna solo stato Spectre |
 | corpo | sempre generato dopo conferma | deep | prepara il Markdown |
-| SEO e tag | `genera SEO` | balanced | aggiunge front matter al nuovo draft |
+| SEO e tag | `generate SEO` | balanced | aggiunge front matter al nuovo draft |
 | SEO esistente | `/seo it slug-articolo` | balanced | update Git protetto |
 | traduzione | `/translate ...` | deep | crea un nuovo draft protetto |
 
@@ -89,6 +100,35 @@ I prompt non sono stringhe concatenate nei callback. Sono template HEEx in
 
 Ogni valore dinamico attraversa `ExBlogWeb.Prompt.escape_text/2`, che applica
 redazione credenziali, limite di lunghezza ed escaping HTML prima del modello.
+
+## Routing e cache semantica
+
+Il router raccoglie evidenze nel seguente ordine:
+
+```text
+regex esplicita
+  → continuation del leaf flow attivo
+  → semantic cache exact
+  → semantic cache vettoriale verificata
+  → llm_classifier come fallback
+```
+
+Le route di lettura dichiarano esempi `embedding:` e `learn: true`. Quando il
+fallback LLM classifica per la prima volta una formulazione nuova, Spectre può
+salvarla come esempio non verificato. `ExBlog.Agent.SemanticCache` conserva
+l’esempio e il suo vettore in DETS, così il deploy non cancella la memoria.
+
+Non esiste una UI di review in questo showcase. Un esempio non verificato non è
+usato normalmente: viene promosso soltanto quando una richiesta successiva
+raggiunge almeno `0.985` di similarità coseno e mantiene almeno `0.05` di
+margine rispetto a label concorrenti. La ricerca ordinaria resta a `0.94`.
+Soglie e capacità dell’indice sono configurazione applicativa esplicita.
+
+L’embedding usa `openrouter:perplexity/pplx-embed-v1-0.6b` a 1024 dimensioni,
+lo stesso contratto del progetto `freelance`, attraverso il transport Req di
+Prism e lo stesso ledger di budget. Spectre non apprende route protette e qui
+solo le route read-only hanno `learn: true`; cache hit e auto-verifica non
+approvano mai una policy e non eseguono una mutazione Git.
 
 ## Kinetic e `@al`
 
