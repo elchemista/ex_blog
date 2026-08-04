@@ -31,6 +31,29 @@ config :ex_blog,
   runtime_environment: config_env(),
   runtime_data_dir: data_dir
 
+case System.get_env("EX_BLOG_CHATGPT_PUBLIC_BASE_URL") do
+  value when is_binary(value) and value != "" ->
+    case URI.parse(value) do
+      %URI{
+        scheme: "https",
+        host: host,
+        port: port,
+        path: path,
+        query: nil,
+        fragment: nil,
+        userinfo: nil
+      }
+      when is_binary(host) and port in [nil, 443] and path in [nil, "", "/"] ->
+        config :ex_blog, :chatgpt_public_base_url, String.trim_trailing(value, "/")
+
+      _invalid ->
+        raise "EX_BLOG_CHATGPT_PUBLIC_BASE_URL must be an HTTPS origin without path or credentials"
+    end
+
+  _missing ->
+    :ok
+end
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :ex_blog, ExBlogWeb.Endpoint,
