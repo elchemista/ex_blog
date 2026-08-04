@@ -10,7 +10,7 @@ defmodule ExBlog.Config do
 
   @storage_key {__MODULE__, :runtime}
 
-  alias ExBlog.Agent.ClassifierConfig
+  alias ExBlog.Agent.{ClassifierConfig, Embedding}
 
   @required ~w(
     EX_BLOG_ADMIN_PASSWORD_HASH
@@ -190,7 +190,12 @@ defmodule ExBlog.Config do
         balanced: config.balanced_model,
         deep: config.deep_model,
         classifier: config.classifier_model,
-        local_classifier: ClassifierConfig.encoder_model(),
+        local_classifier:
+          if(ClassifierConfig.local_enabled?(),
+            do: ClassifierConfig.encoder_model(),
+            else: "disabled"
+          ),
+        routing_embedding: Embedding.identity(config),
         embedding: config.embedding_model
       },
       agent_language: "en",
