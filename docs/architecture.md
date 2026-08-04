@@ -1,118 +1,183 @@
-# Architettura e confini di sicurezza
+# Architecture and security boundaries
 
-## Proprietà dei dati
+## Data ownership
 
 ```text
-Fly ENV e Secrets
-└── identità, infrastruttura, credenziali e modelli
+Fly environment and secrets
+└── identities, infrastructure settings, credentials, and model identifiers
 
-Repository Git
-└── Markdown, metadati editoriali e cronologia dei contenuti
+Git repository
+└── Markdown, editorial metadata, and content history
 
-DETS sul volume
-└── stato Spectre, cache semantica, costi, storico Git e hash OAuth revocabili
+DETS on the persistent volume
+└── Spectre state, reviewed semantic examples, costs, Git history, and revocable OAuth hashes
 
-Asset sul volume + priv/static
-└── backing durevole e copia pubblica delle immagini Telegram
+Assets on the volume plus priv/static
+└── durable backing store and public projection of Telegram images
 
 ETS
-└── snapshot di lettura ricostruibile degli articoli
+└── rebuildable read projection of parsed articles
+
+Release priv directory
+└── versioned routing dataset and reproducible trained classifier artifacts
 ```
 
-Nessun token in chiaro viene salvato in Git, DETS, ETS, stato Spectre o memoria.
-Per OAuth, DETS conserva esclusivamente hash SHA-256, scadenze, scope e stato di
-revoca; access token e refresh token in chiaro vengono consegnati al client una
-sola volta. La configurazione completa ha un’implementazione `Inspect` redatta;
-l’agente e MCP ricevono soltanto `ExBlog.Config.public/0`.
+Plaintext tokens are never stored in Git, DETS, ETS, Spectre state, or agent
+memory. For OAuth, DETS keeps only SHA-256 hashes, expiry times, scopes, and
+revocation state. Plaintext access and refresh tokens are returned to the
+client once. The complete runtime configuration has a redacted `Inspect`
+implementation; the agent and MCP receive only `ExBlog.Config.public/0`.
 
-## Boot deterministico
+The checked-in routing corpus contains examples, not conversations or user
+content. Generated vectors and model weights are reproducible build artifacts
+and are ignored by Git.
 
-`ExBlog.Application` valida l’intera ENV prima del supervision tree. In
-produzione crea la directory del volume, ripristina in `priv/static` gli asset
-content-addressed, apre e ripara lo storage DETS, clona o sincronizza Git,
-costruisce un nuovo indice ETS e solo dopo espone Telegram e l’endpoint Phoenix.
-Un errore in un passaggio obbligatorio termina il boot.
+## Deterministic boot
 
-Il rebuild ETS popola una tabella nuova. Un singolo aggiornamento in
-`:persistent_term` pubblica lo snapshot completo; la vecchia tabella viene poi
-eliminata. I lettori ritentano se si trovano esattamente durante lo swap.
+`ExBlog.Application` validates the complete environment before exposing the
+application. In production it performs the following ordered work:
 
-## Credenziali
+```text
+validate environment
+→ create the data directory
+→ restore content-addressed public assets
+→ open and repair DETS
+→ load the trained local classifier
+→ restore learned semantic rows and warm the Vettore index
+→ clone or synchronize the content repository
+→ parse Markdown and publish a new ETS snapshot
+→ start Telegram and the Phoenix endpoint
+```
 
-- GitHub: il remote resta `https://github.com/owner/repo.git`; il token entra
-  solo nell’ambiente di un processo `GIT_ASKPASS` temporaneo.
-- OpenRouter: il token viene risolto dal transport immediatamente prima della
-  chiamata `Req`; non fa parte della configurazione Prism compilata.
-- Browser: Spectre Lens avvia Lightpanda solo per la durata di `check_page`,
-  applica la policy di rete pubblica e chiude sempre tab e runtime. HTML e testo
-  grezzi non entrano nello stato Spectre; prima del modello passano da
-  `SpectreLens.agent_context/2` come contenuto web non fidato.
-- Telegram: l’ID numerico viene confrontato nel primo `case` del gateway,
-  prima di Beam, download media, prompt, log o contabilità. Le foto diventano
-  input Beam autenticati con il solo file id TDLib e vengono scaricate da
-  `ex_gram` soltanto dentro un flow editoriale attivo.
-- MCP: ogni richiesta verifica Origin e versione protocollo. Un bearer OAuth
-  viene confrontato con l’hash DETS, la risorsa, la scadenza, la revoca e gli
-  scope; il token operatore ENV resta disponibile per client amministrativi
-  diretti. Le risposte di errore non serializzano eccezioni interne.
-- OAuth ChatGPT: discovery RFC 8414/RFC 9728, registrazione dinamica, consenso
-  nella sessione admin, PKCE S256, codici monouso, access token di 15 minuti e
-  refresh token ruotati sono gestiti senza Ecto. La singola transazione DETS
-  rende atomici consumo del codice e rotazione; il volume conserva il
-  collegamento tra deploy, mentre la sua perdita richiede una nuova login.
-  Phoenix filtra token, codici e verifier dai parametri scritti nei log.
+A failure in a required step terminates startup. Production also treats the
+local classifier artifact as required when `SPECTRE_LOCAL_CLASSIFIER=true`, so
+a release cannot silently serve with an incomplete build.
 
-## Modelli e costi
+An ETS rebuild populates a new table. One `:persistent_term` update publishes
+the complete snapshot, after which the old table is deleted. Readers retry if
+they happen to access the index during the swap.
 
-Prism riceve marker non sensibili (`runtime-fast`, `runtime-balanced`,
-`runtime-deep`). L’adapter li risolve sui nomi ENV al momento della chiamata. Il
-classificatore usa il proprio modello configurato, anche quando condivide il
-livello fast.
+## Credential boundaries
 
-L’agente e tutti i prompt operativi usano l’inglese. La lingua di un articolo è
-un valore separato e validato dal flow: una regex risolve codice o nome inglese contro
-`EX_BLOG_SUPPORTED_LANGUAGES`, mentre generazione SEO, corpo e traduzione
-ricevono esplicitamente la lingua target.
+- **GitHub:** the remote remains `https://github.com/owner/repository.git`. The
+  token exists only in the environment of a temporary `GIT_ASKPASS` process;
+  it is never embedded in the remote URL.
+- **OpenRouter:** the token is resolved by the transport immediately before a
+  `Req` call. It is not part of the compiled Prism configuration. Req retries
+  remain disabled because Prism owns model-level retry policy.
+- **Browser:** Spectre Lens starts Lightpanda only for `check_page`, applies the
+  public-network policy, and always closes the tab and runtime. Raw HTML and
+  page text never enter Spectre state. Before projected content can reach a
+  model, it passes through `SpectreLens.agent_context/2` as untrusted web data.
+- **Telegram:** the numeric sender ID is checked in the gateway before Beam,
+  media download, prompts, logging, or cost accounting. Photos become
+  authenticated Beam inputs containing only bounded metadata and a TDLib file
+  identifier. ExGram downloads the bytes only inside an active editorial flow.
+- **Telegram application credentials:** `TG_API_ID` and `TG_API_HASH` identify
+  the Telegram application used by ExGram. They are distinct from the allowed
+  administrator ID and from the persistent TDLib user session.
+- **MCP:** every request validates its Origin and protocol version. An OAuth
+  bearer is checked against its DETS hash, resource, expiry, revocation state,
+  and scopes. The environment-backed operator token remains available to
+  direct administrative clients. Error responses do not serialize internal
+  exceptions.
+- **ChatGPT OAuth:** RFC 8414 and RFC 9728 discovery, dynamic registration,
+  consent in the protected admin session, PKCE S256, single-use authorization
+  codes, 15-minute access tokens, and rotating refresh tokens are implemented
+  without Ecto. One DETS transaction makes code consumption and token rotation
+  atomic. The persistent volume preserves authorization across deployments;
+  losing it requires authorization again. Phoenix filters tokens, codes, and
+  verifiers from logged parameters.
 
-Il router prova prima regex e continuation del flow, poi la cache semantica, e
-usa `:llm_classifier` soltanto come fallback. Gli embedding OpenRouter usano
-`perplexity/pplx-embed-v1-0.6b` a 1024 dimensioni attraverso lo stesso transport
-Req e lo stesso budget delle completion. Gli esempi online nascono non
-verificati, vengono salvati in DETS e possono essere auto-verificati soltanto a
-similarità coseno almeno `0.985` con margine inter-label almeno `0.05`; la
-ricerca verificata richiede `0.94`. Solo route read-only dichiarate
-`learn: true` partecipano all’apprendimento, quindi la cache non può sostituire
-una conferma di policy o autorizzare una scrittura Git.
+## Models, routing, and cost
 
-Il budget viene autorizzato prima della richiesta HTTP. Dopo una risposta
-valida, token, modello, scopo, soggetto e costi sono registrati in DETS. Le
-operazioni deterministiche non dipendono dalla disponibilità del provider.
+Prism receives non-sensitive markers such as `runtime-fast`,
+`runtime-balanced`, and `runtime-deep`. The OpenRouter adapter resolves those
+markers to environment-provided model identifiers at call time. The remote LLM
+classifier has its own configured model even when it shares the fast tier.
 
-Kinetic estrae il catalogo tipizzato dagli attributi `@al` nel codice e traduce
-solo comandi Action Language validi in effetti provider-neutral. Spectre resta
-responsabile di conferme, persistenza, idempotenza ed esecuzione. I prompt del
-classificatore e delle trasformazioni editoriali sono template HEEx compilati;
-i valori dinamici vengono redatti, limitati ed escapati prima del rendering.
+The editorial agent and all operational prompts use English. Article language
+is separate workflow data. `ExBlog.Agent.Language` deterministically resolves a
+supported code or English language name against
+`EX_BLOG_SUPPORTED_LANGUAGES`; body, SEO, and translation prompts then receive
+the selected target language explicitly.
 
-L’agente monta tre `Spectre.Skill` indipendenti: lettura e audit del blog,
-operazioni runtime/repository e workflow editoriale. La creazione di un articolo
-usa flow annidati per brief, lingua, categoria, titolo e scelta SEO;
-`current_flow` e `current_scope` vengono persistiti tra i messaggi. Categoria e
-titolo possono essere riempiti da leaf call OpenRouter che non mutano Git. Una
-foto Telegram è un interrupt globale che associa la copertina senza cambiare il
-cursore del flow. Completato l’intake, Kinetic valida il comando tipizzato
-`CREATE ARTICLE`; la policy della skill richiede conferma prima che OpenRouter
-generi corpo/SEO e che il Writer esegua la singola scrittura canonica.
+Intent routing is an evidence pipeline, not a collection of broad regular
+expressions:
 
-Il percorso completo, inclusi esempi e punti di estensione, è descritto in
+```text
+explicit slash command or safety regex
+→ active nested-flow continuation
+→ exact trusted dataset or verified-cache match
+→ trained local classifier
+→ verified vector semantic search
+→ arbitration
+→ remote LLM classifier fallback
+```
+
+Regex is reserved for deterministic controls, safety patterns, confirmation,
+and bounded field parsing. Natural-language intent recognition belongs to the
+versioned English dataset, the local classifier, semantic search, and the LLM
+fallback.
+
+The local classifier and semantic cache share
+`intfloat/multilingual-e5-small` through `ExBlog.Agent.Embedding`. The adapter
+applies E5's `query:` prefix during training and inference, producing compatible
+384-dimensional vectors without spending OpenRouter budget. The checked-in
+corpus contains 204 original examples across 17 classifier-visible intents.
+Training uses all examples for the centroid classifier; boot indexes only the
+84 examples belonging to the seven cacheable read routes.
+
+`ExBlog.AI.Embedding` remains available as an optional hosted Prism capability,
+but it is not used by the agent's intent-routing hot path.
+
+New online semantic examples begin unverified and are persisted in DETS. They
+can be promoted automatically only when a later request reaches at least
+`0.985` cosine similarity and preserves a `0.05` inter-label margin. Normal
+verified search requires `0.94`. Only read-only routes declared with
+`learn: true` participate, so semantic reuse cannot replace a confirmation
+policy or authorize a Git write.
+
+Budget is authorized before each OpenRouter request. After a valid response,
+token counts, model, purpose, subject, and cost are recorded in DETS.
+Deterministic and local-model operations do not depend on provider
+availability.
+
+## Agent composition and effects
+
+The agent installs three independent `Spectre.Skill` modules:
+
+- **Reader** owns article discovery and public-page audits;
+- **Editorial** owns creation, revision, translation, SEO, publication, and
+  deletion workflows;
+- **Operations** owns safe diagnostics and protected repository
+  synchronization.
+
+Article creation uses nested flows for brief, language, category, title, and
+the SEO choice. `current_flow` and `current_scope` persist between messages.
+Category and title can be filled by bounded OpenRouter leaf calls that cannot
+mutate Git. A Telegram photo is a global interrupt that attaches a cover while
+leaving the flow cursor unchanged.
+
+After intake, Kinetic validates a typed `CREATE ARTICLE` command against the
+Elixir `@al` catalog. Spectre still owns confirmation, effect persistence,
+idempotency, and execution. Only after approval may OpenRouter generate the
+body and optional SEO and may `ExBlog.Content.Writer` perform the canonical
+repository transaction.
+
+Classifier and editorial transformation prompts are compiled HEEx templates.
+Dynamic values are redacted, bounded, and escaped before rendering. The full
+walkthrough and extension points are documented in
 [`spectre-editorial-showcase.md`](spectre-editorial-showcase.md).
 
-## Modello operativo Fly.io
+## Fly.io operating model
 
-ExBlog usa una singola macchina e un volume `/data`. Questa è una scelta
-deliberata: DETS e il checkout sono stato locale, mentre i contenuti restano
-recuperabili da GitHub. Le immagini Telegram hanno un backing sotto
-`/data/assets/images/articles`; al boot vengono copiate nella `priv/static`
-della release, che Phoenix serve a `/images/articles`. Il container corregge
-soltanto la proprietà della radice del volume, poi abbassa i privilegi
-all’utente `exblog`.
+ExBlog uses one machine and one `/data` volume. This is deliberate: DETS, TDLib,
+and the working checkout are node-local state, while Markdown remains
+recoverable from GitHub. Telegram images have a durable backing store under
+`/data/assets/images/articles`; startup restores them into the release
+`priv/static` directory served at `/images/articles`.
+
+The container changes ownership only on the volume root and then drops
+privileges to the `exblog` user. The default machine uses 2 GB of memory because
+Phoenix, TDLib, and the warm local embedding model share the same runtime.
