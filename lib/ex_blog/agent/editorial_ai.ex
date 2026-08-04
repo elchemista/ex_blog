@@ -5,7 +5,7 @@ defmodule ExBlog.Agent.EditorialAI do
   Spectre remains the workflow owner: this module only fills one requested
   value and never advances state or mutates the content repository. Keeping
   these model calls as leaf operations makes the flow deterministic while
-  still letting the administrator say “genera” at an individual step.
+  still letting the administrator request generation at an individual step.
 
   Prompt construction lives in compiled HEEx templates. Every workflow value
   is redacted, length-limited, and escaped by `ExBlogWeb.Prompt` before it
@@ -88,7 +88,7 @@ defmodule ExBlog.Agent.EditorialAI do
     line
     |> String.trim()
     |> String.replace(~r/^#+\s*/u, "")
-    |> String.replace(~r/^(?:titolo|title|categoria|category)\s*:\s*/iu, "")
+    |> String.replace(~r/^(?:title|category)\s*:\s*/iu, "")
     |> String.trim(~s("'“”‘’ ))
   end
 
