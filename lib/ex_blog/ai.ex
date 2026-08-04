@@ -55,9 +55,10 @@ defmodule ExBlog.AI do
     )
   end
 
-  # Kinetic receives a single best typed action. Policy enforcement remains in
-  # Spectre Agent and is intentionally not delegated to the planner.
-  install(Spectre.Kinetic,
+  # Kinetic receives a single best typed action. The application package keeps
+  # the native planner primary and contributes the constrained LLM fallback;
+  # policy enforcement remains in Spectre and is never delegated to either.
+  install(ExBlog.Agent.KineticPackage,
     top_k: 1,
     tool_threshold: 0.0,
     mapping_threshold: 0.0
@@ -89,13 +90,19 @@ defmodule ExBlog.AI do
     case Req.get(request_options) do
       {:ok, %{status: status, body: body}} when status in 200..299 ->
         available = model_ids(body)
+        planner_models = Config.kinetic_planner_models()
 
-        configured = [
-          config.fast_model,
-          config.balanced_model,
-          config.deep_model,
-          config.classifier_model
-        ]
+        configured =
+          [
+            config.fast_model,
+            config.balanced_model,
+            config.deep_model,
+            config.classifier_model,
+            planner_models.primary
+          ]
+          |> Enum.concat(planner_models.fallbacks)
+          |> Enum.map(&openrouter_model_id/1)
+          |> Enum.reject(&is_nil/1)
 
         {:ok,
          %{
@@ -122,4 +129,13 @@ defmodule ExBlog.AI do
   end
 
   defp model_ids(_body), do: MapSet.new()
+
+  defp openrouter_model_id(model) when is_binary(model) do
+    case model |> String.trim() |> String.replace_prefix("openrouter:", "") do
+      "" -> nil
+      id -> id
+    end
+  end
+
+  defp openrouter_model_id(_model), do: nil
 end

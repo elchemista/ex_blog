@@ -697,14 +697,14 @@ msgstr "password telegram"
 msgid "written in Markdown, published from Git"
 msgstr "scritto in Markdown, pubblicato da Git"
 
-#: lib/ex_blog_web/components/showcase.ex:154
+#: lib/ex_blog_web/components/showcase.ex:183
 #, elixir-autogen, elixir-format
 msgid "%{count} library"
 msgid_plural "%{count} libraries"
 msgstr[0] "%{count} libreria"
 msgstr[1] "%{count} librerie"
 
-#: lib/ex_blog_web/components/showcase.ex:75
+#: lib/ex_blog_web/components/showcase.ex:83
 #, elixir-autogen, elixir-format
 msgid "A Spectre agent should read like a map, not a magic trick."
 msgstr "Un agente Spectre deve leggersi come una mappa, non come un trucco di magia."
@@ -714,112 +714,52 @@ msgstr "Un agente Spectre deve leggersi come una mappa, non come un trucco di ma
 msgid "A live showcase of the Spectre agent ecosystem for Elixir, plus notes from building it."
 msgstr "Una vetrina viva dell'ecosistema di agenti Spectre per Elixir, più gli appunti scritti costruendolo."
 
-#: lib/ex_blog_web/components/showcase.ex:254
-#, elixir-autogen, elixir-format
-msgid "Agent-first, backend-neutral browser perception, so the agent can audit the pages it publishes."
-msgstr "Percezione del browser pensata per gli agenti e indipendente dal backend, così l'agente può controllare le pagine che pubblica."
-
 #: lib/ex_blog_web/controllers/blog_html/index.html.heex:27
 #, elixir-autogen, elixir-format
 msgid "Agents that read like a %{highlight}, not a magic trick."
 msgstr "Agenti che si leggono come una %{highlight}, non come un trucco di magia."
-
-#: lib/ex_blog_web/components/showcase.ex:245
-#, elixir-autogen, elixir-format
-msgid "Elixir-first planning: it turns Action Language into validated function-call candidates instead of trusting free-form model output."
-msgstr "Pianificazione Elixir-first: trasforma l'Action Language in candidati di chiamata validati, invece di fidarsi dell'output libero del modello."
 
 #: lib/ex_blog_web/controllers/blog_html/index.html.heex:82
 #, elixir-autogen, elixir-format
 msgid "Notes written while building all of the above."
 msgstr "Appunti scritti costruendo tutto quello che sta qui sopra."
 
-#: lib/ex_blog_web/components/showcase.ex:236
-#, elixir-autogen, elixir-format
-msgid "Picks a cognitive profile per request across OpenAI, OpenRouter, Ollama and Gemini, enforcing privacy, context, cost and latency limits before the call."
-msgstr "Sceglie un profilo cognitivo per ogni richiesta tra OpenAI, OpenRouter, Ollama e Gemini, applicando i limiti di privacy, contesto, costo e latenza prima della chiamata."
-
-#: lib/ex_blog_web/components/showcase.ex:118
-#, elixir-autogen, elixir-format
-msgid "Routing is a dial, not a dogma: the same agent can decide with plain regex, with a dataset, or with a full LLM classifier. The lifecycle around that decision stays deterministic either way."
-msgstr "Il routing è una manopola, non un dogma: lo stesso agente può decidere con una semplice regex, con un dataset o con un classificatore LLM completo. Il ciclo di vita attorno a quella decisione resta deterministico in ogni caso."
-
 #: lib/ex_blog_web/components/layouts.ex:52
 #, elixir-autogen, elixir-format
 msgid "Spectre home"
 msgstr "Home di Spectre"
 
-#: lib/ex_blog_web/components/showcase.ex:58
-#, elixir-autogen, elixir-format
-msgid "Spectre is an OTP-native Elixir runtime for agents whose routing, state, policies and side effects stay explicit. It treats an agent the way OTP treats a system: supervised processes, one canonical owner for every piece of state, explicit messages at every boundary, and recovery designed in from the start."
-msgstr "Spectre è un runtime Elixir OTP-nativo per agenti in cui routing, stato, policy ed effetti collaterali restano espliciti. Tratta un agente come OTP tratta un sistema: processi supervisionati, un solo proprietario canonico per ogni pezzo di stato, messaggi espliciti a ogni confine e recupero previsto fin dall'inizio."
-
-#: lib/ex_blog_web/components/showcase.ex:65
-#, elixir-autogen, elixir-format
-msgid "Spectre is intentionally built around a safety boundary:"
-msgstr "Spectre è costruito di proposito attorno a un confine di sicurezza:"
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:21
-#, elixir-autogen, elixir-format
-msgid "Spectre — a live showcase of the agent ecosystem it is named after"
-msgstr "Spectre — una vetrina viva dell'ecosistema di agenti da cui prende il nome"
-
-#: lib/ex_blog_web/components/showcase.ex:218
-#, elixir-autogen, elixir-format
-msgid "The agent runtime: supervised processes, one owner per piece of state, and policies that decide what may actually happen."
-msgstr "Il runtime dell'agente: processi supervisionati, un proprietario per ogni pezzo di stato e policy che decidono cosa può davvero succedere."
-
-#: lib/ex_blog_web/components/showcase.ex:123
-#, elixir-autogen, elixir-format
-msgid "The design borrows from Phoenix routers, Ecto schemas, Oban workers, Broadway pipelines and OTP supervision trees, so the stable shape of an agent fits in one readable module."
-msgstr "Il design prende dai router di Phoenix, dagli schema Ecto, dai worker Oban, dalle pipeline Broadway e dagli alberi di supervisione OTP, così la forma stabile di un agente sta in un solo modulo leggibile."
-
-#: lib/ex_blog_web/components/showcase.ex:150
+#: lib/ex_blog_web/components/showcase.ex:179
 #, elixir-autogen, elixir-format
 msgid "The ecosystem"
 msgstr "L'ecosistema"
 
-#: lib/ex_blog_web/components/showcase.ex:227
-#, elixir-autogen, elixir-format
-msgid "The external-channel boundary. It normalizes provider events, keeps conversation affinity and delivers messages idempotently."
-msgstr "Il confine con i canali esterni. Normalizza gli eventi dei provider, mantiene l'affinità di conversazione e consegna i messaggi in modo idempotente."
-
-#: lib/ex_blog_web/components/showcase.ex:128
-#, elixir-autogen, elixir-format
-msgid "This blog has no SQL database. GitHub is the canonical content store, Phoenix serves a fast ETS projection, and the agent may propose a change but never writes without approval."
-msgstr "Questo blog non ha un database SQL. GitHub è l'archivio canonico dei contenuti, Phoenix serve una proiezione ETS veloce e l'agente può proporre una modifica ma non scrive mai senza approvazione."
-
-#: lib/ex_blog_web/components/showcase.ex:92
-#, elixir-autogen, elixir-format
-msgid "This site is the demo. An article is written by talking to the agent, and every repository change is approved before it happens."
-msgstr "Questo sito è la demo. Un articolo si scrive parlando con l'agente, e ogni modifica al repository viene approvata prima di avvenire."
-
-#: lib/ex_blog_web/components/showcase.ex:35
+#: lib/ex_blog_web/components/showcase.ex:46
 #, elixir-autogen, elixir-format
 msgid "What Spectre is"
 msgstr "Cos'è Spectre"
 
-#: lib/ex_blog_web/components/showcase.ex:204
+#: lib/ex_blog_web/components/showcase.ex:270
 #, elixir-autogen, elixir-format
 msgid "action language → typed action"
 msgstr "action language → azione tipizzata"
 
-#: lib/ex_blog_web/components/showcase.ex:191
+#: lib/ex_blog_web/components/showcase.ex:230
 #, elixir-autogen, elixir-format
 msgid "approval changes state but does not execute the work"
 msgstr "l'approvazione cambia lo stato ma non esegue il lavoro"
 
-#: lib/ex_blog_web/components/showcase.ex:205
+#: lib/ex_blog_web/components/showcase.ex:271
 #, elixir-autogen, elixir-format
 msgid "audits the rendered page"
 msgstr "controlla la pagina renderizzata"
 
-#: lib/ex_blog_web/components/showcase.ex:199
+#: lib/ex_blog_web/components/showcase.ex:265
 #, elixir-autogen, elixir-format
 msgid "authenticated administrator"
 msgstr "amministratore autenticato"
 
-#: lib/ex_blog_web/components/showcase.ex:200
+#: lib/ex_blog_web/components/showcase.ex:266
 #, elixir-autogen, elixir-format
 msgid "channel boundary, identity"
 msgstr "confine di canale, identità"
@@ -829,22 +769,22 @@ msgstr "confine di canale, identità"
 msgid "close"
 msgstr "chiudi"
 
-#: lib/ex_blog_web/components/showcase.ex:206
+#: lib/ex_blog_web/components/showcase.ex:272
 #, elixir-autogen, elixir-format
 msgid "confirmation → effect"
 msgstr "conferma → effetto"
 
-#: lib/ex_blog_web/components/showcase.ex:193
+#: lib/ex_blog_web/components/showcase.ex:232
 #, elixir-autogen, elixir-format
 msgid "every terminal outcome is returned as data"
 msgstr "ogni esito finale viene restituito come dato"
 
-#: lib/ex_blog_web/components/showcase.ex:192
+#: lib/ex_blog_web/components/showcase.ex:231
 #, elixir-autogen, elixir-format
 msgid "execution happens only through an explicit host call"
 msgstr "l'esecuzione avviene solo tramite una chiamata esplicita dell'host"
 
-#: lib/ex_blog_web/components/showcase.ex:203
+#: lib/ex_blog_web/components/showcase.ex:269
 #, elixir-autogen, elixir-format
 msgid "fast · balanced · deep tier"
 msgstr "livello fast · balanced · deep"
@@ -854,35 +794,30 @@ msgstr "livello fast · balanced · deep"
 msgid "map"
 msgstr "mappa"
 
-#: lib/ex_blog_web/components/showcase.ex:189
+#: lib/ex_blog_web/components/showcase.ex:228
 #, elixir-autogen, elixir-format
 msgid "models and routes may propose work"
 msgstr "modelli e route possono proporre lavoro"
 
-#: lib/ex_blog_web/components/showcase.ex:190
+#: lib/ex_blog_web/components/showcase.ex:229
 #, elixir-autogen, elixir-format
 msgid "protected work must pass a deterministic policy"
 msgstr "il lavoro protetto deve passare da una policy deterministica"
 
-#: lib/ex_blog_web/components/showcase.ex:202
+#: lib/ex_blog_web/components/showcase.ex:268
 #, elixir-autogen, elixir-format
 msgid "reader · editorial · operations"
 msgstr "reader · editorial · operations"
 
-#: lib/ex_blog_web/components/showcase.ex:201
+#: lib/ex_blog_web/components/showcase.ex:267
 #, elixir-autogen, elixir-format
 msgid "routing, state, policy, effects"
 msgstr "routing, stato, policy, effetti"
 
-#: lib/ex_blog_web/components/showcase.ex:207
+#: lib/ex_blog_web/components/showcase.ex:273
 #, elixir-autogen, elixir-format
 msgid "the page you are reading"
 msgstr "la pagina che stai leggendo"
-
-#: lib/ex_blog_web/components/showcase.ex:140
-#, elixir-autogen, elixir-format
-msgid "the source of this site, open source"
-msgstr "il sorgente di questo sito, open source"
 
 #: lib/ex_blog_web/live/admin/telegram_live.ex:134
 #, elixir-autogen, elixir-format
@@ -909,7 +844,97 @@ msgstr "Gestione riservata della sessione Telegram di Spectre."
 msgid "You are connecting the Spectre administrator to the MCP client. Review the permissions before continuing."
 msgstr "Stai collegando l'amministratore di Spectre al client MCP. Controlla i permessi prima di continuare."
 
+#: lib/ex_blog_web/components/showcase.ex:324
+#, elixir-autogen, elixir-format
+msgid "Agent-first browser lens for Lightpanda, so an agent can read what it shipped."
+msgstr "Lente browser pensata per gli agenti, su Lightpanda: l'agente può leggere quello che ha pubblicato."
+
+#: lib/ex_blog_web/components/showcase.ex:214
+#, elixir-autogen, elixir-format
+msgid "Also running under this site:"
+msgstr "Sotto questo sito girano anche:"
+
+#: lib/ex_blog_web/components/showcase.ex:66
+#, elixir-autogen, elixir-format
+msgid "An agent is a supervised system, not a prompt. Spectre gives it one owner per piece of state, explicit messages at every boundary, and recovery planned from the start — the way OTP treats everything else."
+msgstr "Un agente è un sistema supervisionato, non un prompt. Spectre gli dà un solo proprietario per ogni pezzo di stato, messaggi espliciti a ogni confine e un recupero previsto fin dall'inizio — come OTP tratta tutto il resto."
+
+#: lib/ex_blog_web/components/showcase.ex:317
+#, elixir-autogen, elixir-format
+msgid "An embeddable mission loop for Elixir agents."
+msgstr "Un mission loop incorporabile per agenti Elixir."
+
+#: lib/ex_blog_web/components/showcase.ex:73
+#, elixir-autogen, elixir-format
+msgid "Anything protected crosses one boundary:"
+msgstr "Tutto ciò che è protetto passa da un solo confine:"
+
+#: lib/ex_blog_web/components/showcase.ex:152
+#, elixir-autogen, elixir-format
+msgid "Borrowed from Phoenix routers, Ecto schemas, Oban workers and OTP supervision trees. Not a framework you disappear into."
+msgstr "Preso in prestito dai router di Phoenix, dagli schema Ecto, dai worker Oban e dagli alberi di supervisione OTP. Non un framework in cui sparire."
+
+#: lib/ex_blog_web/components/showcase.ex:303
+#, elixir-autogen, elixir-format
+msgid "Elixir-first planning toolkit: Action Language in, validated tool calls out. No JSON schema in the prompt."
+msgstr "Toolkit di pianificazione Elixir-first: entra Action Language, escono chiamate validate. Nessuno schema JSON nel prompt."
+
+#: lib/ex_blog_web/components/showcase.ex:120
+#, elixir-autogen, elixir-format
+msgid "Every article below arrived through this path."
+msgstr "Ogni articolo qui sotto è passato da questo percorso."
+
+#: lib/ex_blog_web/components/showcase.ex:157
+#, elixir-autogen, elixir-format
+msgid "No SQL here. GitHub keeps the content, Phoenix serves an ETS projection, and the agent asks before it writes."
+msgstr "Niente SQL. I contenuti stanno su GitHub, Phoenix serve una proiezione ETS e l'agente chiede prima di scrivere."
+
+#: lib/ex_blog_web/components/showcase.ex:333
+#, elixir-autogen, elixir-format
+msgid "Picks the model per request across OpenAI, OpenRouter, Ollama and Gemini, enforcing privacy, context, cost and latency limits before the call."
+msgstr "Sceglie il modello per ogni richiesta tra OpenAI, OpenRouter, Ollama e Gemini, applicando i limiti di privacy, contesto, costo e latenza prima della chiamata."
+
+#: lib/ex_blog_web/components/showcase.ex:147
+#, elixir-autogen, elixir-format
+msgid "Routing is a dial, not a dogma: regex, a dataset, or a full LLM classifier. What happens after the decision stays deterministic."
+msgstr "Il routing è una manopola, non un dogma: regex, un dataset o un classificatore LLM completo. Quello che succede dopo la decisione resta deterministico."
+
+#: lib/ex_blog_web/components/showcase.ex:294
+#, elixir-autogen, elixir-format
+msgid "Semantic memory engine: ETS working memory, durable recall, typed observations and mental models."
+msgstr "Motore di memoria semantica: memoria di lavoro in ETS, richiamo durevole, osservazioni tipizzate e modelli mentali."
+
+#: lib/ex_blog_web/components/showcase.ex:285
+#, elixir-autogen, elixir-format
+msgid "Supervised Process Event Controller for Transition and Reasoning with Elixir. The runtime the rest plugs into."
+msgstr "Supervised Process Event Controller for Transition and Reasoning with Elixir. Il runtime a cui si aggancia tutto il resto."
+
+#: lib/ex_blog_web/components/showcase.ex:342
+#, elixir-autogen, elixir-format
+msgid "The external-channel boundary: it normalizes provider events and delivers messages idempotently."
+msgstr "Il confine con i canali esterni: normalizza gli eventi dei provider e consegna i messaggi in modo idempotente."
+
+#: lib/ex_blog_web/components/showcase.ex:100
+#, elixir-autogen, elixir-format
+msgid "The whole agent is one module: the model, the router, a protected action, and the policy guarding it."
+msgstr "L'agente sta tutto in un modulo: il modello, il router, un'azione protetta e la policy che la sorveglia."
+
+#: lib/ex_blog_web/components/showcase.ex:311
+#, elixir-autogen, elixir-format
+msgid "Transport-independent protocol for agents talking to other agents."
+msgstr "Protocollo indipendente dal trasporto per agenti che parlano con altri agenti."
+
+#: lib/ex_blog_web/components/showcase.ex:169
+#, elixir-autogen, elixir-format
+msgid "this site, open source"
+msgstr "questo sito, open source"
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:21
+#, elixir-autogen, elixir-format
+msgid "Spectre — OTP-native agent runtime for Elixir. This site runs on it."
+msgstr "Spectre — runtime OTP-nativo per agenti in Elixir. Questo sito ci gira sopra."
+
 #: lib/ex_blog_web/controllers/blog_html/index.html.heex:33
 #, elixir-autogen, elixir-format
-msgid "Every article here was published by an Elixir agent that had to ask permission first. Below: how it works, the libraries behind it, and the notes written along the way."
-msgstr "Ogni articolo qui è stato pubblicato da un agente Elixir che prima ha dovuto chiedere il permesso. Qui sotto: come funziona, le librerie che lo reggono e gli appunti scritti strada facendo."
+msgid "The articles below were written over Telegram by an agent that asks before it writes. Here is how it works, and what it is built on."
+msgstr "Gli articoli qui sotto sono stati scritti via Telegram da un agente che chiede prima di scrivere. Ecco come funziona e su cosa è costruito."

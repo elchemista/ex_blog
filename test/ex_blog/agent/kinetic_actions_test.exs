@@ -132,7 +132,7 @@ defmodule ExBlog.Agent.KineticActionsTest do
   end
 
   test "the Stack installs Kinetic over the context-aware local provider" do
-    assert {Spectre.Kinetic.Planner, opts} = ActionConfig.planner(Agent)
+    assert {ExBlog.Agent.KineticPlanner, opts} = ActionConfig.planner(Agent)
     assert opts[:top_k] == 1
 
     provider = Enum.find(ActionConfig.providers(Agent), &(&1.id == :local))

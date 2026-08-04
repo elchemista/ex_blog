@@ -5,10 +5,12 @@ defmodule ExBlog.AI.OpenRouter do
   The Stack contains stable semantic placeholders only. This bridge resolves
   the deployed model names and credential at the instant of each call.
 
-  Classification is forced onto the configured fast classifier model even when
-  Prism passes the normal fast marker. Other purposes resolve fast, balanced,
-  or deep independently. Prompts and structured prompt fragments receive a
-  final credential-redaction pass before the Req-backed adapter is invoked.
+  Classification is forced onto the configured classifier model even when
+  Prism passes the normal fast marker. The Kinetic fallback may select only
+  its explicit, provider-qualified planner model. Other purposes resolve fast,
+  balanced, or deep independently. Prompts and structured prompt fragments
+  receive a final credential-redaction pass before the Req-backed adapter is
+  invoked.
 
   The module also implements Spectre's embedding behaviour for Prism's optional
   hosted embedding capability. Agent intent routing deliberately uses
@@ -72,9 +74,11 @@ defmodule ExBlog.AI.OpenRouter do
     level = selected_level(selected, opts)
 
     model =
-      if classifier_purpose?(opts),
-        do: config.classifier_model,
-        else: runtime_model(level, config)
+      cond do
+        classifier_purpose?(opts) -> config.classifier_model
+        kinetic_planner_purpose?(opts) -> planner_model!(selected)
+        true -> runtime_model(level, config)
+      end
 
     opts
     |> Keyword.put(:transport, ExBlog.AI.Transport)
@@ -104,8 +108,27 @@ defmodule ExBlog.AI.OpenRouter do
   defp runtime_model(:balanced, config), do: config.balanced_model
   defp runtime_model(:deep, config), do: config.deep_model
 
+  defp planner_model!(model) when is_binary(model) do
+    model =
+      model
+      |> String.trim()
+      |> String.replace_prefix("openrouter:", "")
+
+    if model == "" do
+      raise ArgumentError, "Kinetic planner calls require an explicit OpenRouter model"
+    else
+      model
+    end
+  end
+
+  defp planner_model!(_model) do
+    raise ArgumentError, "Kinetic planner calls require an explicit OpenRouter model"
+  end
+
   defp classifier_purpose?(opts),
     do: Keyword.get(opts, :purpose) in [:classifier, :route_classification]
+
+  defp kinetic_planner_purpose?(opts), do: Keyword.get(opts, :purpose) == :kinetic_planner
 
   defp redact_plan(plan) do
     plan =

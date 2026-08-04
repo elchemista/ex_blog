@@ -84,6 +84,9 @@ defmodule ExBlog.ConfigTest do
     assert Config.public(config).models.routing_embedding ==
              "local:intfloat/multilingual-e5-small"
 
+    assert Config.public(config).models.kinetic_planner == nil
+    assert Config.public(config).models.kinetic_planner_fallbacks == []
+
     assert config.embedding_dimensions == 1024
   end
 

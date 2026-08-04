@@ -28,6 +28,60 @@ workflow:
 The agent operates in English. Articles, metadata, and translations can use any
 language enabled in `EX_BLOG_SUPPORTED_LANGUAGES`.
 
+## Connect Telegram: routes and access security
+
+After starting Phoenix, connect the Telegram account from the protected web
+area. This is a browser flow; there is no Telegram bot command or public API
+route that performs the pairing.
+
+| Page | Local URL | Production URL | Access |
+| --- | --- | --- | --- |
+| Administrator login | `http://localhost:4000/admin/login` | `https://<PHX_HOST>/admin/login` | Public form, protected by password verification and rate limiting |
+| Telegram connection | `http://localhost:4000/admin/telegram` | `https://<PHX_HOST>/admin/telegram` | Requires an authenticated administrator session |
+
+You may go directly to `/admin/telegram`: when no valid administrator session
+exists, Phoenix redirects to `/admin/login` and returns to the Telegram page
+after a successful login. The password to enter is the plaintext value used to
+generate `EX_BLOG_ADMIN_PASSWORD_HASH`; the plaintext password itself is not
+stored in the environment:
+
+```bash
+mix ex_blog.admin.hash_password 'choose-at-least-12-characters'
+```
+
+Once authenticated, `/admin/telegram` lets you pair a **Telegram user account**
+through either a QR code or its phone number, login code, and optional Telegram
+2FA password. Pair the dedicated account that will receive messages for
+ExBlog. Send commands to it from the personal account whose username is set in
+`EX_BLOG_ADMIN_TELEGRAM_USERNAME`; messages sent by the paired account itself
+are outgoing messages and are ignored.
+
+Access is protected at three separate boundaries:
+
+1. **Connection-page access.** `/admin/telegram` is behind the administrator
+   login. Argon2 verifies the submitted password against the configured hash;
+   the encrypted, signed, HTTP-only, `SameSite=Strict` session expires after
+   eight hours. Rotating the configured hash invalidates existing sessions.
+   Login attempts are limited per source IP to five attempts in a rolling
+   15-minute in-memory window. Production must serve the page over HTTPS.
+2. **Telegram command access.** Before Beam, Spectre, memory, logs, or
+   OpenRouter receive an update, the gateway resolves its sender and compares
+   the normalized Telegram username with
+   `EX_BLOG_ADMIN_TELEGRAM_USERNAME`. The match is case-insensitive and ignores
+   an optional leading `@`; every other sender and every outgoing message is
+   silently ignored.
+3. **Write authorization.** Passing the sender gate does not immediately mutate
+   content. Git-changing editorial actions are staged and still require an
+   explicit `yes` or `confirm` from the authorized conversation.
+
+The QR link, Telegram login code, and Telegram 2FA password are transient and
+are not persisted or logged. TDLib's reusable authorization state is stored
+under
+`$EX_BLOG_DATA_DIR/telegram/$EX_BLOG_TELEGRAM_SESSION_ID`, so that directory
+must live on a private persistent volume. See
+[Telegram through ExGram and Spectre Beam](#telegram-through-exgram-and-spectre-beam)
+for credential setup and the complete pairing procedure.
+
 ## The showcase in one diagram
 
 ```mermaid
@@ -187,17 +241,29 @@ explicitly learnable read routes, so a learned match can never approve a write.
 
 ### Prism model routing
 
-Prism selects a model tier by purpose:
+Prism selects a model tier by purpose. The checked-in environment example
+mirrors the Freelance routing split while keeping deep work on OpenAI:
 
-| Tier | Typical work |
-| --- | --- |
-| fast | fallback classification and category generation |
-| balanced | title generation, SEO, normal revisions, and page assessment |
-| deep | complete articles, translations, and complex editorial work |
+| Tier | Baseline model | Typical work |
+| --- | --- | --- |
+| fast | `meta-llama/llama-3.1-8b-instruct` | small generation work |
+| balanced | `inclusionai/ling-2.6-flash` | title generation, SEO, normal revisions, and page assessment |
+| deep | `openai/gpt-5.6-luna` | complete articles, translations, and complex editorial work |
 
 Budget checks happen before balanced or deep requests. Model identifiers remain
 runtime configuration, so changing providers or models does not alter the
-skills.
+skills. Route classification is independent from those tiers and stays on
+`meta-llama/llama-3.1-8b-instruct` by default.
+
+Action selection has a separate chain. Native Kinetic parsing always runs
+first. Only when it cannot produce a valid typed action does
+[`KineticPlanner`](lib/ex_blog/agent/kinetic_planner.ex) send a typed
+`Spectre.Prompt.Plan` to `qwen/qwen3-next-80b-a3b-instruct`; a provider failure
+or invalid constrained decision then fails over once to
+`google/gemini-2.5-flash-lite`. The models see only the untrusted request and
+the mounted action catalog. Their JSON is resolved back through Kinetic's
+catalog and argument schema before Spectre may stage it; Spectre alone retains
+policy and execution authority.
 
 ### A durable Work: sync and verify
 
@@ -602,10 +668,10 @@ legacy aliases, but new deployments should use ExGram's conventional
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
 | `OPENROUTER_API_KEY` | yes | — | OpenRouter credential used only by the provider boundary |
-| `EX_BLOG_LLM_FAST_MODEL` | yes | — | classification and small generation model ID |
+| `EX_BLOG_LLM_FAST_MODEL` | yes | — | small generation model ID; the example baseline uses Llama 3.1 8B |
 | `EX_BLOG_LLM_BALANCED_MODEL` | yes | — | title, SEO, normal revision, and page-audit model ID |
 | `EX_BLOG_LLM_DEEP_MODEL` | yes | — | full article and translation model ID |
-| `EX_BLOG_CLASSIFIER_MODEL` | yes | — | Spectre classifier fallback model ID; it may equal the fast model |
+| `EX_BLOG_CLASSIFIER_MODEL` | yes | — | independent Spectre classifier fallback model ID; the example baseline uses Llama 3.1 8B |
 | `EX_BLOG_EMBEDDING_MODEL` | no | `openrouter:perplexity/pplx-embed-v1-0.6b` | OpenRouter embedding model used by production semantic routing and optional Prism work |
 | `EX_BLOG_EMBEDDING_DIMENSIONS` | no | `1024` | production hosted-vector dimension contract |
 | `SPECTRE_CLASSIFIER_DATASET_PATH` | no | release `priv/spectre/dataset.json` | override the checked-in routing corpus path |
@@ -1045,10 +1111,10 @@ fly secrets set \
   EX_BLOG_GITHUB_TOKEN="github_pat_..." \
   EX_BLOG_GITHUB_REPOSITORY="owner/blog-content" \
   OPENROUTER_API_KEY="sk-or-..." \
-  EX_BLOG_LLM_FAST_MODEL="provider/fast-model" \
-  EX_BLOG_LLM_BALANCED_MODEL="provider/balanced-model" \
-  EX_BLOG_LLM_DEEP_MODEL="provider/deep-model" \
-  EX_BLOG_CLASSIFIER_MODEL="provider/fast-model" \
+  EX_BLOG_LLM_FAST_MODEL="meta-llama/llama-3.1-8b-instruct" \
+  EX_BLOG_LLM_BALANCED_MODEL="inclusionai/ling-2.6-flash" \
+  EX_BLOG_LLM_DEEP_MODEL="openai/gpt-5.6-luna" \
+  EX_BLOG_CLASSIFIER_MODEL="meta-llama/llama-3.1-8b-instruct" \
   EX_BLOG_MCP_TOKEN="$(openssl rand -hex 32)"
 ```
 

@@ -583,6 +583,44 @@ a.term-chip--active:hover {
   opacity: 0.45;
 }
 
+/* --- Standalone code block ------------------------------------------------
+   Same treatment as .article-prose pre, for code outside rendered Markdown. */
+
+.term-code {
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--code-bg);
+  padding: 0;
+  color: #e6e6ea;
+  line-height: 1.7;
+}
+
+.term-code::before {
+  content: "● ● ●";
+  display: block;
+  position: sticky;
+  left: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--code-bar);
+  padding: 0.5rem 0.9rem;
+  color: #55555f;
+  font-size: 0.55rem;
+  letter-spacing: 0.3em;
+  line-height: 1.4;
+}
+
+.term-code > code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  padding: 1.05rem 1.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
 /* --- Table and data list -------------------------------------------------- */
 
 .term-table {

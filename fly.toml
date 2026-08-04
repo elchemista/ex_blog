@@ -1,58 +1,49 @@
-app = "ex-blog"
+app = "spectre_blog"
 primary_region = "fra"
-kill_signal = "SIGTERM"
-kill_timeout = "30s"
 
 [build]
-  dockerfile = "Dockerfile"
+dockerfile = "Dockerfile"
 
 [build.args]
-  # Reuse Freelance's immutable, ABI-compatible Bookworm TDLib artifact.
-  TDLIB_IMAGE = "registry.fly.io/freelance:tdlib-bookworm-b876ee4dcfba@sha256:1f99be7652facf5e6c4492644f7b734f50c255837a25115df657cd4169721393"
-  TDLIB_BUILD_JOBS = "2"
-  # Spectre Lens currently requires a 1.0.0 nightly Lightpanda runtime.
-  LIGHTPANDA_CHANNEL = "nightly"
+# Reuse Freelance's immutable, ABI-compatible Bookworm TDLib artifact.
+TDLIB_IMAGE = "registry.fly.io/freelance:tdlib-bookworm-b876ee4dcfba@sha256:1f99be7652facf5e6c4492644f7b734f50c255837a25115df657cd4169721393"
+TDLIB_BUILD_JOBS = "2"
+# Spectre Lens currently requires a 1.0.0 nightly Lightpanda runtime.
+LIGHTPANDA_CHANNEL = "nightly"
 
 [env]
-  EX_BLOG_DATA_DIR = "/data"
-  EX_BLOG_DEFAULT_LANGUAGE = "it"
-  EX_BLOG_SUPPORTED_LANGUAGES = "it,en"
-  EX_BLOG_EMBEDDING_MODEL = "openrouter:perplexity/pplx-embed-v1-0.6b"
-  EX_BLOG_EMBEDDING_DIMENSIONS = "1024"
-  EX_BLOG_GITHUB_BRANCH = "master"
-  EX_BLOG_MONTHLY_BUDGET_EUR = "20"
-  EX_BLOG_MAX_ARTICLE_COST_EUR = "2"
-  PHX_HOST = "spectre.elchemista.com"
-  PHX_SERVER = "true"
-  PORT = "4000"
+EX_BLOG_DATA_DIR = "/data"
+EX_BLOG_DEFAULT_LANGUAGE = "it"
+EX_BLOG_SUPPORTED_LANGUAGES = "it,en"
+EX_BLOG_EMBEDDING_MODEL = "openrouter:perplexity/pplx-embed-v1-0.6b"
+EX_BLOG_EMBEDDING_DIMENSIONS = "1024"
+EX_BLOG_GITHUB_BRANCH = "master"
+EX_BLOG_MONTHLY_BUDGET_EUR = "20"
+EX_BLOG_MAX_ARTICLE_COST_EUR = "2"
+PHX_HOST = "spectre.elchemista.com"
+PHX_SERVER = "true"
+PORT = "4000"
 
 [[mounts]]
-  source = "ex_blog_data"
-  destination = "/data"
-  initial_size = "1GB"
-  snapshot_retention = 7
+source = "ex_blog_data"
+destination = "/data"
+initial_size = "1GB"
+snapshot_retention = 7
 
 [http_service]
-  internal_port = 4000
-  force_https = true
-  auto_stop_machines = "stop"
-  auto_start_machines = true
-  min_machines_running = 1
-  processes = ["app"]
+internal_port = 4000
+force_https = true
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 1
+processes = ["app"]
 
-  [http_service.concurrency]
-    type = "requests"
-    soft_limit = 100
-    hard_limit = 150
-
-  [[http_service.checks]]
-    grace_period = "30s"
-    interval = "30s"
-    method = "GET"
-    timeout = "5s"
-    path = "/health"
+[http_service.concurrency]
+type = "requests"
+soft_limit = 100
+hard_limit = 150
 
 [[vm]]
-  cpu_kind = "shared"
-  cpus = 2
-  memory = "1gb"
+cpu_kind = "shared"
+cpus = 2
+memory = "1gb"

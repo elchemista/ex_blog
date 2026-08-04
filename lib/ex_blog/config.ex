@@ -179,6 +179,8 @@ defmodule ExBlog.Config do
   def public(config \\ get())
 
   def public(%__MODULE__{} = config) do
+    planner_models = kinetic_planner_models()
+
     %{
       repository: config.github_repository,
       branch: config.github_branch,
@@ -189,6 +191,8 @@ defmodule ExBlog.Config do
         balanced: config.balanced_model,
         deep: config.deep_model,
         classifier: config.classifier_model,
+        kinetic_planner: planner_models.primary,
+        kinetic_planner_fallbacks: planner_models.fallbacks,
         local_classifier:
           if(ClassifierConfig.local_enabled?(),
             do: ClassifierConfig.encoder_model(),
@@ -205,6 +209,23 @@ defmodule ExBlog.Config do
       monthly_budget_eur: Decimal.to_string(config.monthly_budget_eur),
       max_article_cost_eur: Decimal.to_string(config.max_article_cost_eur)
     }
+  end
+
+  @doc "Returns the non-secret model ids configured for Kinetic's LLM fallback chain."
+  @spec kinetic_planner_models() :: %{primary: String.t() | nil, fallbacks: [String.t()]}
+  def kinetic_planner_models do
+    primary =
+      :ex_blog
+      |> Application.get_env(:kinetic_planner_llm, [])
+      |> planner_model()
+
+    fallbacks =
+      case Application.get_env(:ex_blog, :kinetic_planner_llm_fallbacks, []) do
+        configs when is_list(configs) -> Enum.flat_map(configs, &planner_model_list/1)
+        _invalid -> []
+      end
+
+    %{primary: primary, fallbacks: fallbacks}
   end
 
   @doc "Canonical HTTPS URL used by feeds, sitemap, and metadata."
@@ -502,6 +523,28 @@ defmodule ExBlog.Config do
 
       _other ->
         nil
+    end
+  end
+
+  defp planner_model(config) when is_list(config) do
+    if Keyword.keyword?(config), do: normalize_planner_model(Keyword.get(config, :model))
+  end
+
+  defp planner_model(_config), do: nil
+
+  defp normalize_planner_model(model) when is_binary(model) do
+    case String.trim(model) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp normalize_planner_model(_model), do: nil
+
+  defp planner_model_list(config) do
+    case planner_model(config) do
+      nil -> []
+      model -> [model]
     end
   end
 

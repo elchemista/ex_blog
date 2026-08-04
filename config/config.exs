@@ -22,6 +22,22 @@ config :ex_blog,
     auto_verify_margin: 0.05
   ]
 
+# Kinetic remains deterministic-first. Only a failed deterministic action plan
+# reaches this constrained LLM boundary, which is intentionally independent
+# from Prism's conversational and classifier model selection.
+config :ex_blog, :kinetic_planner_llm,
+  adapter: ExBlog.AI.OpenRouter,
+  model: "openrouter:qwen/qwen3-next-80b-a3b-instruct"
+
+# This is provider failover for the constrained planner contract, not a retry
+# of the same model and never a fallback for route classification.
+config :ex_blog, :kinetic_planner_llm_fallbacks, [
+  [
+    adapter: ExBlog.AI.OpenRouter,
+    model: "openrouter:google/gemini-2.5-flash-lite"
+  ]
+]
+
 # Development and test can share one local encoder between classifier training
 # and semantic search. Production overrides the adapter and disables the local
 # artifact so hosted 1,024-dimensional vectors never mix with local 384d rows.

@@ -37,6 +37,8 @@ defmodule ExBlog.Agent.Presenter do
     Fast model: #{models.fast}
     Balanced model: #{models.balanced}
     Deep model: #{models.deep}
+    Kinetic planner LLM fallback: #{display_model(Map.get(models, :kinetic_planner))}
+    Kinetic planner provider failover: #{display_models(Map.get(models, :kinetic_planner_fallbacks, []))}
     Routing embedding: #{Map.get(models, :routing_embedding, "not configured")}
     Local classifier: #{Map.get(models, :local_classifier, "not configured")}
     Remote classifier fallback: #{models.classifier}
@@ -142,6 +144,12 @@ defmodule ExBlog.Agent.Presenter do
 
   defp configured(:configured), do: "configured"
   defp configured(_other), do: "not configured"
+
+  defp display_model(model) when is_binary(model) and model != "", do: model
+  defp display_model(_model), do: "not configured"
+
+  defp display_models(models) when is_list(models) and models != [], do: Enum.join(models, ", ")
+  defp display_models(_models), do: "not configured"
 
   defp formatted_findings(_label, []), do: nil
 

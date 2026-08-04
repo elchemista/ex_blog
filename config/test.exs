@@ -6,6 +6,11 @@ config :ex_blog,
   start_telegram?: false,
   spectre_embedding_adapter: Spectre.Classifier.Embeddings.ExFastembed
 
+# Tests opt into planner doubles explicitly. An unexpected deterministic
+# planner failure must not turn into a real network request.
+config :ex_blog, :kinetic_planner_llm, nil
+config :ex_blog, :kinetic_planner_llm_fallbacks, nil
+
 # Unit tests inject deterministic classifier/embedding adapters. Avoid loading
 # the large native model merely because locally generated artifacts exist.
 config :spectre, :classifier,
