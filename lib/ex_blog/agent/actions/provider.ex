@@ -5,6 +5,12 @@ defmodule ExBlog.Agent.Actions.Provider do
   Kinetic selects and validates an operation. Spectre retains ownership of
   policy, staging, persistence, idempotency, and execution through this
   provider.
+
+  `actions/1` compiles the `@al` annotations from `KineticActions` into Spectre
+  action schemas. `execute/3` then dispatches only to an already-existing atom
+  and only when `Actions` exports the required context-aware arity. This keeps
+  model-produced action names from creating atoms or reaching arbitrary
+  functions.
   """
 
   @behaviour Spectre.Action.Provider
