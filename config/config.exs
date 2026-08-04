@@ -58,6 +58,7 @@ config :logger, :default_formatter,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+config :phoenix, :filter_parameters, ["password", "token", "code", "verifier", "secret"]
 
 config :ex_gram, :backend_verbosity_level, 0
 config :ex_gram, :log_unhandled_updates, false
