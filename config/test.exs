@@ -3,7 +3,8 @@ import Config
 config :ex_blog,
   validate_runtime_config?: false,
   start_content?: false,
-  start_telegram?: false
+  start_telegram?: false,
+  spectre_embedding_adapter: Spectre.Classifier.Embeddings.ExFastembed
 
 # Unit tests inject deterministic classifier/embedding adapters. Avoid loading
 # the large native model merely because locally generated artifacts exist.
