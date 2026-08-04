@@ -27,7 +27,7 @@ defmodule ExBlog.ConfigTest do
       full_env()
       |> Map.put("EX_BLOG_ADMIN_PASSWORD_HASH", "not-an-argon2-hash")
       |> Map.put("EX_BLOG_ADMIN_TELEGRAM_ID", "not-an-id")
-      |> Map.put("EX_BLOG_TELEGRAM_API_ID", "not-an-id")
+      |> Map.put("TG_API_ID", "not-an-id")
       |> Map.put("EX_BLOG_TELEGRAM_SESSION_ID", "../unsafe")
       |> Map.put("EX_BLOG_GITHUB_REPOSITORY", "not a repository")
       |> Map.put("EX_BLOG_MONTHLY_BUDGET_EUR", "-1")
@@ -37,7 +37,7 @@ defmodule ExBlog.ConfigTest do
     assert {:error, message} = Config.load(env)
     assert message =~ "EX_BLOG_ADMIN_PASSWORD_HASH: must be an Argon2 encoded hash"
     assert message =~ "EX_BLOG_ADMIN_TELEGRAM_ID: must be a positive integer"
-    assert message =~ "EX_BLOG_TELEGRAM_API_ID: must be a positive integer"
+    assert message =~ "TG_API_ID: must be a positive integer"
     assert message =~ "EX_BLOG_TELEGRAM_SESSION_ID"
     assert message =~ "EX_BLOG_GITHUB_REPOSITORY: must use the owner/repository format"
     assert message =~ "EX_BLOG_MONTHLY_BUDGET_EUR: must be a positive number"
@@ -66,7 +66,23 @@ defmodule ExBlog.ConfigTest do
     assert Config.public(config).models.embedding ==
              "openrouter:perplexity/pplx-embed-v1-0.6b"
 
+    assert Config.public(config).models.local_classifier ==
+             "intfloat/multilingual-e5-small"
+
     assert config.embedding_dimensions == 1024
+  end
+
+  test "accepts the legacy ExBlog-prefixed Telegram credential aliases" do
+    env =
+      full_env()
+      |> Map.delete("TG_API_ID")
+      |> Map.delete("TG_API_HASH")
+      |> Map.put("EX_BLOG_TELEGRAM_API_ID", "54321")
+      |> Map.put("EX_BLOG_TELEGRAM_API_HASH", "legacy-telegram-secret")
+
+    assert {:ok, config} = Config.load(env)
+    assert config.telegram_api_id == 54_321
+    assert config.telegram_api_hash == "legacy-telegram-secret"
   end
 
   test "redacts every configured credential from arbitrary text" do
@@ -96,8 +112,8 @@ defmodule ExBlog.ConfigTest do
     %{
       "EX_BLOG_ADMIN_PASSWORD_HASH" => "$argon2id$admin-password-hash",
       "EX_BLOG_ADMIN_TELEGRAM_ID" => "123456789",
-      "EX_BLOG_TELEGRAM_API_ID" => "12345",
-      "EX_BLOG_TELEGRAM_API_HASH" => "telegram-api-secret-value",
+      "TG_API_ID" => "12345",
+      "TG_API_HASH" => "telegram-api-secret-value",
       "EX_BLOG_GITHUB_TOKEN" => "github-secret-value",
       "EX_BLOG_GITHUB_REPOSITORY" => "elchemista/ex-blog-content",
       "EX_BLOG_GITHUB_BRANCH" => "main",
