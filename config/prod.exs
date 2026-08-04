@@ -22,5 +22,17 @@ config :ex_blog, ExBlogWeb.Endpoint,
 # Do not print debug messages in production
 config :logger, level: :info
 
+# Production uses the budgeted OpenRouter embedding boundary. Development
+# classifier artifacts are 384-dimensional and must never be loaded beside the
+# hosted 1,024-dimensional semantic-cache vectors.
+config :ex_blog, :spectre_embedding_adapter, ExBlog.AI.Embedding
+
+config :spectre, :classifier,
+  artifact_dir: nil,
+  embedding_adapter: ExBlog.Agent.Embedding,
+  local_classifier_enabled?: false,
+  required?: false,
+  start?: false
+
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
