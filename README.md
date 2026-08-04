@@ -549,19 +549,39 @@ mix ex_gram.setup_tdlib --install
 mix setup
 ```
 
-Optionally bootstrap the development/test classifier:
+### Train the local Spectre classifier
+
+ExBlog provides the same project-level training alias used by the reference
+Freelance application:
 
 ```bash
 MIX_ENV=dev mix spectre.classifier.setup
 ```
 
-This task validates the checked-in ExBlog corpus, writes a
-normalized copy to `training/dataset.json`, downloads
-`intfloat/multilingual-e5-small`, and generates the local classifier plus its
-semantic vector mirror under `artifacts/spectre`. The model download and
-generated artifacts are intentionally ignored by Git; rerun the task whenever
-the dataset changes. Production neither runs this task nor includes
-ExFastembed; it uses the configured OpenRouter embedding model.
+The alias is declared in [`mix.exs`](mix.exs) and runs the complete local
+pipeline in order:
+
+1. `mix spectre.dataset.setup` validates the committed ExBlog corpus and writes
+   its deterministic training copy to `training/dataset.json`;
+2. `mix spectre.classifier.download_model` downloads
+   `intfloat/multilingual-e5-small` into the ignored local model cache;
+3. `mix spectre.classifier.train` trains the centroid classifier with ExBlog's
+   checked-in acceptance and margin thresholds.
+
+The resulting `classifier.etf`, labels, calibration metadata, and
+`semantic_cache.jsonl` are written under `artifacts/spectre`. Validate the
+dataset without downloading a model or retraining with:
+
+```bash
+mix ex_blog.spectre.dataset.build --check
+```
+
+Run the setup alias after changing `priv/spectre/dataset.json`, classifier
+labels, the embedding model, or classifier thresholds. The model download,
+normalized training copy, and generated artifacts are intentionally ignored by
+Git. Never run this pipeline as part of a production build or release:
+production excludes ExFastembed and obtains semantic embeddings from
+OpenRouter.
 
 `--install` may use the system package manager and require `sudo`. If CMake,
 Make, a C++ compiler, gperf, OpenSSL headers, zlib headers, and `pkg-config` are
