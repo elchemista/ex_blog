@@ -8,7 +8,9 @@ defmodule ExBlog.AI.OpenRouter do
 
   @behaviour Spectre.Prism.Adapter
   @behaviour Spectre.LLM
+  @behaviour Spectre.Classifier.Embedding
 
+  alias ExBlog.AI.Embedding
   alias ExBlog.Config
   alias Spectre.Prism.Adapters.OpenRouter
 
@@ -17,6 +19,7 @@ defmodule ExBlog.AI.OpenRouter do
     balanced: "ex-blog/runtime-balanced",
     deep: "ex-blog/runtime-deep"
   }
+  @embedding_marker "ex-blog/runtime-embedding"
 
   @impl Spectre.Prism.Adapter
   def catalog do
@@ -26,7 +29,7 @@ defmodule ExBlog.AI.OpenRouter do
       |> Keyword.put(:transport, ExBlog.AI.Transport)
       |> Keyword.put(:app_name, "ExBlog")
     end)
-    |> Map.put(:embedding, nil)
+    |> Map.put(:embedding, model: @embedding_marker, dimensions: 1024)
   end
 
   @impl Spectre.LLM
@@ -38,6 +41,15 @@ defmodule ExBlog.AI.OpenRouter do
   def complete_plan(%Spectre.Prompt.Plan{} = plan, opts) when is_list(opts) do
     OpenRouter.complete_plan(redact_plan(plan), runtime_opts(opts))
   end
+
+  @impl Spectre.Classifier.Embedding
+  def load(_model, opts \\ []), do: Embedding.load(@embedding_marker, opts)
+
+  @impl Spectre.Classifier.Embedding
+  def download(_model, opts \\ []), do: Embedding.download(@embedding_marker, opts)
+
+  @impl Spectre.Classifier.Embedding
+  def embed(text, opts \\ []), do: Embedding.embed(text, opts)
 
   @spec marker(:fast | :balanced | :deep) :: String.t()
   def marker(level), do: Map.fetch!(@markers, level)
