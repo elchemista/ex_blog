@@ -10,11 +10,13 @@ defmodule ExBlog.Config do
 
   @storage_key {__MODULE__, :runtime}
 
+  alias ExBlog.Agent.ClassifierConfig
+
   @required ~w(
     EX_BLOG_ADMIN_PASSWORD_HASH
     EX_BLOG_ADMIN_TELEGRAM_ID
-    EX_BLOG_TELEGRAM_API_ID
-    EX_BLOG_TELEGRAM_API_HASH
+    TG_API_ID
+    TG_API_HASH
     EX_BLOG_GITHUB_TOKEN
     EX_BLOG_GITHUB_REPOSITORY
     EX_BLOG_GITHUB_BRANCH
@@ -111,7 +113,7 @@ defmodule ExBlog.Config do
   @spec load(map(), keyword()) :: {:ok, t()} | {:error, String.t()}
   def load(env \\ System.get_env(), opts \\ []) when is_map(env) do
     required = required_env_names(opts)
-    missing = Enum.filter(required, &blank?(Map.get(env, &1)))
+    missing = Enum.filter(required, &blank?(required_value(env, &1)))
 
     if missing == [] do
       build(env)
@@ -188,6 +190,7 @@ defmodule ExBlog.Config do
         balanced: config.balanced_model,
         deep: config.deep_model,
         classifier: config.classifier_model,
+        local_classifier: ClassifierConfig.encoder_model(),
         embedding: config.embedding_model
       },
       agent_language: "en",
@@ -224,8 +227,8 @@ defmodule ExBlog.Config do
         "EX_BLOG_ADMIN_PASSWORD_HASH" =>
           "$argon2id$v=19$m=65536,t=3,p=4$/ozmJANXqOhc51VZNhCDpA$ghgiVIIRxNcczcSsqt6Zk2IprX8zSc4fvl9p0+7Xc8c",
         "EX_BLOG_ADMIN_TELEGRAM_ID" => "123456789",
-        "EX_BLOG_TELEGRAM_API_ID" => "12345",
-        "EX_BLOG_TELEGRAM_API_HASH" => "test-telegram-api-hash",
+        "TG_API_ID" => "12345",
+        "TG_API_HASH" => "test-telegram-api-hash",
         "EX_BLOG_GITHUB_TOKEN" => "test-github-token",
         "EX_BLOG_GITHUB_REPOSITORY" => "example/ex-blog-content",
         "EX_BLOG_GITHUB_BRANCH" => "main",
@@ -253,7 +256,7 @@ defmodule ExBlog.Config do
     validations = [
       admin_password_hash: password_hash(env),
       admin_telegram_id: positive_integer(env, "EX_BLOG_ADMIN_TELEGRAM_ID"),
-      telegram_api_id: positive_integer(env, "EX_BLOG_TELEGRAM_API_ID"),
+      telegram_api_id: positive_integer_value(telegram_api_id(env), "TG_API_ID"),
       telegram_session_id: telegram_session_id(env),
       github_repository: repository(env),
       supported_languages: supported_result,
@@ -307,7 +310,7 @@ defmodule ExBlog.Config do
          phx_host: optional(env, "PHX_HOST"),
          github_token: value(env, "EX_BLOG_GITHUB_TOKEN"),
          openrouter_api_key: value(env, "OPENROUTER_API_KEY"),
-         telegram_api_hash: value(env, "EX_BLOG_TELEGRAM_API_HASH"),
+         telegram_api_hash: telegram_api_hash(env),
          mcp_token: value(env, "EX_BLOG_MCP_TOKEN")
        }}
     else
@@ -318,11 +321,28 @@ defmodule ExBlog.Config do
   defp positive_integer(env, name, default \\ nil) do
     raw = optional(env, name) || default
 
+    positive_integer_value(raw, name)
+  end
+
+  defp positive_integer_value(raw, name) do
     case Integer.parse(raw || "") do
       {value, ""} when value > 0 -> {:ok, value}
       _other -> {:error, {name, "must be a positive integer"}}
     end
   end
+
+  # TG_API_ID and TG_API_HASH are ExGram's conventional deployment names. The
+  # older EX_BLOG-prefixed names remain read-compatible so existing releases
+  # can migrate without losing their persistent Telegram session.
+  defp telegram_api_id(env),
+    do: optional(env, "TG_API_ID") || optional(env, "EX_BLOG_TELEGRAM_API_ID")
+
+  defp telegram_api_hash(env),
+    do: optional(env, "TG_API_HASH") || optional(env, "EX_BLOG_TELEGRAM_API_HASH")
+
+  defp required_value(env, "TG_API_ID"), do: telegram_api_id(env)
+  defp required_value(env, "TG_API_HASH"), do: telegram_api_hash(env)
+  defp required_value(env, name), do: Map.get(env, name)
 
   defp positive_decimal(env, name, default) do
     case Decimal.parse(optional(env, name) || default) do
