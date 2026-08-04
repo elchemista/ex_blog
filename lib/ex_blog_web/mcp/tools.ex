@@ -2,6 +2,7 @@ defmodule ExBlogWeb.MCP.Tools do
   @moduledoc false
 
   alias ExBlog.Agent.Actions
+  alias ExBlog.ChatGPT.OAuth
 
   @spec list() :: [map()]
   def list do
@@ -158,6 +159,16 @@ defmodule ExBlogWeb.MCP.Tools do
 
   def call(_name, _arguments), do: {:error, :invalid_arguments}
 
+  @spec required_scope(String.t()) :: {:ok, String.t()} | :error
+  def required_scope(name) when is_binary(name) do
+    case Enum.find(list(), &(&1.name == name)) do
+      %{securitySchemes: [%{scopes: [scope]}]} -> {:ok, scope}
+      _missing -> :error
+    end
+  end
+
+  def required_scope(_name), do: :error
+
   defp dispatch("list_articles", arguments), do: Actions.list_articles(arguments)
   defp dispatch("read_article", arguments), do: Actions.read_article(arguments)
   defp dispatch("search_articles", arguments), do: Actions.search_articles(arguments)
@@ -186,6 +197,8 @@ defmodule ExBlogWeb.MCP.Tools do
 
   defp tool(name, description, input_schema, opts) do
     read_only = Keyword.fetch!(opts, :read_only)
+    required_scope = if read_only, do: OAuth.read_scope(), else: OAuth.write_scope()
+    security_schemes = [%{type: "oauth2", scopes: [required_scope]}]
 
     %{
       name: name,
@@ -193,6 +206,8 @@ defmodule ExBlogWeb.MCP.Tools do
       description: description,
       inputSchema: input_schema,
       outputSchema: %{type: "object", additionalProperties: true},
+      securitySchemes: security_schemes,
+      _meta: %{securitySchemes: security_schemes},
       annotations: %{
         readOnlyHint: read_only,
         destructiveHint: Keyword.get(opts, :destructive, false),
