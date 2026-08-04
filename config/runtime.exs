@@ -31,9 +31,9 @@ config :ex_blog,
   runtime_environment: config_env(),
   runtime_data_dir: data_dir
 
-# The checked-in dataset is always release-safe. Classifier artifacts are
-# generated during the image build and resolved through the release priv dir;
-# explicit paths remain available for operators mounting prebuilt artifacts.
+# The versioned dataset remains available to exact semantic-cache lookup in
+# every environment. Local classifier artifacts are development/test-only;
+# production uses hosted OpenRouter embeddings and refuses native artifacts.
 classifier_config = Application.get_env(:spectre, :classifier, [])
 
 classifier_env_path = fn name ->
@@ -54,14 +54,18 @@ classifier_dataset_path =
       else: Keyword.fetch!(classifier_config, :dataset_path)
     )
 
-classifier_artifact_dir =
-  classifier_env_path.("SPECTRE_CLASSIFIER_ARTIFACT_DIR") ||
-    if(config_env() == :prod,
-      do: ExBlog.Agent.ClassifierConfig.release_artifact_dir(),
-      else: Keyword.fetch!(classifier_config, :artifact_dir)
-    )
+classifier_artifact_override = classifier_env_path.("SPECTRE_CLASSIFIER_ARTIFACT_DIR")
 
-local_classifier_enabled? =
+if config_env() == :prod and classifier_artifact_override do
+  raise "SPECTRE_CLASSIFIER_ARTIFACT_DIR is development/test-only; production uses OpenRouter embeddings"
+end
+
+classifier_artifact_dir =
+  if config_env() == :prod,
+    do: nil,
+    else: classifier_artifact_override || Keyword.fetch!(classifier_config, :artifact_dir)
+
+local_classifier_requested? =
   case System.get_env("SPECTRE_LOCAL_CLASSIFIER") do
     nil ->
       Keyword.get(classifier_config, :local_classifier_enabled?, true)
@@ -79,12 +83,19 @@ local_classifier_enabled? =
       end
   end
 
+if config_env() == :prod and local_classifier_requested? do
+  raise "SPECTRE_LOCAL_CLASSIFIER cannot be enabled in production; use OpenRouter embeddings"
+end
+
+local_classifier_enabled? = config_env() != :prod and local_classifier_requested?
+
 config :spectre, :classifier,
   dataset_path: classifier_dataset_path,
   artifact_dir: classifier_artifact_dir,
   local_classifier_enabled?: local_classifier_enabled?,
   start?: local_classifier_enabled? and Keyword.get(classifier_config, :start?, true),
-  required?: config_env() == :prod and local_classifier_enabled?
+  required?: local_classifier_enabled? and Keyword.get(classifier_config, :required?, false),
+  dataset_required?: config_env() == :prod
 
 case System.get_env("EX_BLOG_CHATGPT_PUBLIC_BASE_URL") do
   value when is_binary(value) and value != "" ->
