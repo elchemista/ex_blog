@@ -5,6 +5,13 @@ config :ex_blog,
   start_content?: false,
   start_telegram?: false
 
+# Unit tests inject deterministic classifier/embedding adapters. Avoid loading
+# the large native model merely because locally generated artifacts exist.
+config :spectre, :classifier,
+  artifact_dir: "tmp/test-spectre-classifier",
+  start?: false,
+  required?: false
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :ex_blog, ExBlogWeb.Endpoint,
