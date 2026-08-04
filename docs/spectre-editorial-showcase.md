@@ -170,17 +170,31 @@ and requires complete intent coverage:
 mix ex_blog.spectre.dataset.build --check
 ```
 
-Development/test classifier bootstrap is reproducible:
+### Reproducible local training task
+
+ExBlog declares the same project-level classifier setup alias used by the
+reference Freelance application:
 
 ```bash
 MIX_ENV=dev mix spectre.classifier.setup
 ```
 
-It normalizes the training corpus, downloads
-`intfloat/multilingual-e5-small`, trains a centroid classifier, and writes a
-vectorized semantic-cache mirror under `artifacts/spectre`. Dataset source is
-committed; generated model weights, vectors, and the local model cache are
-ignored by Git and excluded from the production image.
+This is an orchestration alias in `mix.exs`, not an opaque application startup
+side effect. It executes these steps in order:
+
+1. `mix spectre.dataset.setup`, which delegates to ExBlog's dataset builder;
+2. `mix spectre.classifier.download_model --model
+   intfloat/multilingual-e5-small`;
+3. `mix spectre.classifier.train training/dataset.json artifacts/spectre` with
+   ExBlog's configured acceptance, margin, and high-confidence thresholds.
+
+The trainer writes `classifier.etf`, `labels.json`, `calibration.json`,
+`metadata.json`, and the local `semantic_cache.jsonl` mirror under
+`artifacts/spectre`. Run it again whenever the dataset, classifier-visible
+labels, model, or thresholds change. Dataset source is committed; the generated
+training copy, model cache, classifier files, and vectors are ignored by Git
+and excluded from production. Production semantic routing continues to use
+OpenRouter and never invokes this task.
 
 ## Environment-specific embedding boundary
 
