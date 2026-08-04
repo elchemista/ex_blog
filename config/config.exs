@@ -11,7 +11,16 @@ config :ex_blog,
   validate_runtime_config?: true,
   start_content?: true,
   start_telegram?: true,
-  secure_session_cookie?: config_env() == :prod
+  secure_session_cookie?: config_env() == :prod,
+  semantic_cache: [
+    search_threshold: 0.94,
+    auto_verify_threshold: 0.985,
+    auto_verify_margin: 0.05
+  ]
+
+# Spectre keeps only a small number of immutable Vettore projections per
+# agent. Online rows themselves are persisted by ExBlog.Agent.SemanticCache.
+config :spectre, :semantic_cache, index_capacity: 4
 
 # Configure the endpoint
 config :ex_blog, ExBlogWeb.Endpoint,
