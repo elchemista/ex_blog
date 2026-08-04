@@ -5,6 +5,7 @@ defmodule ExBlog.Application do
 
   use Application
 
+  alias ExBlog.Agent.ClassifierConfig
   alias ExBlog.Content.Asset
 
   @impl true
@@ -13,19 +14,34 @@ defmodule ExBlog.Application do
     _state_store = Code.ensure_loaded!(ExBlog.Agent.StateStore)
     File.mkdir_p!(config.data_dir)
     :ok = Asset.restore_static!()
+    :ok = ClassifierConfig.log_boot_status()
+    :ok = ClassifierConfig.validate_required_sources!()
 
     children =
       [
-        {ExBlog.Storage, path: Path.join(config.data_dir, "runtime.dets")},
-        ExBlog.Agent.SemanticCache,
-        {Phoenix.PubSub, name: ExBlog.PubSub},
-        ExBlog.Admin.LoginThrottle
-      ] ++ content_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
+        {ExBlog.Storage, path: Path.join(config.data_dir, "runtime.dets")}
+      ] ++
+        classifier_children() ++
+        [
+          # The semantic adapter starts after the classifier so its boot warmup
+          # can index generated vectors against an already loaded encoder.
+          ExBlog.Agent.SemanticCache,
+          {Phoenix.PubSub, name: ExBlog.PubSub},
+          ExBlog.Admin.LoginThrottle
+        ] ++ content_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
 
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ExBlog.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp classifier_children do
+    if ClassifierConfig.start?() do
+      [{Spectre.Classifier, ClassifierConfig.child_options()}]
+    else
+      []
+    end
   end
 
   defp content_children do
