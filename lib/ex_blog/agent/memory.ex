@@ -2,13 +2,21 @@ defmodule ExBlog.Agent.Memory do
   @moduledoc """
   Minimal DETS-backed memory adapter for Spectre.
 
-  It stores redaction-safe routing examples. Infrastructure configuration and
-  provider credentials are never part of the persisted payload.
+  Memory and semantic routing have different jobs. The semantic cache stores
+  vectors that can select a route; this adapter recalls only entries under the
+  same bounded text cue so a runtime may present recent, verified-safe routing
+  context without performing another similarity search.
+
+  Only the cue, selected label, and review flag are persisted. The reply,
+  action arguments, article content, infrastructure configuration, and provider
+  credentials are never part of the payload. A cue is rejected when redaction
+  would change it, and unsafe routes are never remembered.
   """
 
   alias ExBlog.Config
   alias ExBlog.Storage
 
+  @doc "Returns up to five memories stored under the exact bounded cue."
   @spec recall(String.t(), keyword()) :: {:ok, [map()]}
   def recall(text, opts) when is_binary(text) and is_list(opts) do
     agent = opts |> Keyword.get(:agent) |> agent_name()
@@ -23,6 +31,7 @@ defmodule ExBlog.Agent.Memory do
     {:ok, memories}
   end
 
+  @doc "Stores a redaction-safe cue and route label after a completed turn."
   @spec remember(Spectre.Input.t(), Spectre.Result.t(), module(), keyword()) ::
           :ok | {:error, term()}
   def remember(input, result, agent, _opts) do
@@ -43,6 +52,8 @@ defmodule ExBlog.Agent.Memory do
   defp route_label(_result), do: nil
 
   defp safe_cue?(text) when is_binary(text) and text != "" do
+    # Comparing the redacted value with the original is stricter than merely
+    # checking for known token prefixes and follows the central Config policy.
     redacted = Config.redact(text)
     redacted == text and not String.contains?(text, "[REDACTED]")
   end
