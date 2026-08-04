@@ -19,7 +19,8 @@ workflow:
 - **Spectre Beam** normalizes Telegram text and images through ExGram;
 - **Spectre Lens** audits rendered public blog pages from inside the agent;
 - **HEEx prompt templates** keep prompts reviewable and next to their skill;
-- **semantic routing** learns only safe read intents and persists them in DETS.
+- **trained semantic routing** boots from an ExBlog-specific English dataset,
+  uses a local encoder/classifier, and learns only safe read intents in DETS.
 
 The agent operates in English. Articles, metadata, and translations can use any
 language enabled in `EX_BLOG_SUPPORTED_LANGUAGES`.
@@ -35,7 +36,7 @@ flowchart LR
     Beam --> Agent[Spectre Agent]
     MCP --> Agent
     Agent --> Skills[Reader · Editorial · Operations skills]
-    Skills --> Router[Regex · active flow · semantic cache · classifier]
+    Skills --> Router[Slash commands · active flow · exact dataset · local classifier · semantic search · LLM fallback]
     Skills --> Kinetic[Spectre Kinetic @al validation]
     Skills --> Prism[Spectre Prism model routing]
     Skills --> Lens[Spectre Lens public-page audit]
@@ -158,20 +159,101 @@ Budget checks happen before balanced or deep requests. Model identifiers remain
 runtime configuration, so changing providers or models does not alter the
 skills.
 
-### Deterministic routing plus semantic reuse
+### Trained local routing plus semantic reuse
 
-The routing order is:
+Routing is deliberately multi-provider. Regex is reserved for deterministic
+operator controls, never used as a substitute for language understanding:
 
 ```text
-English regex → active nested-flow continuation → exact semantic cache
-→ vector semantic search → arbitration → LLM classifier fallback
+slash command or safety regex → active nested-flow continuation
+→ exact versioned dataset / verified cache → trained local classifier
+→ vector semantic search → arbitration → remote LLM classifier fallback
 ```
 
-The default semantic threshold is `0.94`. An unreviewed learned read intent can
+Every skill route declares its own `via:` list. Read routes expose
+`[:regex, :embedding, :classifier, :semantic_cache, :llm_classifier]`;
+editorial and Git mutations expose slash-command regex, optional static
+embeddings, the trained classifier, and the LLM classifier but exclude
+semantic-cache learning; intake capture leaves expose only the private
+`:creation_continuation` provider.
+
+The production agent enables
+`[:regex, :classifier, :semantic_cache, :llm_classifier]` globally.
+`:embedding` remains an opt-in static matcher because it embeds every visible
+skill example during a request. The trained classifier and semantic search are
+both backed by `intfloat/multilingual-e5-small`, so their vectors are local and
+dimension-compatible. The remote classifier is reached only after those
+providers miss or conflict.
+
+The shared embedding boundary applies E5's `query:` role prefix during both
+training and inference. A centroid head keeps the runtime artifact compact;
+the score and margin gates are calibrated so ambiguous local predictions fall
+through instead of being treated as authoritative.
+
+The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 204 original
+English examples: 12 for each of the 17 classifier-visible ExBlog intents. The
+dataset includes contrastive cases such as reading versus searching, auditing
+an existing page versus generating SEO, and publishing versus repository
+synchronization. Capture fields from the nested creation wizard are excluded
+because the persisted flow cursor, not a model, owns those replies.
+
+At build time Spectre produces two artifacts from the same corpus:
+
+- `classifier.etf`, used by the warm local intent classifier;
+- `semantic_cache.jsonl`, containing precomputed vectors for all 204 examples;
+  boot filters them through the route policy and warms Vettore with the 84
+  cacheable read examples, without re-embedding the corpus.
+
+Spectre mirrors dataset rows into exact cache only when their route is
+cacheable. Consequently, the seven read-only intents can answer exact matches
+with no inference, while writes, deletes, sync, unsafe input, and unknown input
+train the classifier but can never become cached authorization.
+
+The provider responsibilities are:
+
+| Provider | When it wins | External model call |
+| --- | --- | --- |
+| regex | an explicit `/...` command, safety interrupt, cancel, or image control matches | none |
+| creation continuation | a persisted article-intake cursor owns the next free-text answer | none |
+| semantic exact | a trusted dataset, skill, or verified learned phrase matches exactly | none |
+| local classifier | the trained artifact recognizes the intent above its score and margin gates | one local embedding |
+| semantic search | a stored vector is close enough to the new request | one local embedding |
+| static embedding | explicitly enabled for experiments | local encoder work per visible example |
+| LLM classifier | all local evidence misses or conflicts | one fast OpenRouter completion |
+
+`regex_strength: :hard` is provider-specific. An actual regex match stops
+probabilistic routing, but the same rule's embedding candidate remains subject
+to score and margin thresholds. Global safety interrupts intentionally do not
+use static embedding candidates because interrupt evidence is always hard.
+
+The local classifier must reach `0.89` with a `0.008` label margin at routing
+time. The default semantic threshold is `0.94`. An unreviewed learned read intent can
 become verified automatically only at `0.985` similarity with at least a
-`0.05` margin over the next label. Embeddings and learned rows are persisted in
-DETS. Editorial mutations have `learn: false` and still require policy
-confirmation.
+`0.05` margin over the next label. Online learned rows and their embeddings are
+persisted in DETS. Editorial mutations have `learn: false` and still require
+policy confirmation.
+
+### Reading the agent implementation
+
+The code is split by responsibility so the declarative DSL does not hide side
+effects:
+
+| Module | Responsibility |
+| --- | --- |
+| [`ExBlog.Agent`](lib/ex_blog/agent.ex) | composition root: providers, pipeline, skills, state, and bindings |
+| [`RouterPipeline`](lib/ex_blog/agent/router_pipeline.ex) | evidence ordering and LLM arbitration boundary |
+| [`ClassifierConfig`](lib/ex_blog/agent/classifier_config.ex) | source/release paths and local-classifier boot configuration |
+| [`LocalClassifier`](lib/ex_blog/agent/local_classifier.ex) | application-owned trained classifier boundary and recovery switch |
+| [`Embedding`](lib/ex_blog/agent/embedding.ex) | shared ExFastembed boundary for classifier and semantic vectors |
+| [`Reader`](lib/ex_blog/agent/skills/reader.ex) | cacheable read intents and Lens audit route |
+| [`Editorial`](lib/ex_blog/agent/skills/editorial.ex) | nested creation flow and protected editorial intents |
+| [`Operations`](lib/ex_blog/agent/skills/operations.ex) | diagnostics and protected repository synchronization |
+| [`KineticActions`](lib/ex_blog/agent/kinetic_actions.ex) | typed `@al` catalog visible to the action planner |
+| [`Actions.Provider`](lib/ex_blog/agent/actions/provider.ex) | safe bridge from validated Kinetic actions to execution |
+| [`Actions`](lib/ex_blog/agent/actions.ex) | context-aware read, AI, and repository operations |
+| [`SemanticCache`](lib/ex_blog/agent/semantic_cache.ex) | learned vector review, auto-verification, and DETS snapshots |
+| [`StateStore`](lib/ex_blog/agent/state_store.ex) | persistent flow/policy state with optimistic concurrency |
+| [`PageAudit`](lib/ex_blog/agent/page_audit.ex) | bounded Spectre Lens projection and evidence-based assessment |
 
 ## A complete editorial conversation
 
@@ -218,9 +300,9 @@ The photo can be sent at any point while the article-creation flow is active.
 
 ## Agent command reference
 
-Commands and natural-language requests are English-first. The examples below
-are the predictable operator shortcuts; equivalent English requests can be
-routed through the same skills.
+Commands and natural-language requests are English-first. Regex handles only
+the predictable operator shortcuts below; equivalent English requests are
+understood by the dataset, local classifier, semantic cache, and LLM fallback.
 
 ### Reading and diagnostics
 
@@ -232,7 +314,7 @@ routed through the same skills.
 | `/check [https://public-url]` | audit the canonical blog URL or the supplied public page with Spectre Lens | browser read plus optional balanced-model assessment |
 | `/config` | show a redacted, safe runtime configuration | none |
 | `/budget` | show daily and monthly AI accounting | none |
-| `check OpenRouter status` | check provider reachability and configured model availability | external read |
+| `/openrouter` | check provider reachability and configured model availability | external read |
 | `/sync` | fetch the canonical branch and rebuild ETS | protected Git write operation |
 
 Article identifiers use a supported language followed by a slug, for example
@@ -367,9 +449,13 @@ partially configured state.
 | `EX_BLOG_ADMIN_PASSWORD_HASH` | yes | — | Argon2id hash accepted by `/admin/login`; generate it locally with the included Mix task |
 | `EX_BLOG_ADMIN_TELEGRAM_ID` | yes | — | positive numeric Telegram user ID of the only allowed command sender |
 | `EX_BLOG_ADMIN_TELEGRAM_USERNAME` | no | unset | informational label only; never used for authorization |
-| `EX_BLOG_TELEGRAM_API_ID` | yes | — | positive Telegram application API ID |
-| `EX_BLOG_TELEGRAM_API_HASH` | yes | — | Telegram application API hash; secret |
+| `TG_API_ID` | yes | — | positive Telegram application API ID obtained from `my.telegram.org/apps` |
+| `TG_API_HASH` | yes | — | Telegram application API hash; secret |
 | `EX_BLOG_TELEGRAM_SESSION_ID` | no | `ex_blog` | TDLib session name; letters, numbers, `_`, and `-` only |
+
+`EX_BLOG_TELEGRAM_API_ID` and `EX_BLOG_TELEGRAM_API_HASH` remain accepted as
+legacy aliases, but new deployments should use ExGram's conventional
+`TG_API_ID` and `TG_API_HASH` names.
 
 ### Git content
 
@@ -392,8 +478,11 @@ partially configured state.
 | `EX_BLOG_LLM_BALANCED_MODEL` | yes | — | title, SEO, normal revision, and page-audit model ID |
 | `EX_BLOG_LLM_DEEP_MODEL` | yes | — | full article and translation model ID |
 | `EX_BLOG_CLASSIFIER_MODEL` | yes | — | Spectre classifier fallback model ID; it may equal the fast model |
-| `EX_BLOG_EMBEDDING_MODEL` | no | `openrouter:perplexity/pplx-embed-v1-0.6b` | embedding provider and model used by semantic routing |
-| `EX_BLOG_EMBEDDING_DIMENSIONS` | no | `1024` | vector dimensions; must match the selected embedding model and persisted snapshots |
+| `EX_BLOG_EMBEDDING_MODEL` | no | `openrouter:perplexity/pplx-embed-v1-0.6b` | optional Prism/OpenRouter embedding capability; Agent intent routing uses the local model below |
+| `EX_BLOG_EMBEDDING_DIMENSIONS` | no | `1024` | dimension contract for the optional OpenRouter embedding capability |
+| `SPECTRE_CLASSIFIER_DATASET_PATH` | no | release `priv/spectre/dataset.json` | override the checked-in routing corpus path |
+| `SPECTRE_CLASSIFIER_ARTIFACT_DIR` | no | release `priv/spectre/classifier` | override the generated classifier and semantic-vector artifact directory |
+| `SPECTRE_LOCAL_CLASSIFIER` | no | `true` | emergency switch; `false` leaves exact cache and the remote LLM fallback active |
 | `EX_BLOG_MONTHLY_BUDGET_EUR` | no | `20` | positive monthly AI spending ceiling |
 | `EX_BLOG_MAX_ARTICLE_COST_EUR` | no | `2` | positive ceiling for one editorial operation |
 | `EX_BLOG_USD_EUR_RATE` | no | `0.92` | fixed accounting conversion rate, not a live exchange-rate service |
@@ -422,6 +511,7 @@ Requirements:
 
 - Elixir 1.19 or later with a compatible OTP release;
 - Git;
+- Rust 1.91 or later and clang for the ExFastembed native dependency;
 - a writable absolute data directory;
 - a GitHub content repository and credential;
 - an OpenRouter API key;
@@ -433,9 +523,18 @@ Install dependencies and the TDLib backend:
 
 ```bash
 mix deps.get
+mix spectre.classifier.setup
 mix ex_gram.setup_tdlib --install
 mix setup
 ```
+
+`mix spectre.classifier.setup` validates the checked-in ExBlog corpus, writes a
+normalized copy to `training/dataset.json`, downloads
+`intfloat/multilingual-e5-small`, and generates the local classifier plus its
+semantic vector mirror under `priv/spectre/classifier`. The model download and
+generated artifacts are intentionally ignored by Git; rerun the task whenever
+the dataset changes. The production Docker build runs the same bootstrap and
+copies the model cache into the final image.
 
 `--install` may use the system package manager and require `sudo`. If CMake,
 Make, a C++ compiler, gperf, OpenSSL headers, zlib headers, and `pkg-config` are
@@ -502,11 +601,23 @@ ExWapp environment variables or WhatsApp pairing steps in this repository.
 
 ### Obtain Telegram API credentials
 
-Create your own Telegram application through
-[Telegram's official API application page](https://my.telegram.org/apps) and
-copy its `api_id` and `api_hash` into `EX_BLOG_TELEGRAM_API_ID` and
-`EX_BLOG_TELEGRAM_API_HASH`. These identify the application; they are not a bot
-token and they do not authorize a user session by themselves.
+Sign in with the phone number of your Telegram account at
+[Telegram's official API application page](https://my.telegram.org/apps), open
+**API development tools**, create an application, and copy its `api_id` and
+`api_hash`. Telegram also documents the process in
+[Obtaining api_id](https://core.telegram.org/api/obtaining_api_id).
+
+Export the values before starting ExBlog:
+
+```bash
+export TG_API_ID="12345678"
+export TG_API_HASH="replace-with-your-private-api-hash"
+```
+
+Keep the quotes: `TG_API_ID` is parsed as a positive integer by ExBlog, while
+`TG_API_HASH` is a secret and must never be committed or logged. These values
+identify the Telegram application; they are not a Bot API token and they do
+not authorize a user session by themselves.
 
 Set `EX_BLOG_ADMIN_TELEGRAM_ID` to the numeric user ID that is allowed to send
 commands. The optional username is only a display hint and changing a username
@@ -668,7 +779,8 @@ validate every ENV
 → create the data directory
 → restore durable article images
 → open DETS
-→ restore semantic routing examples
+→ load the trained local classifier
+→ restore online semantic examples and warm the versioned vector index
 → clone or synchronize the Git repository
 → parse Markdown and build ETS
 → start Spectre, Prism, Kinetic, and Beam boundaries
@@ -692,9 +804,10 @@ Run the complete project gate:
 mix precommit
 ```
 
-It runs compilation with warnings as errors, removes unused lock entries,
-formats the project, runs Credo in strict mode, runs Dialyzer with unmatched
-return and error-path checks, and executes the test suite.
+It first validates the complete routing dataset, then runs compilation with
+warnings as errors, removes unused lock entries, formats the project, runs
+Credo in strict mode, runs Dialyzer with unmatched-return and error-path checks,
+and executes the test suite.
 
 The individual commands are:
 
@@ -725,6 +838,11 @@ The included Fly configuration assumes:
 - `PHX_SERVER=true` and HTTPS at the edge;
 - GitHub as the recoverable source of Markdown content.
 
+The image builds ExFastembed from source, trains the ExBlog classifier, embeds
+the semantic corpus once, and ships the downloaded model cache. The default Fly
+machine uses 2 GB RAM because Phoenix, TDLib, and the warm local model share one
+runtime.
+
 Generate production secrets locally:
 
 ```bash
@@ -734,8 +852,8 @@ fly secrets set \
   SECRET_KEY_BASE="$(mix phx.gen.secret)" \
   EX_BLOG_ADMIN_PASSWORD_HASH="$ADMIN_HASH" \
   EX_BLOG_ADMIN_TELEGRAM_ID="123456789" \
-  EX_BLOG_TELEGRAM_API_ID="12345" \
-  EX_BLOG_TELEGRAM_API_HASH="..." \
+  TG_API_ID="12345" \
+  TG_API_HASH="..." \
   EX_BLOG_GITHUB_TOKEN="github_pat_..." \
   EX_BLOG_GITHUB_REPOSITORY="owner/blog-content" \
   OPENROUTER_API_KEY="sk-or-..." \
