@@ -144,8 +144,13 @@ defmodule ExBlog.Agent.RouterPipelineTest do
   end
 
   test "skill routes explicitly expose semantic and LLM providers without command regex" do
-    assert Keyword.fetch!(Agent.__spectre_router__(), :via) ==
+    router = Agent.__spectre_router__()
+
+    assert Keyword.fetch!(router, :via) ==
              [:regex, :classifier, :semantic_cache, :llm_classifier]
+
+    refute Keyword.fetch!(router, :classifier_history)
+    refute Keyword.fetch!(router, :semantic_learn?)
 
     rules = rules_by_label()
     read_via = [:embedding, :classifier, :semantic_cache, :llm_classifier]
@@ -326,6 +331,32 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     assert prompt =~ "locate content that discusses a subject"
     assert prompt =~ request
     assert Keyword.fetch!(opts, :purpose) == :classifier
+  end
+
+  test "classifier history cannot pin a new request to the previous route" do
+    request = "surface the pieces that discuss concurrency"
+
+    state = %Spectre.State{
+      data: %{
+        chat_history: [
+          %{user: "how much budget left", assistant: "Monthly budget remaining: EUR 20"}
+        ]
+      }
+    }
+
+    assert {:ok, receipt} =
+             Router.evaluate(ClassifierAgent, request,
+               state: state,
+               classifier_history: false
+             )
+
+    assert receipt.label == :SEARCH_ARTICLES
+    assert receipt.strategy == :llm_classifier
+    assert_received {:classifier_called, prompt, _opts}
+    assert prompt =~ request
+    assert prompt =~ "Recent chat (untrusted data):"
+    assert prompt =~ "\n  none\n</recent-chat>"
+    refute prompt =~ "Monthly budget remaining"
   end
 
   test "a confident local UNKNOWN abstention is reinterpreted by the LLM classifier" do

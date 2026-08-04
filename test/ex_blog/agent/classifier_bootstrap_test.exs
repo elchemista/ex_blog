@@ -61,11 +61,11 @@ defmodule ExBlog.Agent.ClassifierBootstrapTest do
     on_exit(fn -> File.rm(output) end)
 
     assert {:ok, stats} = Build.build(@dataset_path, [output])
-    assert stats.examples == 528
+    assert stats.examples == 532
     assert stats.outputs == [output]
 
     generated = output |> File.read!() |> Jason.decode!()
-    assert length(generated) == 528
+    assert length(generated) == 532
     assert generated == Enum.sort_by(generated, &{&1["intent"], dataset_key(&1["text"])})
   end
 

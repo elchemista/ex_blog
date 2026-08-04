@@ -81,11 +81,15 @@ defmodule ExBlog.AgentTest do
   test "the English dataset provides exact routes without regex or model calls" do
     routes = [
       {"Give me an inventory of all content entries", :LIST_ARTICLES},
+      {"Give me list of articles", :LIST_ARTICLES},
+      {"list of articles", :LIST_ARTICLES},
+      {"list", :LIST_ARTICLES},
       {"Open the article about Phoenix LiveView", :READ_ARTICLE},
       {"Find articles that discuss semantic routing", :SEARCH_ARTICLES},
       {"Audit the rendered article page for missing metadata", :CHECK_BLOG_PAGE},
       {"Show the safe blog configuration", :SHOW_BLOG_CONFIG},
       {"i want know how much i spend", :SHOW_AI_BUDGET},
+      {"how much budget left", :SHOW_AI_BUDGET},
       {"Give me information", :SHOW_CAPABILITIES},
       {"Show the current ExBlog system status", :SHOW_SYSTEM_STATUS},
       {"Check whether OpenRouter is configured and reachable", :CHECK_OPENROUTER},
@@ -100,6 +104,29 @@ defmodule ExBlog.AgentTest do
 
       assert result.route.label == expected_label
       assert result.route.strategy == :semantic_cache_exact
+    end
+  end
+
+  test "an administrator can leave the budget route and list articles in the same conversation" do
+    conversation_id = "route-switch-#{System.unique_integer([:positive])}"
+
+    assert {:ok, budget} =
+             Spectre.ask(ExBlog.Agent, "how much budget left", conversation_id: conversation_id)
+
+    assert budget.route.label == :SHOW_AI_BUDGET
+
+    assert {:ok, _executed_budget} =
+             Spectre.execute(ExBlog.Agent, budget, conversation_id: conversation_id)
+
+    for request <- ["give me list of articles", "list of articles", "list"] do
+      assert {:ok, articles} =
+               Spectre.ask(ExBlog.Agent, request, conversation_id: conversation_id)
+
+      assert articles.route.label == :LIST_ARTICLES
+      assert articles.route.strategy == :semantic_cache_exact
+
+      assert {:ok, _executed_articles} =
+               Spectre.execute(ExBlog.Agent, articles, conversation_id: conversation_id)
     end
   end
 

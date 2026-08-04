@@ -125,6 +125,7 @@
   {"text": "genrate seo metadata", "intent": "GENERATE_ARTICLE_SEO", "language": "en"},
 
   {"text": "Give me an inventory of all content entries", "intent": "LIST_ARTICLES", "language": "en"},
+  {"text": "Give me list of articles", "intent": "LIST_ARTICLES", "language": "en"},
   {"text": "What articles are currently in the archive?", "intent": "LIST_ARTICLES", "language": "en"},
   {"text": "Display every post in the blog", "intent": "LIST_ARTICLES", "language": "en"},
   {"text": "I need the full list of drafts and published posts", "intent": "LIST_ARTICLES", "language": "en"},
@@ -137,6 +138,8 @@
   {"text": "What content is available on the site?", "intent": "LIST_ARTICLES", "language": "en"},
   {"text": "Enumerate the blog archive", "intent": "LIST_ARTICLES", "language": "en"},
   {"text": "list articles", "intent": "LIST_ARTICLES", "language": "en"},
+  {"text": "list of articles", "intent": "LIST_ARTICLES", "language": "en"},
+  {"text": "list", "intent": "LIST_ARTICLES", "language": "en"},
   {"text": "show posts", "intent": "LIST_ARTICLES", "language": "en"},
   {"text": "what posts do we have", "intent": "LIST_ARTICLES", "language": "en"},
   {"text": "list all drafts", "intent": "LIST_ARTICLES", "language": "en"},
@@ -251,6 +254,7 @@
 
   {"text": "Show the current AI spending budget", "intent": "SHOW_AI_BUDGET", "language": "en"},
   {"text": "How much of the monthly model allowance remains?", "intent": "SHOW_AI_BUDGET", "language": "en"},
+  {"text": "How much budget left", "intent": "SHOW_AI_BUDGET", "language": "en"},
   {"text": "Report what the agent has spent on AI calls", "intent": "SHOW_AI_BUDGET", "language": "en"},
   {"text": "Give me the OpenRouter cost summary", "intent": "SHOW_AI_BUDGET", "language": "en"},
   {"text": "What is our remaining generation budget?", "intent": "SHOW_AI_BUDGET", "language": "en"},

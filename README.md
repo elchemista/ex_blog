@@ -146,9 +146,9 @@ stops at the first confident answer:
    test, a small locally trained model routes known paraphrases without a
    network call. It answers only when clearly confident; otherwise it steps
    aside. Production does not ship this model.
-5. **Is it close to something the agent already learned?** The message is
-   embedded once and compared against stored request vectors; a close enough
-   match reuses the earlier routing decision.
+5. **Is it close to a manually reviewed semantic example?** The message is
+   embedded once and compared only against trusted request vectors; a close
+   enough match can reuse that reviewed routing decision.
 6. **Only then, ask a model.** When every cheaper signal misses or providers
    disagree, one fast OpenRouter completion classifies the intent. A local
    `UNKNOWN` prediction is an abstention and cannot finish routing; the remote
@@ -246,8 +246,10 @@ effect, shows what it is about to do, and waits: only a plain `yes` or
 three invalid confirmation attempts cancel the operation. No model output can
 approve a staged action.
 
-Read actions never mutate Git. Semantic learning is also restricted to
-explicitly learnable read routes, so a learned match can never approve a write.
+Read actions never mutate Git. Live LLM classifications are not learned
+automatically: one mistaken classification cannot pin later messages to the
+wrong read route. The versioned dataset and manually reviewed semantic rows
+remain available, and neither can approve a write.
 
 ### Prism model routing
 
@@ -371,8 +373,9 @@ margin gates make ambiguous predictions fall through instead of treating them
 as authoritative. Hosted models receive the original redacted text without the
 E5-specific prefix.
 
-The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 528 original
-English examples: 24 for each of 22 routing intents. Twenty-one are locally
+The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 532 original
+English examples across 22 routing intents, with at least 24 examples per
+intent. Twenty-one are locally
 routeable classifier labels; `UNKNOWN` remains in the training corpus as an
 abstention label that deliberately forces remote reinterpretation. The
 dataset includes contrastive cases such as reading versus searching, auditing
@@ -385,14 +388,15 @@ The optional development bootstrap produces two artifacts from the same
 corpus under ignored `artifacts/spectre`:
 
 - `classifier.etf`, used by the warm local intent classifier;
-- `semantic_cache.jsonl`, containing precomputed local vectors for all 528
+- `semantic_cache.jsonl`, containing precomputed local vectors for all 532
   examples; development boot filters them through route policy and warms
-  Vettore with the 264 cacheable read/help/conversational examples.
+  Vettore with the 268 cacheable read/help/conversational examples.
 
 Production does not load either artifact. It still reads the release-safe
-dataset for exact matches. New eligible semantic rows are embedded through
-OpenRouter and persisted in a namespace containing the hosted model and
-dimension identity, so a DETS store cannot mix them with local 384d rows.
+dataset for exact matches. Automatic online learning is disabled; only
+explicitly reviewed semantic rows may be searched. Any such hosted vectors are
+persisted in a namespace containing the model and dimension identity, so a
+DETS store cannot mix them with local 384d rows.
 
 Spectre mirrors dataset rows into exact cache only when their route is
 cacheable. Consequently, eleven read/help/conversational intents can answer
@@ -422,12 +426,10 @@ never turn an unrelated request into an interrupt.
 The gates are strict on purpose. The local classifier must reach `0.89` with a
 `0.008` margin over the runner-up label; optional static-embedding candidates
 need `0.84` with a `0.03` margin; learned semantic matches need `0.94`
-similarity. An unreviewed learned read intent becomes verified automatically
-only at `0.985` similarity with at least a `0.05` margin over the next label.
-A candidate that cannot clear its gate simply falls through to the next
-provider instead of routing the request on a guess. Online learned rows and
-their embeddings are persisted in DETS. Editorial mutations have
-`learn: false` and still require policy confirmation.
+similarity. A candidate that cannot clear its gate simply falls through to the
+next provider instead of routing the request on a guess. Reviewed rows and
+their embeddings are persisted in DETS. Live classifier output is never added
+automatically, and editorial mutations still require policy confirmation.
 
 ### Reading the agent implementation
 

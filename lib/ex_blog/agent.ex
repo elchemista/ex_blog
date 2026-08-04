@@ -61,14 +61,18 @@ defmodule ExBlog.Agent do
   memory(ExBlog.Agent.Memory)
 
   # Routing uses deterministic controls first, exact cache and any enabled local
-  # evidence next, then learned vector search, with the LLM classifier only as
-  # fallback. Static
+  # evidence next, then reviewed vector search, with the LLM classifier only as
+  # fallback. The classifier sees the current message rather than prior replies:
+  # conversational history is useful for answer generation, but it can bias an
+  # otherwise explicit topic change such as "budget" followed by "list posts".
+  # Static
   # `:embedding` similarity is supported by RouterPipeline but is not global:
   # Spectre's stock plug embeds every declared example per request, which would
   # replace one local query embedding with dozens of redundant inferences.
   router(
     pipeline: RouterPipeline,
     via: [:regex, :classifier, :semantic_cache, :llm_classifier],
+    classifier_history: false,
     semantic_cache_search_threshold: 0.94,
     arbitrator:
       {Spectre.Router.Arbitrators.Default,
@@ -114,9 +118,10 @@ defmodule ExBlog.Agent do
     semantic_cache?: true,
     semantic_cache: ExBlog.Agent.SemanticCache,
     embedding: {ExBlog.Agent.Embedding, []},
-    semantic_learn?: true,
-    semantic_learn_min_chars: 8,
-    semantic_learn_max_chars: 1_000,
+    # A single mistaken LLM classification must never become durable routing
+    # evidence. The checked-in dataset still powers trusted exact matches, and
+    # manually reviewed semantic rows can still be searched.
+    semantic_learn?: false,
     classification_log?: false
   )
 

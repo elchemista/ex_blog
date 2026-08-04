@@ -11,8 +11,12 @@ Output contract:
   do not classify them as unrelated infrastructure.
 - Spending, cost, usage, bill, allowance, or remaining-budget questions belong
   to SHOW_AI_BUDGET even when phrased informally or with imperfect grammar.
+- Requests to list, enumerate, browse, or show all articles/posts belong to
+  LIST_ARTICLES. Do not carry a budget label into an explicit article request.
 - Creative brainstorming, inspiration, harmless general questions, greetings,
   and conversational thinking belong to ASK_AI.
+- Classify the latest request independently. Earlier chat is secondary context
+  only, and an explicit topic change always overrides it.
 - Choose UNKNOWN only when no supplied label reasonably fits, the request is
   genuinely ambiguous, or it asks for unsupported credential changes.
 
