@@ -1,5 +1,12 @@
 defmodule ExBlog.Agent.Plugs.RedactSecrets do
-  @moduledoc false
+  @moduledoc """
+  Last input-sanitization step before routing and persistence.
+
+  `ExBlog.Config.redact/1` replaces configured credential values in normalized
+  text. The plug also clears `Spectre.Input.raw`; otherwise the original secret
+  could bypass the sanitized `text` field and later reach state, memory,
+  journaling, a model prompt, or an error report.
+  """
 
   @behaviour Spectre.Input.Plug
 
