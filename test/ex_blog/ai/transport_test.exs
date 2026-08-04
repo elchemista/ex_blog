@@ -66,4 +66,36 @@ defmodule ExBlog.AI.TransportTest do
 
     refute_received :unexpected_http_request
   end
+
+  test "embedding requests do not receive chat-only usage options" do
+    Req.Test.expect(__MODULE__, fn conn ->
+      body = conn |> Req.Test.raw_body() |> Jason.decode!()
+
+      refute Map.has_key?(body, "usage")
+      assert body["input"] == "list every article"
+
+      Req.Test.json(conn, %{
+        "model" => "perplexity/pplx-embed-v1-0.6b",
+        "data" => [%{"index" => 0, "embedding" => [1.0, 0.0]}]
+      })
+    end)
+
+    assert {:ok, 200, _headers, body} =
+             Transport.request(
+               :post,
+               "https://openrouter.test/api/v1/embeddings",
+               [{"authorization", "Bearer hidden"}],
+               %{
+                 "model" => "perplexity/pplx-embed-v1-0.6b",
+                 "input" => "list every article",
+                 "encoding_format" => "float"
+               },
+               ex_blog_level: :fast,
+               purpose: :semantic_cache_embedding,
+               req_options: [plug: {Req.Test, __MODULE__}]
+             )
+
+    assert [%{"embedding" => embedding}] = body["data"]
+    assert embedding == [1.0, 0.0]
+  end
 end
