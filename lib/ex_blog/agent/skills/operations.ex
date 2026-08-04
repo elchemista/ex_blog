@@ -3,10 +3,10 @@ defmodule ExBlog.Agent.Skills.Operations do
   Runtime diagnostics, budget visibility, and repository synchronization.
 
   Diagnostics are cacheable, learnable read routes and therefore use regex,
-  semantic examples, the trained local classifier, verified semantic-cache
+  semantic examples, the optional local classifier, verified semantic-cache
   rows, and the LLM classifier.
   Repository synchronization is a write route: natural-language routing may
-  use optional embeddings, the trained local classifier, or the LLM classifier,
+  use optional embeddings, the optional local classifier, or the LLM classifier,
   while regex remains available for `/sync`. The route is never learned and
   Spectre must complete `repository_confirmation` before execution.
 
