@@ -7,7 +7,8 @@ defmodule ExBlog.Agent.Skills.Reader do
     * `regex` is reserved for explicit, deterministic slash commands;
     * `embedding` supplies semantic examples to the optional static matcher,
       the classifier route tree, and Spectre's static exact-cache rows;
-    * `classifier` uses ExBlog's trained local model before any remote model;
+    * `classifier` uses ExBlog's optional local model when the environment
+      enables it;
     * `semantic_cache` can reuse a verified vector learned from an earlier LLM
       classification;
     * `llm_classifier` handles a novel paraphrase when cheaper evidence misses.
