@@ -1,11 +1,56 @@
 defmodule ExBlogWeb.MCPControllerTest do
   use ExBlogWeb.ConnCase, async: false
 
-  test "rejects missing bearer authentication", %{conn: conn} do
-    conn = post(conn, "/mcp", request("initialize", %{}, 1))
+  alias ExBlog.ChatGPT.OAuth
+  alias ExBlog.Storage
 
-    assert response(conn, 401)
-    assert get_resp_header(conn, "www-authenticate") == [~s(Bearer realm="ExBlog MCP")]
+  @redirect_uri "https://chatgpt.com/connector/oauth/ex-blog-mcp-test"
+  @verifier String.duplicate("m", 64)
+
+  setup do
+    :ok = Storage.clear()
+    :ok
+  end
+
+  test "allows protocol discovery and returns the tool-level OAuth challenge", %{conn: conn} do
+    initialized = post(conn, "/mcp", request("initialize", %{}, 1))
+
+    assert %{"result" => %{"protocolVersion" => "2025-11-25"}} =
+             json_response(initialized, 200)
+
+    challenged =
+      build_conn()
+      |> post(
+        "/mcp",
+        request("tools/call", %{"name" => "show_config", "arguments" => %{}}, 2)
+      )
+
+    assert %{
+             "result" => %{
+               "isError" => true,
+               "structuredContent" => %{
+                 "error" => "invalid_token",
+                 "required_scope" => "articles:read"
+               },
+               "_meta" => %{"mcp/www_authenticate" => [challenge]}
+             }
+           } = json_response(challenged, 200)
+
+    assert challenge =~ "/.well-known/oauth-protected-resource/mcp"
+    assert challenge =~ ~s(scope="articles:read")
+    assert challenge =~ ~s(error="insufficient_scope")
+  end
+
+  test "rejects an invalid Bearer token with protected-resource discovery", %{conn: conn} do
+    conn =
+      conn
+      |> put_req_header("authorization", "Bearer invalid-token")
+      |> post("/mcp", request("initialize", %{}, 2))
+
+    assert %{"error" => "unauthorized"} = json_response(conn, 401)
+    [challenge] = get_resp_header(conn, "www-authenticate")
+    assert challenge =~ "/.well-known/oauth-protected-resource/mcp"
+    assert challenge =~ ~s(error="invalid_token")
   end
 
   test "rejects a foreign Origin before dispatch", %{conn: conn} do
@@ -20,9 +65,7 @@ defmodule ExBlogWeb.MCPControllerTest do
 
   test "initializes and lists annotated tools", %{conn: conn} do
     conn =
-      conn
-      |> authenticated_conn()
-      |> post("/mcp", request("initialize", %{}, 3))
+      post(conn, "/mcp", request("initialize", %{}, 3))
 
     assert %{
              "result" => %{
@@ -33,7 +76,6 @@ defmodule ExBlogWeb.MCPControllerTest do
 
     conn =
       build_conn()
-      |> authenticated_conn()
       |> post("/mcp", request("tools/list", %{}, 4))
 
     assert %{"result" => %{"tools" => tools}} = json_response(conn, 200)
@@ -43,8 +85,20 @@ defmodule ExBlogWeb.MCPControllerTest do
     assert delete_tool["annotations"]["destructiveHint"]
     refute delete_tool["annotations"]["readOnlyHint"]
 
+    assert delete_tool["securitySchemes"] == [
+             %{"type" => "oauth2", "scopes" => ["articles:write"]}
+           ]
+
+    assert delete_tool["_meta"]["securitySchemes"] == delete_tool["securitySchemes"]
+
     config_tool = Enum.find(tools, &(&1["name"] == "show_config"))
     assert config_tool["annotations"]["readOnlyHint"]
+
+    assert config_tool["securitySchemes"] == [
+             %{"type" => "oauth2", "scopes" => ["articles:read"]}
+           ]
+
+    assert config_tool["_meta"]["securitySchemes"] == config_tool["securitySchemes"]
 
     check_tool = Enum.find(tools, &(&1["name"] == "check_page"))
     assert check_tool["annotations"]["readOnlyHint"]
@@ -83,8 +137,43 @@ defmodule ExBlogWeb.MCPControllerTest do
     refute encoded =~ ExBlog.Config.fetch_secret!(:telegram_api_hash)
   end
 
-  test "GET is authenticated and reports that streaming is unsupported", %{conn: conn} do
-    conn = conn |> authenticated_conn() |> get("/mcp")
+  test "accepts a persisted OAuth token and enforces its granted scopes", %{conn: conn} do
+    access_token = oauth_access_token("articles:read")
+
+    readable =
+      conn
+      |> oauth_conn(access_token)
+      |> post(
+        "/mcp",
+        request("tools/call", %{"name" => "show_config", "arguments" => %{}}, 7)
+      )
+
+    assert %{"result" => %{"isError" => false}} = json_response(readable, 200)
+
+    denied =
+      readable
+      |> recycle()
+      |> oauth_conn(access_token)
+      |> post(
+        "/mcp",
+        request(
+          "tools/call",
+          %{"name" => "publish_article", "arguments" => %{"lang" => "it", "slug" => "x"}},
+          8
+        )
+      )
+
+    assert %{
+             "result" => %{
+               "isError" => true,
+               "structuredContent" => %{"required_scope" => "articles:write"},
+               "_meta" => %{"mcp/www_authenticate" => [_challenge]}
+             }
+           } = json_response(denied, 200)
+  end
+
+  test "GET reports that streaming is unsupported", %{conn: conn} do
+    conn = get(conn, "/mcp")
     assert response(conn, 405) == ""
     assert get_resp_header(conn, "allow") == ["POST"]
   end
@@ -112,6 +201,47 @@ defmodule ExBlogWeb.MCPControllerTest do
     conn
     |> put_req_header("authorization", "Bearer #{ExBlog.Config.fetch_secret!(:mcp_token)}")
     |> put_req_header("accept", "application/json, text/event-stream")
+  end
+
+  defp oauth_conn(conn, access_token) do
+    conn
+    |> put_req_header("authorization", "Bearer #{access_token}")
+    |> put_req_header("accept", "application/json, text/event-stream")
+  end
+
+  defp oauth_access_token(scope) do
+    assert {:ok, client} =
+             OAuth.register_client(%{
+               "client_name" => "ChatGPT",
+               "redirect_uris" => [@redirect_uri]
+             })
+
+    challenge = :crypto.hash(:sha256, @verifier) |> Base.url_encode64(padding: false)
+
+    assert {:ok, authorization} =
+             OAuth.validate_authorization_request(%{
+               "response_type" => "code",
+               "client_id" => client.client_id,
+               "redirect_uri" => @redirect_uri,
+               "scope" => scope,
+               "code_challenge" => challenge,
+               "code_challenge_method" => "S256",
+               "resource" => OAuth.resource_url()
+             })
+
+    assert {:ok, code} = OAuth.issue_authorization_code(authorization)
+
+    assert {:ok, token} =
+             OAuth.exchange_authorization_code(%{
+               "grant_type" => "authorization_code",
+               "code" => code,
+               "client_id" => client.client_id,
+               "redirect_uri" => @redirect_uri,
+               "code_verifier" => @verifier,
+               "resource" => OAuth.resource_url()
+             })
+
+    token.access_token
   end
 
   defp request(method, params, id) do
