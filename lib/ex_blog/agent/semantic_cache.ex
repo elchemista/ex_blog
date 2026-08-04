@@ -35,7 +35,8 @@ defmodule ExBlog.Agent.SemanticCache do
 
   require Logger
 
-  alias ExBlog.Agent.ClassifierConfig
+  alias ExBlog.Agent.Embedding
+  alias ExBlog.Config
   alias ExBlog.Storage
   alias Spectre.Router.SemanticCache, as: Cache
   alias Spectre.Router.SemanticCache.Learned
@@ -328,7 +329,7 @@ defmodule ExBlog.Agent.SemanticCache do
     {
       :spectre_semantic_cache,
       inspect(agent),
-      ClassifierConfig.encoder_model()
+      Embedding.identity(Config.get())
     }
   end
 end
