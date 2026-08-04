@@ -11,36 +11,40 @@
           <span class="term-dot"></span>
           <span class="term-dot"></span>
         </span>
-        <span class="term-title">ex_blog — zsh — {@current_language}</span>
+        <span class="term-title">spectre — zsh — {@current_language}</span>
         <span class="ml-auto hidden flex-none t-faint sm:block">132×40</span>
       </div>
 
       <div class="term-body p-5 sm:p-9">
         <p class="term-prompt text-[0.78rem] t-dim">whoami</p>
         <p class="term-out mt-1 text-[0.78rem] t-body">
-          {gettext("ExBlog — development notes, technical write-ups and things I broke")}
+          {gettext("Spectre — a live showcase of the agent ecosystem it is named after")}
         </p>
 
         <p class="term-prompt mt-6 text-[0.78rem] t-dim">cat manifesto.md</p>
         <h1 class="mt-4 max-w-3xl text-3xl font-bold leading-[1.12] tracking-tight text-balance t-strong sm:text-5xl lg:text-[3.4rem]">
           {raw(
-            gettext("Code worth %{highlight}, not just attention.",
-              highlight: highlight(gettext("time"))
+            gettext("Agents that read like a %{highlight}, not a magic trick.",
+              highlight: highlight(gettext("map"))
             )
           )}
         </h1>
         <p class="mt-5 max-w-2xl text-[0.85rem] leading-7 t-dim sm:text-[0.92rem]">
           <span class="t-faint" aria-hidden="true">// </span>{gettext(
-            "Elixir, distributed systems, tooling and critical thinking. Independent articles, written to be read twice."
+            "Every article here was published by an Elixir agent that had to ask permission first. Below: how it works, the libraries behind it, and the notes written along the way."
           )}
         </p>
 
         <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-dashed border-[color:var(--line)] pt-5 text-[0.72rem] t-faint">
           <span class="term-prompt t-dim">ls -1 posts/ | wc -l</span>
           <span class="term-out t-body">{length(@articles)}</span>
-          <span class="ml-auto flex items-center gap-2">
-            uptime <span class="t-dim">100%</span>
-          </span>
+          <a
+            href={blog_repo_url()}
+            rel="noopener noreferrer"
+            class="ml-auto flex items-center gap-2 transition hover:t-strong"
+          >
+            github.com/{blog_repo()} <span aria-hidden="true">→</span>
+          </a>
         </div>
 
         <p class="mt-6 text-[0.78rem] t-dim">
@@ -48,6 +52,8 @@
         </p>
       </div>
     </div>
+
+    <.spectre_showcase :if={is_nil(@filter)} />
 
     <div
       :if={@filter}
@@ -66,12 +72,17 @@
       </.link>
     </div>
 
-    <div class="mt-12 flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--line)] pb-4">
+    <div class="mt-16 flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--line)] pb-4">
       <div>
         <p class="term-prompt text-[0.72rem] t-faint">ls -lat posts/</p>
         <h2 class="mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl">
           {gettext("Latest posts")}
         </h2>
+        <p :if={is_nil(@filter)} class="mt-2 text-[0.75rem] leading-6 t-faint">
+          <span aria-hidden="true">// </span>{gettext(
+            "Notes written while building all of the above."
+          )}
+        </p>
       </div>
       <span class="term-chip">
         {ngettext("%{count} file", "%{count} files", length(@articles))}

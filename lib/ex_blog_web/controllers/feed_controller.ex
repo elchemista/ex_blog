@@ -3,6 +3,7 @@ defmodule ExBlogWeb.FeedController do
 
   alias ExBlog.Config
   alias ExBlog.Content
+  alias ExBlogWeb.Layouts
   alias ExBlogWeb.PublicCache
 
   def rss(conn, _params) do
@@ -30,9 +31,9 @@ defmodule ExBlogWeb.FeedController do
       <?xml version="1.0" encoding="UTF-8"?>
       <rss version="2.0">
         <channel>
-          <title>ExBlog</title>
+          <title>#{xml(Layouts.site_name())}</title>
           <link>#{xml(absolute("/"))}</link>
-          <description>Idee, appunti e storie pubblicate con cura.</description>
+          <description>#{xml(Layouts.default_description())}</description>
           <language>#{xml(language)}</language>
           #{items}
         </channel>
@@ -66,7 +67,7 @@ defmodule ExBlogWeb.FeedController do
       """
       <?xml version="1.0" encoding="UTF-8"?>
       <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="#{xml(language)}">
-        <title>ExBlog</title>
+        <title>#{xml(Layouts.site_name())}</title>
         <id>#{xml(absolute("/"))}</id>
         <link href="#{xml(absolute("/atom.xml"))}" rel="self" />
         <link href="#{xml(absolute("/"))}" />

@@ -5,8 +5,15 @@ defmodule ExBlogWeb.Layouts do
 
   embed_templates "layouts/*"
 
+  @site_name "Spectre"
+
+  def site_name, do: @site_name
+
   def default_description,
-    do: gettext("Development notes, technical write-ups and stories from the terminal.")
+    do:
+      gettext(
+        "A live showcase of the Spectre agent ecosystem for Elixir, plus notes from building it."
+      )
 
   attr :flash, :map, required: true
   attr :current_scope, :map, default: nil
@@ -28,6 +35,7 @@ defmodule ExBlogWeb.Layouts do
       |> assign(:supported_languages, languages)
       |> assign(:current_language, current_language)
       |> assign(:current_year, Date.utc_today().year)
+      |> assign(:site_name, @site_name)
 
     ~H"""
     <a href="#main-content" class="skip-link">{gettext("Skip to content")}</a>
@@ -41,7 +49,7 @@ defmodule ExBlogWeb.Layouts do
             id="site-brand"
             href={~p"/"}
             class="group flex min-w-0 items-center gap-3"
-            aria-label={gettext("ExBlog home")}
+            aria-label={gettext("Spectre home")}
           >
             <span class="term-dots" aria-hidden="true">
               <span class="term-dot transition-colors group-hover:bg-[color:var(--fg-dim)]"></span>
@@ -49,7 +57,7 @@ defmodule ExBlogWeb.Layouts do
               <span class="term-dot"></span>
             </span>
             <span class="truncate text-[0.82rem] tracking-tight">
-              <span class="t-strong">ex_blog</span><span class="t-dim">@{@current_language}</span><span class="t-dim">:~$</span>
+              <span class="t-strong">spectre</span><span class="t-dim">@{@current_language}</span><span class="t-dim">:~$</span>
             </span>
             <.cursor class="hidden sm:inline-block" />
           </.link>
@@ -104,9 +112,16 @@ defmodule ExBlogWeb.Layouts do
       <footer id="site-footer" class="border-t border-[color:var(--line)]">
         <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-[0.75rem] sm:px-6 lg:px-8">
           <p class="term-prompt t-dim">
-            echo "© {@current_year} ExBlog — {gettext("written in Markdown, published from Git")}"
+            echo "© {@current_year} {@site_name} — {gettext("written in Markdown, published from Git")}"
           </p>
           <div class="flex flex-wrap items-center gap-x-5 gap-y-2 t-faint">
+            <a
+              href={ExBlogWeb.Showcase.blog_repo_url()}
+              rel="noopener noreferrer"
+              class="transition hover:t-strong"
+            >
+              github.com/{ExBlogWeb.Showcase.blog_repo()}
+            </a>
             <.link
               href={~p"/#{@current_language}/cookies-policy"}
               class={["transition hover:t-strong"]}
@@ -205,9 +220,9 @@ defmodule ExBlogWeb.Layouts do
     """
   end
 
-  def document_title(nil), do: "ExBlog"
-  def document_title("ExBlog"), do: "ExBlog"
-  def document_title(title), do: "#{title} · ExBlog"
+  def document_title(nil), do: @site_name
+  def document_title(@site_name), do: @site_name
+  def document_title(title), do: "#{title} · #{@site_name}"
 
   def encoded_json_ld(data) do
     data

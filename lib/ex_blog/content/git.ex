@@ -36,14 +36,11 @@ defmodule ExBlog.Content.Git do
 
     result =
       with_auth(config, fn auth_env ->
-        command(
-          ["clone", "--branch", branch, "--single-branch", "--", url, path],
-          Path.dirname(path),
-          auth_env,
-          config
-        )
+        with {:ok, state} <-
+               remote_branch_state(url, branch, Path.dirname(path), auth_env, config) do
+          clone_remote(state, url, branch, path, auth_env, config)
+        end
       end)
-      |> normalize_commit(path, config)
 
     record(:clone, result, [])
   end
@@ -55,13 +52,9 @@ defmodule ExBlog.Content.Git do
     branch = Keyword.get(opts, :branch, config.github_branch)
 
     result =
-      with :ok <- repository?(path),
-           {:ok, _output} <-
-             with_auth(config, fn auth_env ->
-               command(["fetch", "--prune", "origin", branch], path, auth_env, config)
-             end),
-           {:ok, _output} <- command(["reset", "--hard", "origin/#{branch}"], path, [], config) do
-        current_commit(path: path, config: config)
+      case repository?(path) do
+        :ok -> with_auth(config, &sync_authenticated(&1, branch, path, config))
+        {:error, _reason} = error -> error
       end
 
     record(:sync, result, [])
@@ -91,22 +84,14 @@ defmodule ExBlog.Content.Git do
     branch = Keyword.get(opts, :branch, config.github_branch)
 
     result =
-      with :ok <- repository?(path),
-           {:ok, _output} <-
-             with_auth(config, fn auth_env ->
-               command(["fetch", "origin", branch], path, auth_env, config)
-             end),
-           {:ok, _output} <- rebase(path, branch, config),
-           {:ok, _output} <-
-             with_auth(config, fn auth_env ->
-               command(["push", "origin", "HEAD:#{branch}"], path, auth_env, config)
-             end),
-           {:ok, sha} <- current_commit(path: path, config: config) do
-        {:ok, sha}
-      else
-        {:error, reason} ->
-          _ignored = command(["rebase", "--abort"], path, [], config)
-          {:error, reason}
+      case repository?(path) do
+        :ok ->
+          config
+          |> with_auth(&push_authenticated(&1, branch, path, config))
+          |> abort_rebase_on_error(path, config)
+
+        {:error, _reason} = error ->
+          error
       end
 
     record(:push, result, [])
@@ -149,18 +134,173 @@ defmodule ExBlog.Content.Git do
   defp maybe_commit(false, _message, _path, _config), do: {:ok, :noop}
 
   defp maybe_commit(true, message, path, config) do
-    env =
-      base_env() ++
-        [
-          {"GIT_AUTHOR_NAME", config.github_author_name},
-          {"GIT_AUTHOR_EMAIL", config.github_author_email},
-          {"GIT_COMMITTER_NAME", config.github_author_name},
-          {"GIT_COMMITTER_EMAIL", config.github_author_email}
-        ]
-
-    with {:ok, _output} <- command(["commit", "-m", message], path, env, config) do
+    with {:ok, _output} <- command(["commit", "-m", message], path, author_env(config), config) do
       current_commit(path: path, config: config)
     end
+  end
+
+  defp clone_remote(:empty, url, branch, path, auth_env, config) do
+    with {:ok, _output} <-
+           command(["init", "--initial-branch=#{branch}", path], Path.dirname(path), [], config),
+         {:ok, _output} <- command(["remote", "add", "origin", url], path, [], config) do
+      initialize_empty_remote(branch, path, auth_env, config)
+    end
+  end
+
+  defp clone_remote(:present, url, branch, path, auth_env, config) do
+    command(
+      ["clone", "--branch", branch, "--single-branch", "--", url, path],
+      Path.dirname(path),
+      auth_env,
+      config
+    )
+    |> normalize_commit(path, config)
+  end
+
+  defp sync_remote(:empty, branch, path, auth_env, config) do
+    initialize_empty_remote(branch, path, auth_env, config)
+  end
+
+  defp sync_remote(:present, branch, path, auth_env, config) do
+    with {:ok, _output} <- command(["fetch", "--prune", "origin", branch], path, auth_env, config),
+         {:ok, _output} <- command(["reset", "--hard", "origin/#{branch}"], path, [], config) do
+      current_commit(path: path, config: config)
+    end
+  end
+
+  defp sync_authenticated(auth_env, branch, path, config) do
+    case remote_branch_state("origin", branch, path, auth_env, config) do
+      {:ok, state} -> sync_remote(state, branch, path, auth_env, config)
+      {:error, _reason} = error -> error
+    end
+  end
+
+  defp push_authenticated(auth_env, branch, path, config) do
+    with {:ok, state} <- remote_branch_state("origin", branch, path, auth_env, config),
+         :ok <- prepare_push(state, branch, path, auth_env, config),
+         {:ok, _output} <-
+           command(["push", "origin", "HEAD:#{branch}"], path, auth_env, config) do
+      current_commit(path: path, config: config)
+    end
+  end
+
+  defp abort_rebase_on_error({:error, reason}, path, config) do
+    _ignored = command(["rebase", "--abort"], path, [], config)
+    {:error, reason}
+  end
+
+  defp abort_rebase_on_error(result, _path, _config), do: result
+
+  defp prepare_push(:empty, _branch, _path, _auth_env, _config), do: :ok
+
+  defp prepare_push(:present, branch, path, auth_env, config) do
+    with {:ok, _output} <- command(["fetch", "origin", branch], path, auth_env, config),
+         {:ok, _output} <- rebase(path, branch, config) do
+      :ok
+    end
+  end
+
+  defp remote_branch_state(repository, branch, path, auth_env, config) do
+    with {:ok, output} <- command(["ls-remote", "--heads", repository], path, auth_env, config) do
+      branches = remote_branches(output)
+
+      cond do
+        branches == [] -> {:ok, :empty}
+        branch in branches -> {:ok, :present}
+        true -> {:error, {:remote_branch_not_found, branch, branches}}
+      end
+    end
+  end
+
+  defp remote_branches(output) do
+    output
+    |> String.split("\n", trim: true)
+    |> Enum.flat_map(fn line ->
+      case String.split(line, ~r/\s+/, parts: 2, trim: true) do
+        [_sha, "refs/heads/" <> branch] -> [branch]
+        _invalid -> []
+      end
+    end)
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
+
+  defp initialize_empty_remote(branch, path, auth_env, config) do
+    with {:ok, _sha} <- ensure_seed_commit(path, config),
+         {:ok, _output} <-
+           command(
+             ["push", "--set-upstream", "origin", "HEAD:#{branch}"],
+             path,
+             auth_env,
+             config
+           ) do
+      current_commit(path: path, config: config)
+    end
+  end
+
+  defp ensure_seed_commit(path, config) do
+    case current_commit(path: path, config: config) do
+      {:ok, sha} ->
+        {:ok, sha}
+
+      {:error, _unborn_branch} ->
+        with {:ok, files} <- write_seed_files(path, config),
+             {:ok, _output} <- command(["add", "--" | files], path, [], config),
+             {:ok, _output} <-
+               command(
+                 ["commit", "-m", "Initialize ExBlog content repository"],
+                 path,
+                 author_env(config),
+                 config
+               ) do
+          current_commit(path: path, config: config)
+        end
+    end
+  end
+
+  defp write_seed_files(path, config) do
+    files =
+      [
+        {"README.md", seed_readme(config.content_root)},
+        {"#{config.content_root}/.gitkeep", ""}
+      ] ++
+        Enum.map(config.supported_languages, fn language ->
+          {"#{config.content_root}/#{language}/.gitkeep", ""}
+        end)
+
+    Enum.reduce_while(files, {:ok, []}, fn {relative, contents}, {:ok, written} ->
+      destination = Path.join(path, relative)
+
+      with :ok <- File.mkdir_p(Path.dirname(destination)),
+           :ok <- File.write(destination, contents) do
+        {:cont, {:ok, [relative | written]}}
+      else
+        {:error, reason} -> {:halt, {:error, {:seed_write_failed, relative, reason}}}
+      end
+    end)
+    |> case do
+      {:ok, written} -> {:ok, Enum.reverse(written)}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  defp seed_readme(content_root) do
+    """
+    # ExBlog content
+
+    This repository is initialized and maintained by ExBlog.
+    Articles live under `#{content_root}/<language>/` and follow the Markdown contract documented by the application.
+    """
+  end
+
+  defp author_env(config) do
+    base_env() ++
+      [
+        {"GIT_AUTHOR_NAME", config.github_author_name},
+        {"GIT_AUTHOR_EMAIL", config.github_author_email},
+        {"GIT_COMMITTER_NAME", config.github_author_name},
+        {"GIT_COMMITTER_EMAIL", config.github_author_email}
+      ]
   end
 
   defp rebase(path, branch, config) do

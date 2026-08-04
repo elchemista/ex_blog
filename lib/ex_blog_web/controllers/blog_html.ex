@@ -3,6 +3,8 @@ defmodule ExBlogWeb.BlogHTML do
 
   use ExBlogWeb, :html
 
+  import ExBlogWeb.Showcase
+
   embed_templates "blog_html/*"
 
   attr :article, ExBlog.Content.Article, required: true

@@ -21,14 +21,14 @@
 
       <div class="term-body p-5 sm:p-8">
         <p class="term-prompt text-[0.75rem] t-dim">
-          ex_blog oauth grant --client "{@request.client_name}"
+          spectre oauth grant --client "{@request.client_name}"
         </p>
         <h1 id="oauth-consent-heading" class="mt-4 text-xl font-bold tracking-tight t-strong">
           {gettext("Authorize %{client}", client: @request.client_name)}
         </h1>
         <p class="mt-2 text-[0.78rem] leading-6 t-faint">
           <span aria-hidden="true">// </span>{gettext(
-            "You are connecting the ExBlog administrator to the MCP client. Review the permissions before continuing."
+            "You are connecting the Spectre administrator to the MCP client. Review the permissions before continuing."
           )}
         </p>
 
@@ -49,7 +49,7 @@
 
         <p class="mt-5 border-l-2 border-[color:var(--line-strong)] pl-4 text-[0.72rem] leading-5 t-faint">
           {gettext(
-            "Plaintext tokens are handed to the client only once. ExBlog stores nothing but revocable hashes and expiry dates on the persistent volume."
+            "Plaintext tokens are handed to the client only once. Spectre stores nothing but revocable hashes and expiry dates on the persistent volume."
           )}
         </p>
 

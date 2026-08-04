@@ -10,7 +10,7 @@ defmodule ExBlogWeb.Admin.LoginLive do
     {:ok,
      socket
      |> assign(:page_title, gettext("Administrator area"))
-     |> assign(:meta_description, gettext("Restricted access for the ExBlog administrator."))
+     |> assign(:meta_description, gettext("Restricted access for the Spectre administrator."))
      |> assign(:robots, "noindex,nofollow,noarchive")
      |> assign(:canonical_url, Config.canonical_url(config) <> "/admin/login")
      |> assign(:current_language, config.default_language)
@@ -38,12 +38,12 @@ defmodule ExBlogWeb.Admin.LoginLive do
               <span class="term-dot"></span>
               <span class="term-dot"></span>
             </span>
-            <span class="term-title">admin@ex_blog — login</span>
+            <span class="term-title">admin@spectre — login</span>
             <span class="ml-auto flex-none t-faint">tty1</span>
           </div>
 
           <div class="term-body p-5 sm:p-7">
-            <p class="term-prompt text-[0.75rem] t-dim">sudo ex_blog admin</p>
+            <p class="term-prompt text-[0.75rem] t-dim">sudo spectre admin</p>
             <h1 id="admin-login-heading" class="mt-4 text-xl font-bold tracking-tight t-strong">
               {gettext("Administrator area")}
             </h1>

@@ -29,7 +29,7 @@
       href={ExBlog.Config.canonical_url() <> "/#{translation.lang}/#{translation.slug}"}
     />
 
-    <meta property="og:site_name" content="ExBlog" />
+    <meta property="og:site_name" content={Layouts.site_name()} />
     <meta property="og:type" content={assigns[:og_type] || "website"} />
     <meta property="og:title" content={document_title(assigns[:page_title])} />
     <meta property="og:description" content={assigns[:meta_description] || default_description()} />
@@ -38,7 +38,7 @@
     <meta
       :if={assigns[:og_image]}
       property="og:image:alt"
-      content={assigns[:og_image_alt] || assigns[:page_title] || "ExBlog"}
+      content={assigns[:og_image_alt] || assigns[:page_title] || Layouts.site_name()}
     />
     <meta
       :if={assigns[:article] && assigns[:article].date}

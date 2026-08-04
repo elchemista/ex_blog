@@ -469,14 +469,14 @@ its runtime checkout, so do not manually edit
 `$EX_BLOG_DATA_DIR/repo`; periodic synchronization deliberately resets that
 checkout to the configured remote branch.
 
-1. Create the repository and its canonical branch.
-2. Add an initial commit. A completely empty remote has no branch for
-   `git clone --branch`, so a README or `.gitkeep` commit is sufficient.
-3. Create the language directories under the configured content root.
-4. Create a repository-scoped credential that can clone and push. A
+1. Create the repository and choose its canonical branch. The repository may
+   be completely empty: on first boot ExBlog creates the configured branch,
+   an explanatory `README.md`, and `.gitkeep` files for every configured
+   language directory, then pushes the initialization commit.
+2. Create a repository-scoped credential that can clone and push. A
    fine-grained GitHub token limited to this repository with repository
    **Contents: read and write** is the intended setup.
-5. Put `owner/repository`, branch, token, and commit author identity in the
+3. Put `owner/repository`, branch, token, and commit author identity in the
    ExBlog environment.
 
 One possible initial repository is:
@@ -648,12 +648,24 @@ Requirements:
 - the native `tdlib-json-cli` backend required by ExGram;
 - Lightpanda only when using public-page audits.
 
-Install dependencies and the TDLib backend:
+Install application dependencies:
 
 ```bash
 mix deps.get
-mix ex_gram.setup_tdlib --install
 mix setup
+```
+
+For a local checkout next to the Freelance reference application, reuse its
+already compiled backend instead of rebuilding TDLib:
+
+```bash
+export EX_GRAM_BACKEND_BINARY="$(realpath ../../startup/freelance/vendor/ex_gram/priv/tdlib-json-cli)"
+```
+
+Otherwise build the bundled backend explicitly:
+
+```bash
+mix ex_gram.setup_tdlib --install
 ```
 
 ### Train the local Spectre classifier
@@ -690,6 +702,7 @@ Git. Never run this pipeline as part of a production build or release:
 production excludes ExFastembed and obtains semantic embeddings from
 OpenRouter.
 
+`EX_GRAM_BACKEND_BINARY` must name an executable compatible with the host.
 `--install` may use the system package manager and require `sudo`. If CMake,
 Make, a C++ compiler, gperf, OpenSSL headers, zlib headers, and `pkg-config` are
 already installed, use `mix ex_gram.setup_tdlib` without the flag. Building
@@ -999,8 +1012,24 @@ classifier artifacts, and native embedding-model caches. The Docker builder
 retains a build-only Rust toolchain because Spectre Kinetic's Ortex dependency
 compiles its own NIF; that toolchain is not copied into the runtime image.
 Semantic embeddings go through OpenRouter using the configured model and
-dimensions. The default Fly machine therefore remains at 1 GB RAM for Phoenix
+dimensions. The Fly machine is fixed at 2 shared CPUs and 1 GB RAM for Phoenix
 and TDLib.
+
+The image reuses Freelance's immutable Bookworm TDLib artifact instead of
+compiling TDLib on every deployment. Private Git dependencies still require a
+read-only GitHub credential during the build. Supply it as a BuildKit secret;
+it is never copied into an image layer:
+
+```bash
+# Local build: alternatively use `--ssh default` with an authorized SSH agent.
+docker build --secret id=github_token,env=GITHUB_BUILD_TOKEN -t ex-blog .
+
+# Build on Fly without deploying.
+fly deploy --build-only --build-secret github_token="$GITHUB_BUILD_TOKEN"
+```
+
+`GITHUB_BUILD_TOKEN` needs read access to the private `elchemista` dependency
+repositories. It is separate from the runtime content-repository token.
 
 Generate production secrets locally:
 
@@ -1027,10 +1056,11 @@ Set non-secret deployment values such as branch, languages, budgets, host,
 embedding model, and port in `fly.toml` or the platform environment.
 
 The native `tdlib-json-cli` executable must be present in every production
-release. Build it with `mix ex_gram.setup_tdlib` before `mix release`, or
-provide a reviewed executable through ExGram's `:backend_binary`
-configuration. Normal dependency compilation intentionally does not build
-TDLib.
+release. The Docker build copies the pinned Freelance artifact into ExGram
+before dependency compilation and verifies that the release contains it.
+Outside Docker, either set ExGram's `:backend_binary`/`EX_GRAM_BACKEND_BINARY`
+or run `mix ex_gram.setup_tdlib`. Normal dependency compilation intentionally
+does not build TDLib.
 
 Do not use a release command for content setup: the checkout and DETS files
 must be opened by the machine that owns the mounted volume.

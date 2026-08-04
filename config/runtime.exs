@@ -31,6 +31,21 @@ config :ex_blog,
   runtime_environment: config_env(),
   runtime_data_dir: data_dir
 
+# Development machines can reuse a reviewed TDLib executable (for example the
+# one already built by the sibling Freelance project) without copying it into
+# this dependency or compiling TDLib again. Releases leave this unset and use
+# the executable bundled from the immutable Docker artifact.
+case System.get_env("EX_GRAM_BACKEND_BINARY") do
+  value when is_binary(value) ->
+    case String.trim(value) do
+      "" -> :ok
+      path -> config :ex_gram, :backend_binary, Path.expand(path)
+    end
+
+  _missing ->
+    :ok
+end
+
 # The versioned dataset remains available to exact semantic-cache lookup in
 # every environment. Local classifier artifacts are development/test-only;
 # production uses hosted OpenRouter embeddings and refuses native artifacts.

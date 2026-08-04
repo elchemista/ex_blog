@@ -26,7 +26,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
      |> assign(:page_title, gettext("Telegram connection"))
      |> assign(
        :meta_description,
-       gettext("Restricted management of the ExBlog Telegram session.")
+       gettext("Restricted management of the Spectre Telegram session.")
      )
      |> assign(:robots, "noindex,nofollow,noarchive")
      |> assign(:canonical_url, Config.canonical_url(config) <> "/admin/telegram")
@@ -123,7 +123,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
       >
         <header class="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p class="term-prompt text-[0.72rem] t-faint">ex_blog telegram status</p>
+            <p class="term-prompt text-[0.72rem] t-faint">spectre telegram status</p>
             <h1
               id="admin-telegram-heading"
               class="mt-3 text-2xl font-bold tracking-tight t-strong sm:text-3xl"
@@ -132,7 +132,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
             </h1>
             <p class="mt-2 max-w-2xl text-[0.78rem] leading-6 t-faint">
               <span aria-hidden="true">// </span>{gettext(
-                "Connect the account that controls ExBlog and follow every TDLib authentication step in real time."
+                "Connect the account that controls Spectre and follow every TDLib authentication step in real time."
               )}
             </p>
           </div>

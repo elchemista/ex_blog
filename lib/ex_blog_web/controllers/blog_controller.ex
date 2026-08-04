@@ -4,6 +4,7 @@ defmodule ExBlogWeb.BlogController do
   alias ExBlog.Config
   alias ExBlog.Content
   alias ExBlog.Content.Article
+  alias ExBlogWeb.Layouts
   alias ExBlogWeb.PublicCache
 
   def home(conn, _params) do
@@ -182,8 +183,8 @@ defmodule ExBlogWeb.BlogController do
       "inLanguage" => article.lang,
       "mainEntityOfPage" => absolute_url(path),
       "image" => cover_url(article.cover),
-      "author" => %{"@type" => "Organization", "name" => "ExBlog"},
-      "publisher" => %{"@type" => "Organization", "name" => "ExBlog"}
+      "author" => %{"@type" => "Organization", "name" => Layouts.site_name()},
+      "publisher" => %{"@type" => "Organization", "name" => Layouts.site_name()}
     }
     |> reject_nil_values()
   end
@@ -192,7 +193,7 @@ defmodule ExBlogWeb.BlogController do
     %{
       "@context" => "https://schema.org",
       "@type" => "Blog",
-      "name" => "ExBlog",
+      "name" => Layouts.site_name(),
       "url" => absolute_url(path),
       "description" => description
     }

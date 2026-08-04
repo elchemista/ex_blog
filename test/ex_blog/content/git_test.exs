@@ -83,6 +83,66 @@ defmodule ExBlog.Content.GitTest do
              )
   end
 
+  test "initializes an empty remote and publishes its first commit", context do
+    origin = Path.join(context.root, "empty-origin.git")
+    checkout = Path.join(context.root, "empty-checkout")
+    git!(["init", "--bare", origin], context.root)
+
+    assert {:ok, seed_sha} =
+             Git.clone(
+               config: context.config,
+               path: checkout,
+               url: origin,
+               branch: "main"
+             )
+
+    assert String.length(seed_sha) == 40
+
+    assert {:ok, ^seed_sha} =
+             Git.sync(config: context.config, path: checkout, branch: "main")
+
+    {branch, 0} = System.cmd("git", ["branch", "--show-current"], cd: checkout)
+    assert String.trim(branch) == "main"
+    assert File.read!(Path.join(checkout, "README.md")) =~ "# ExBlog content"
+    assert File.exists?(Path.join(checkout, "content/it/.gitkeep"))
+    assert File.exists?(Path.join(checkout, "content/en/.gitkeep"))
+
+    {readme, 0} =
+      System.cmd("git", ["--git-dir", origin, "show", "main:README.md"], stderr_to_stdout: true)
+
+    assert readme =~ "# ExBlog content"
+
+    relative = "content/it/first.md"
+    File.mkdir_p!(Path.dirname(Path.join(checkout, relative)))
+    File.write!(Path.join(checkout, relative), "first article\n")
+
+    assert {:ok, commit_sha} =
+             Git.commit([relative], "Publish first article",
+               config: context.config,
+               path: checkout
+             )
+
+    assert {:ok, ^commit_sha} =
+             Git.push(config: context.config, path: checkout, branch: "main")
+
+    {body, 0} =
+      System.cmd("git", ["--git-dir", origin, "show", "main:#{relative}"], stderr_to_stdout: true)
+
+    assert body == "first article\n"
+  end
+
+  test "reports a configured branch that is missing from a non-empty remote", context do
+    assert {:error, {:remote_branch_not_found, "missing", ["main"]}} =
+             Git.clone(
+               config: context.config,
+               path: context.checkout,
+               url: context.origin,
+               branch: "missing"
+             )
+
+    refute File.exists?(context.checkout)
+  end
+
   defp git!(args, directory, env \\ []) do
     case System.cmd("git", args, cd: directory, env: env, stderr_to_stdout: true) do
       {_output, 0} -> :ok
