@@ -46,6 +46,8 @@ defmodule ExBlog.Config do
     :balanced_model,
     :deep_model,
     :classifier_model,
+    :embedding_model,
+    :embedding_dimensions,
     :default_language,
     :supported_languages,
     :monthly_budget_eur,
@@ -76,6 +78,8 @@ defmodule ExBlog.Config do
           balanced_model: String.t(),
           deep_model: String.t(),
           classifier_model: String.t(),
+          embedding_model: String.t(),
+          embedding_dimensions: pos_integer(),
           default_language: String.t(),
           supported_languages: [String.t()],
           monthly_budget_eur: Decimal.t(),
@@ -183,8 +187,10 @@ defmodule ExBlog.Config do
         fast: config.fast_model,
         balanced: config.balanced_model,
         deep: config.deep_model,
-        classifier: config.classifier_model
+        classifier: config.classifier_model,
+        embedding: config.embedding_model
       },
+      agent_language: "en",
       github_token: :configured,
       openrouter_token: :configured,
       telegram_api: :configured,
@@ -255,6 +261,7 @@ defmodule ExBlog.Config do
       monthly_budget_eur: positive_decimal(env, "EX_BLOG_MONTHLY_BUDGET_EUR", "20"),
       max_article_cost_eur: positive_decimal(env, "EX_BLOG_MAX_ARTICLE_COST_EUR", "2"),
       usd_eur_rate: positive_decimal(env, "EX_BLOG_USD_EUR_RATE", "0.92"),
+      embedding_dimensions: positive_integer(env, "EX_BLOG_EMBEDDING_DIMENSIONS", "1024"),
       git_sync_interval_ms: positive_integer(env, "EX_BLOG_GIT_SYNC_INTERVAL_MS", "900000"),
       data_dir: absolute_path(env),
       content_root: content_root(env)
@@ -279,6 +286,10 @@ defmodule ExBlog.Config do
          balanced_model: value(env, "EX_BLOG_LLM_BALANCED_MODEL"),
          deep_model: value(env, "EX_BLOG_LLM_DEEP_MODEL"),
          classifier_model: value(env, "EX_BLOG_CLASSIFIER_MODEL"),
+         embedding_model:
+           optional(env, "EX_BLOG_EMBEDDING_MODEL") ||
+             "openrouter:perplexity/pplx-embed-v1-0.6b",
+         embedding_dimensions: values.embedding_dimensions,
          default_language: values.default_language,
          supported_languages: values.supported_languages,
          monthly_budget_eur: values.monthly_budget_eur,
