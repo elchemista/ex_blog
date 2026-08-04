@@ -69,6 +69,9 @@ defmodule ExBlog.ConfigTest do
     assert Config.public(config).models.local_classifier ==
              "intfloat/multilingual-e5-small"
 
+    assert Config.public(config).models.routing_embedding ==
+             "local:intfloat/multilingual-e5-small"
+
     assert config.embedding_dimensions == 1024
   end
 
