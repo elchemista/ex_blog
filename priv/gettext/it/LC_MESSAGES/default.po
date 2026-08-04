@@ -11,7 +11,7 @@ msgstr ""
 "Language: it\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:88
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:94
 #, elixir-autogen, elixir-format
 msgid "%{count} file"
 msgid_plural "%{count} files"
@@ -135,7 +135,7 @@ msgstr "Connessione…"
 msgid "Connection details"
 msgstr "Dettagli connessione"
 
-#: lib/ex_blog_web/components/layouts.ex:177
+#: lib/ex_blog_web/components/layouts.ex:192
 #, elixir-autogen, elixir-format
 msgid "Connection lost"
 msgstr "Connessione interrotta"
@@ -250,7 +250,7 @@ msgstr "Mantieni attiva la connessione fino alla revoca"
 msgid "Language"
 msgstr "Lingua"
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:79
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:85
 #, elixir-autogen, elixir-format
 msgid "Latest posts"
 msgstr "Ultime pubblicazioni"
@@ -285,7 +285,7 @@ msgstr "Apri Telegram su un dispositivo già autenticato e scansiona il codice."
 msgid "Open Telegram on the already authenticated phone."
 msgstr "Apri Telegram sul telefono già autenticato."
 
-#: lib/ex_blog_web/components/layouts.ex:142
+#: lib/ex_blog_web/components/layouts.ex:157
 #, elixir-autogen, elixir-format
 msgid "Open cookie preferences"
 msgstr "Apri le preferenze cookie"
@@ -340,7 +340,7 @@ msgstr "Leggi articoli, configurazione sicura e stato operativo"
 msgid "Reading time"
 msgstr "Lettura"
 
-#: lib/ex_blog_web/components/layouts.ex:185
+#: lib/ex_blog_web/components/layouts.ex:200
 #, elixir-autogen, elixir-format
 msgid "Reconnecting"
 msgstr "Riconnessione in corso"
@@ -350,7 +350,7 @@ msgstr "Riconnessione in corso"
 msgid "Requesting…"
 msgstr "Richiesta in corso…"
 
-#: lib/ex_blog_web/components/layouts.ex:200
+#: lib/ex_blog_web/components/layouts.ex:215
 #, elixir-autogen, elixir-format
 msgid "Retrying in a moment"
 msgstr "Riprovo tra un istante"
@@ -386,7 +386,7 @@ msgstr "Accesso effettuato."
 msgid "Skip to content"
 msgstr "Vai al contenuto"
 
-#: lib/ex_blog_web/components/layouts.ex:192
+#: lib/ex_blog_web/components/layouts.ex:207
 #, elixir-autogen, elixir-format
 msgid "Something went wrong"
 msgstr "Qualcosa non ha funzionato"
@@ -488,7 +488,7 @@ msgstr "La sessione amministratore è scaduta."
 msgid "The content you were looking for does not exist, is not published yet or has moved."
 msgstr "Il contenuto che cercavi non esiste, non è ancora pubblicato oppure ha cambiato indirizzo."
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:108
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:114
 #, elixir-autogen, elixir-format
 msgid "The next piece is already in the works. Come back soon, or subscribe to the feed."
 msgstr "Il prossimo pezzo è già in lavorazione. Torna presto, oppure iscriviti al feed."
@@ -508,8 +508,8 @@ msgstr "La pagina richiesta non esiste."
 msgid "The session is authorized and running."
 msgstr "La sessione è autorizzata e operativa."
 
-#: lib/ex_blog_web/components/layouts.ex:214
-#: lib/ex_blog_web/components/layouts.ex:215
+#: lib/ex_blog_web/components/layouts.ex:229
+#: lib/ex_blog_web/components/layouts.ex:230
 #, elixir-autogen, elixir-format
 msgid "Toggle colour theme"
 msgstr "Cambia tema colore"
@@ -581,12 +581,12 @@ msgstr "archivio"
 msgid "auth"
 msgstr "auth"
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:64
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:70
 #, elixir-autogen, elixir-format
 msgid "category"
 msgstr "categoria"
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:71
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:77
 #, elixir-autogen, elixir-format
 msgid "clear filter"
 msgstr "rimuovi filtro"
@@ -621,7 +621,7 @@ msgstr "suggerimento"
 msgid "idle"
 msgstr "in attesa"
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:105
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:111
 #, elixir-autogen, elixir-format
 msgid "ls: no matching file for this selection"
 msgstr "ls: nessun file corrispondente in questa selezione"
@@ -677,7 +677,7 @@ msgstr "aggiorna"
 msgid "requested scopes"
 msgstr "permessi richiesti"
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:64
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:70
 #, elixir-autogen, elixir-format
 msgid "tag"
 msgstr "tag"
@@ -714,12 +714,7 @@ msgstr "Un agente Spectre deve leggersi come una mappa, non come un trucco di ma
 msgid "A live showcase of the Spectre agent ecosystem for Elixir, plus notes from building it."
 msgstr "Una vetrina viva dell'ecosistema di agenti Spectre per Elixir, più gli appunti scritti costruendolo."
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:27
-#, elixir-autogen, elixir-format
-msgid "Agents that read like a %{highlight}, not a magic trick."
-msgstr "Agenti che si leggono come una %{highlight}, non come un trucco di magia."
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:82
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:88
 #, elixir-autogen, elixir-format
 msgid "Notes written while building all of the above."
 msgstr "Appunti scritti costruendo tutto quello che sta qui sopra."
@@ -788,11 +783,6 @@ msgstr "l'esecuzione avviene solo tramite una chiamata esplicita dell'host"
 #, elixir-autogen, elixir-format
 msgid "fast · balanced · deep tier"
 msgstr "livello fast · balanced · deep"
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:28
-#, elixir-autogen, elixir-format
-msgid "map"
-msgstr "mappa"
 
 #: lib/ex_blog_web/components/showcase.ex:228
 #, elixir-autogen, elixir-format
@@ -934,11 +924,6 @@ msgstr "questo sito, open source"
 msgid "Spectre — OTP-native agent runtime for Elixir. This site runs on it."
 msgstr "Spectre — runtime OTP-nativo per agenti in Elixir. Questo sito ci gira sopra."
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:33
-#, elixir-autogen, elixir-format
-msgid "The articles below were written over Telegram by an agent that asks before it writes. Here is how it works, and what it is built on."
-msgstr "Gli articoli qui sotto sono stati scritti via Telegram da un agente che chiede prima di scrivere. Ecco come funziona e su cosa è costruito."
-
 #: lib/ex_blog_web/live/admin/telegram_live.ex:666
 #, elixir-autogen, elixir-format
 msgid "Changing account"
@@ -983,3 +968,28 @@ msgstr "Per usare un altro numero, disconnetti questa sessione Telegram e avvia 
 #, elixir-autogen, elixir-format
 msgid "Use another phone number"
 msgstr "Usa un altro numero di telefono"
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:30
+#, elixir-autogen, elixir-format
+msgid "Build Elixir agents like %{highlight}."
+msgstr "Costruisci agenti Elixir come %{highlight}."
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:31
+#, elixir-autogen, elixir-format
+msgid "OTP systems"
+msgstr "sistemi OTP"
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:39
+#, elixir-autogen, elixir-format
+msgid "Spectre keeps routing, state, policies, and side effects explicit—with supervised processes, recovery designed in from the start, and application logic that stays in your code."
+msgstr "Spectre mantiene espliciti routing, stato, policy ed effetti collaterali: processi supervisionati, recovery progettato fin dall'inizio e logica applicativa che resta nel tuo codice."
+
+#: lib/ex_blog_web/components/layouts.ex:136
+#, elixir-autogen, elixir-format
+msgid "Contact me by email"
+msgstr "Contattami via email"
+
+#: lib/ex_blog_web/components/layouts.ex:118
+#, elixir-autogen, elixir-format
+msgid "built with love by"
+msgstr "costruito con amore da"

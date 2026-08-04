@@ -17,11 +17,15 @@ defmodule ExBlogWeb.PublicCache do
   # new module that renders one, otherwise its changes stay invisible behind the
   # browser cache.
   @render_modules [
+    __MODULE__,
     ExBlogWeb.Layouts,
     ExBlogWeb.CoreComponents,
     ExBlogWeb.Showcase,
+    ExBlogWeb.BlogController,
     ExBlogWeb.BlogHTML,
+    ExBlogWeb.FeedController,
     ExBlogWeb.LegalHTML,
+    ExBlogWeb.SitemapController,
     ExBlogWeb.Gettext
   ]
 

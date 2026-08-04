@@ -73,6 +73,18 @@ defmodule ExBlog.Agent.KineticPlannerTest do
     assert payload["parser_error"] == "invalid_al_verb"
   end
 
+  test "suppresses malformed Action Language instead of exposing it as visible text" do
+    malformed =
+      ~s(AL\n<PUBLISH ARTICLE LANG="en" SLUG="building-a-blog-with-spectre-my-library-for-agent-driven-development" />\n</al>)
+
+    assert {:ok, %{reply_text: reply, actions: []}} =
+             KineticPlanner.plan_response(malformed, %{}, [])
+
+    assert reply == "I couldn't prepare that action safely. Please rephrase the request."
+    refute reply =~ "PUBLISH ARTICLE"
+    refute reply =~ "</al>"
+  end
+
   test "rejects tools and arguments outside the mounted Kinetic catalog" do
     hallucinated = planner_response("System.erase/0", %{})
 

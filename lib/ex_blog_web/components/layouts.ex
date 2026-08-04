@@ -114,6 +114,14 @@ defmodule ExBlogWeb.Layouts do
           <p class="term-prompt t-dim">
             echo "© {@current_year} {@site_name} — {gettext("written in Markdown, published from Git")}"
           </p>
+          <p class="term-prompt t-dim">
+            echo "{gettext("built with love by")} <a
+              href="https://elchemista.com"
+              target="_blank"
+              rel="noopener noreferrer me"
+              class="t-strong underline decoration-dashed underline-offset-4 transition hover:no-underline"
+            >elchemista</a>"
+          </p>
           <div class="flex flex-wrap items-center gap-x-5 gap-y-2 t-faint">
             <a
               href={ExBlogWeb.Showcase.blog_repo_url()}
@@ -121,6 +129,13 @@ defmodule ExBlogWeb.Layouts do
               class="transition hover:t-strong"
             >
               github.com/{ExBlogWeb.Showcase.blog_repo()}
+            </a>
+            <a
+              href="mailto:elchemista@gmail.com"
+              class="transition hover:t-strong"
+              aria-label={gettext("Contact me by email")}
+            >
+              ./contact-me
             </a>
             <.link
               href={~p"/#{@current_language}/cookies-policy"}

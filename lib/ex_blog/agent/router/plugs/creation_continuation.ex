@@ -1,11 +1,12 @@
 defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
   @moduledoc """
-  Adds deterministic routing evidence for the active article creation step.
+  Adds deterministic routing evidence for an active editorial workflow step.
 
   Global interrupts and explicit slash commands retain precedence. Otherwise,
   the current nested flow owns the free-form reply without another model call.
 
-  Capture rules advertise the private provider name `:creation_continuation`.
+  Capture rules advertise the private provider name `:creation_continuation`
+  for compatibility with the original article-creation flow.
   Normal Spectre providers therefore cannot see them outside intake. This plug
   is the sole bridge: it reads the persisted cursor, finds the matching scoped
   rule, and emits hard evidence for exactly that leaf.
@@ -28,7 +29,7 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
       Context.halted?(context) ->
         {:cont, context}
 
-      not active_creation?(context) ->
+      not active_editorial_workflow?(context) ->
         {:cont, context}
 
       global_interrupt?(context) ->
@@ -43,7 +44,7 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
 
       true ->
         # A future skill may add a non-command regex that also matches an
-        # intake answer. The persisted cursor is stronger than that out-of-flow
+        # workflow answer. The persisted cursor is stronger than that out-of-flow
         # evidence, so discard only non-global regex candidates before adding
         # the continuation candidate.
         context
@@ -62,10 +63,15 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
        ) do
     with true <- Editorial.active?(state),
          %Rule{} = rule <- current_step_rule(rules, state) do
+      # A regex declared on the active leaf is evaluated here rather than by
+      # the global regex plug. This keeps URL and review controls scoped to the
+      # persisted cursor while preserving `:regex` as the observable strategy.
+      provider = if Rule.match?(rule, input.text), do: :regex, else: :creation_continuation
+
       # The cursor is stronger evidence than linguistic similarity: during the
       # language step, for example, "English" is data rather than a new intent.
       candidate =
-        Candidate.from_rule(rule, :creation_continuation, input.text,
+        Candidate.from_rule(rule, provider, input.text,
           score: 1.0,
           margin: 1.0,
           strength: :hard,
@@ -75,7 +81,7 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
       {:cont,
        context
        |> Context.add_candidate(candidate)
-       |> Context.put_trace({:creation_continuation, state.current_flow})}
+       |> Context.put_trace({provider, state.current_flow})}
     else
       _inactive_or_missing_rule -> {:cont, context}
     end
@@ -83,11 +89,11 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
 
   defp route_continuation(%Context{} = context), do: {:cont, context}
 
-  @spec active_creation?(Context.t()) :: boolean()
-  defp active_creation?(%Context{host_context: %{state: %State{} = state}}),
+  @spec active_editorial_workflow?(Context.t()) :: boolean()
+  defp active_editorial_workflow?(%Context{host_context: %{state: %State{} = state}}),
     do: Editorial.active?(state)
 
-  defp active_creation?(_context), do: false
+  defp active_editorial_workflow?(_context), do: false
 
   @spec global_interrupt?(Context.t()) :: boolean()
   defp global_interrupt?(%Context{candidates: candidates}) do

@@ -1,0 +1,16 @@
+Spectre Lens finished researching the sources.
+
+Sources:
+<%= ExBlogWeb.Prompt.escape_text(@sources, 4_000) %>
+
+Short research summary:
+<%= ExBlogWeb.Prompt.escape_text(@summary, 6_000) %>
+<%= if Map.get(assigns, :warnings, "") != "" do %>
+
+Sources that could not be inspected:
+<%= ExBlogWeb.Prompt.escape_text(@warnings, 2_000) %>
+<% end %>
+
+What should the article focus on? Send the angle, audience, tone, points that
+must be included, and anything that should be excluded. I will use these
+directions together with the researched evidence.

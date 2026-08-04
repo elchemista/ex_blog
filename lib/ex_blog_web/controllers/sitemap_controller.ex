@@ -15,15 +15,9 @@ defmodule ExBlogWeb.SitemapController do
 
   def show(conn, _params) do
     entries =
-      Content.list(lang: :all)
-      |> Enum.map_join("\n", fn article ->
-        """
-          <url>
-            <loc>#{xml(absolute("/#{article.lang}/#{article.slug}"))}</loc>
-            <lastmod>#{xml(date_string(article.updated || article.date))}</lastmod>
-          </url>
-        """
-      end)
+      public_indexes()
+      |> Kernel.++(published_articles())
+      |> Enum.map_join("\n", &url_entry/1)
 
     body =
       """
@@ -38,6 +32,37 @@ defmodule ExBlogWeb.SitemapController do
       |> put_resp_content_type("application/xml")
       |> send_resp(:ok, body)
     end)
+  end
+
+  defp public_indexes do
+    [%{url: absolute("/"), lastmod: nil}] ++
+      Enum.map(Config.get().supported_languages, fn language ->
+        %{url: absolute("/#{language}"), lastmod: nil}
+      end)
+  end
+
+  defp published_articles do
+    Content.list(lang: :all)
+    |> Enum.map(fn article ->
+      %{
+        url: absolute("/#{article.lang}/#{article.slug}"),
+        lastmod: article.updated || article.date
+      }
+    end)
+  end
+
+  defp url_entry(%{url: url, lastmod: lastmod}) do
+    lastmod_element =
+      case date_string(lastmod) do
+        nil -> ""
+        date -> "\n    <lastmod>#{xml(date)}</lastmod>"
+      end
+
+    """
+      <url>
+        <loc>#{xml(url)}</loc>#{lastmod_element}
+      </url>
+    """
   end
 
   defp absolute(path), do: Config.canonical_url() <> path

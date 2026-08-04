@@ -20,6 +20,8 @@ defmodule ExBlog.Agent.Actions do
   internal callers can use the same operation with explicit arguments.
   """
 
+  alias ExBlog.Agent.ArticleSelections
+  alias ExBlog.Agent.ArticleSelector
   alias ExBlog.Agent.Language
   alias ExBlog.Agent.PageAudit
   alias ExBlog.AI
@@ -36,18 +38,22 @@ defmodule ExBlog.Agent.Actions do
   @doc "Lists article summaries using explicit arguments or language inferred from the turn."
   @spec list_articles(map(), term()) :: {:ok, map()}
   def list_articles(args, ctx \\ nil) do
-    lang =
-      argument(args, :lang) || language_from_text(input_text(ctx)) ||
-        Config.get().default_language
+    lang = argument(args, :lang) || language_from_text(input_text(ctx)) || :all
 
     status = status_argument(argument(args, :status))
     articles = Content.list(lang: lang, status: status)
 
-    {:ok,
-     %{
-       count: length(articles),
-       articles: Enum.map(articles, &article_summary/1)
-     }}
+    summaries =
+      articles |> Enum.take(ArticleSelections.maximum_entries()) |> Enum.map(&article_summary/1)
+
+    with :ok <- ArticleSelections.remember(conversation_id(ctx), summaries) do
+      {:ok,
+       %{
+         count: length(articles),
+         shown_count: length(summaries),
+         articles: summaries
+       }}
+    end
   end
 
   @doc "Reads one draft or published article identified by language and slug."
@@ -67,8 +73,18 @@ defmodule ExBlog.Agent.Actions do
     lang = argument(args, :lang) || language_from_text(text) || Config.get().default_language
     articles = Content.search(query || "", lang: lang, status: :all)
 
-    {:ok,
-     %{query: query, count: length(articles), articles: Enum.map(articles, &article_summary/1)}}
+    summaries =
+      articles |> Enum.take(ArticleSelections.maximum_entries()) |> Enum.map(&article_summary/1)
+
+    with :ok <- ArticleSelections.remember(conversation_id(ctx), summaries) do
+      {:ok,
+       %{
+         query: query,
+         count: length(articles),
+         shown_count: length(summaries),
+         articles: summaries
+       }}
+    end
   end
 
   @doc "Returns the redacted public configuration projection."
@@ -136,32 +152,11 @@ defmodule ExBlog.Agent.Actions do
     category = argument(args, :category)
     slug = argument(args, :slug) || Slug.slugify(title || "")
     subject_ref = "#{lang}/#{slug}"
-
-    prompt =
-      Prompt.article_generation(%{
-        lang: lang,
-        title: title,
-        category: category,
-        request: request
-      })
+    proposed_body = argument(args, :body) || argument(args, :proposed_body)
 
     with :ok <- require_text(title, :title),
          :ok <- require_text(slug, :slug),
-         {:ok, response} <-
-           complete(
-             :deep,
-             prompt,
-             [
-               purpose: :article_generation,
-               subject_type: "article",
-               subject_ref: subject_ref,
-               conversation_id: conversation_id(ctx),
-               estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.10")
-             ],
-             ctx
-           ),
-         body <- response_text(response),
-         :ok <- require_text(body, :body),
+         {:ok, body} <- article_body(proposed_body, args, ctx, subject_ref, lang, title, category),
          {:ok, seo} <-
            maybe_generate_seo(
              args,
@@ -193,7 +188,48 @@ defmodule ExBlog.Agent.Actions do
              ),
              ctx
            ) do
-      {:ok, article_summary(article)}
+      {:ok, article |> article_summary() |> Map.put(:operation, :created)}
+    end
+  end
+
+  defp article_body(body, _args, _ctx, _subject_ref, _lang, _title, _category)
+       when is_binary(body) do
+    body = String.trim(body)
+
+    cond do
+      body == "" -> {:error, {:missing_field, :body}}
+      String.length(body) > 60_000 -> {:error, {:field_too_long, :body}}
+      true -> {:ok, body}
+    end
+  end
+
+  defp article_body(_body, args, ctx, subject_ref, lang, title, category) do
+    prompt =
+      Prompt.article_generation(%{
+        lang: lang,
+        title: title,
+        category: category,
+        request: argument(args, :brief) || input_text(ctx),
+        research_summary: argument(args, :research_summary),
+        source_urls: argument(args, :source_urls)
+      })
+
+    with {:ok, response} <-
+           complete(
+             :deep,
+             prompt,
+             [
+               purpose: :article_generation,
+               subject_type: "article",
+               subject_ref: subject_ref,
+               conversation_id: conversation_id(ctx),
+               estimated_cost_eur: decimal_argument(args, :estimated_cost_eur, "0.10")
+             ],
+             ctx
+           ),
+         body <- response_text(response),
+         :ok <- require_text(body, :body) do
+      {:ok, body}
     end
   end
 
@@ -245,7 +281,7 @@ defmodule ExBlog.Agent.Actions do
              translation_of: article.path,
              body: response_text(response)
            }) do
-      {:ok, article_summary(translated)}
+      {:ok, translated |> article_summary() |> Map.put(:operation, :created)}
     end
   end
 
@@ -267,13 +303,13 @@ defmodule ExBlog.Agent.Actions do
   @doc "Publishes an existing draft through the canonical Writer transaction."
   @spec publish_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def publish_article(args, ctx \\ nil) do
-    mutate_article(args, ctx, &Writer.publish/1)
+    mutate_article(args, ctx, &Writer.publish/1, :published)
   end
 
   @doc "Returns a published article to draft status."
   @spec unpublish_article(map(), term()) :: {:ok, map()} | {:error, term()}
   def unpublish_article(args, ctx \\ nil) do
-    mutate_article(args, ctx, &Writer.unpublish/1)
+    mutate_article(args, ctx, &Writer.unpublish/1, :unpublished)
   end
 
   @doc "Deletes one identified article through the protected Writer boundary."
@@ -323,17 +359,25 @@ defmodule ExBlog.Agent.Actions do
     end
   end
 
-  defp mutate_article(args, ctx, operation) do
+  defp mutate_article(args, ctx, operation, result_operation) do
     with {:ok, lang, slug} <- identifier(args, ctx),
          {:ok, article} <- Content.get(lang, slug, published_only?: false),
-         {:ok, updated} <- operation.(article) do
-      {:ok, article_summary(updated)}
+         {:ok, updated} <- article_mutation(article, operation, result_operation, ctx) do
+      {:ok, updated |> article_summary() |> Map.put(:operation, result_operation)}
+    end
+  end
+
+  defp article_mutation(article, operation, result_operation, ctx) do
+    case context_option(ctx, :article_mutator) do
+      fun when is_function(fun, 2) -> fun.(result_operation, article)
+      fun when is_function(fun, 1) -> fun.(article)
+      _default -> operation.(article)
     end
   end
 
   defp apply_revision(article, body) do
     with {:ok, updated} <- Writer.update(article, %{body: body, updated: Date.utc_today()}) do
-      {:ok, article_summary(updated)}
+      {:ok, updated |> article_summary() |> Map.put(:operation, :revised)}
     end
   end
 
@@ -345,7 +389,17 @@ defmodule ExBlog.Agent.Actions do
 
     if is_binary(lang) and is_binary(slug),
       do: {:ok, lang, slug},
-      else: identifier_from_text(input_text(ctx))
+      else: identifier_from_context(ctx)
+  end
+
+  defp identifier_from_context(ctx) do
+    text = input_text(ctx)
+
+    with {:error, :article_identifier_required} <- identifier_from_text(text),
+         {:ok, article} <-
+           ArticleSelector.resolve(text || "", conversation_id: conversation_id(ctx)) do
+      {:ok, article.lang, article.slug}
+    end
   end
 
   defp identifier_from_text(text) do
@@ -613,9 +667,16 @@ defmodule ExBlog.Agent.Actions do
   defp health_reason(_reason), do: :unavailable
 
   defp writer_create(params, ctx) do
+    writer_opts =
+      case context_option(ctx, :article_asset_root) do
+        root when is_binary(root) -> [asset_source_root: root]
+        _default -> []
+      end
+
     case context_option(ctx, :article_writer) do
+      fun when is_function(fun, 2) -> fun.(params, writer_opts)
       fun when is_function(fun, 1) -> fun.(params)
-      _default -> Writer.create(params)
+      _default -> Writer.create(params, writer_opts)
     end
   end
 
@@ -660,7 +721,13 @@ defmodule ExBlog.Agent.Actions do
       seo_description: article.seo_description,
       cover: article.cover,
       cover_alt: article.cover_alt,
-      path: article.path
+      path: article.path,
+      source_url: Config.repository_file_url(article.path),
+      public_url:
+        if(article.status == :published,
+          do: Config.public_article_url(article.lang, article.slug),
+          else: nil
+        )
     }
   end
 
@@ -679,8 +746,9 @@ defmodule ExBlog.Agent.Actions do
   end
 
   defp status_argument(value) when value in [:draft, "draft"], do: :draft
+  defp status_argument(value) when value in [:published, "published"], do: :published
   defp status_argument(value) when value in [:all, "all", "tutti"], do: :all
-  defp status_argument(_value), do: :published
+  defp status_argument(_value), do: :all
 
   defp strip_command(nil, _commands), do: nil
 

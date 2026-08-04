@@ -1,0 +1,15 @@
+<%= if (@revision_count || 0) > 0 do %>Draft revision <%= ExBlogWeb.Prompt.escape_text(@revision_count, 8) %> is ready.<% else %>The article draft is ready for review.<% end %>
+
+Title: <%= ExBlogWeb.Prompt.escape_text(@title, 160) %>
+Sources used:
+<%= ExBlogWeb.Prompt.escape_text(@sources, 4_000) %>
+
+--- DRAFT MARKDOWN ---
+<%= ExBlogWeb.Prompt.escape_text(@body, 60_000) %>
+--- END DRAFT ---
+
+Nothing has been written to Git yet.
+
+- Reply `confirm` to save this exact Markdown as a Git draft.
+- Reply `modify: ...` with the changes you want; I will show a new revision.
+- Reply `cancel` to discard the preview without writing anything.

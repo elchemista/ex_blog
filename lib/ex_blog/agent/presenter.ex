@@ -50,13 +50,34 @@ defmodule ExBlog.Agent.Presenter do
     |> String.trim()
   end
 
-  def present(%{articles: articles, count: count}) when is_list(articles) do
+  def present(%{articles: articles, count: count} = result) when is_list(articles) do
     rows =
-      Enum.map_join(articles, "\n", fn article ->
-        "- [#{article.lang}] #{article.title} (#{article.slug}, #{article.status})"
+      articles
+      |> Enum.with_index(1)
+      |> Enum.map_join("\n", fn {article, number} ->
+        link = article.public_url || article.source_url
+        "#{number}. [#{article.lang}] #{article.title} (#{article.status})\n   #{link}"
       end)
 
-    if rows == "", do: "No articles found.", else: "#{count} articles:\n#{rows}"
+    if rows == "" do
+      "No articles found."
+    else
+      shown_count = Map.get(result, :shown_count, length(articles))
+
+      truncation =
+        if shown_count < count,
+          do: "\n\nShowing the first #{shown_count} of #{count} articles.",
+          else: ""
+
+      """
+      #{count} articles:
+      #{rows}#{truncation}
+
+      Select one by number, for example “edit article 2” or “publish article 2”.
+      You can also use its exact title, `lang/slug`, public link, or Git link.
+      """
+      |> String.trim()
+    end
   end
 
   def present(%{
@@ -109,8 +130,78 @@ defmodule ExBlog.Agent.Presenter do
     |> String.trim()
   end
 
+  def present(%{
+        operation: :created,
+        title: title,
+        slug: slug,
+        lang: lang,
+        source_url: source_url
+      }) do
+    """
+    Draft created and synchronized with Git.
+    Title: #{title}
+    Article: #{lang}/#{slug}
+    Draft source: #{source_url}
+    Status: draft — it is not public and is not included in the sitemap yet.
+    """
+    |> String.trim()
+  end
+
+  def present(%{
+        operation: :published,
+        title: title,
+        public_url: public_url,
+        source_url: source_url
+      }) do
+    """
+    Article published: #{title}
+    Public link: #{public_url}
+    Git source: #{source_url}
+    The public index, feeds, and sitemap now read it from the synchronized content index.
+    """
+    |> String.trim()
+  end
+
+  def present(%{
+        operation: :unpublished,
+        title: title,
+        lang: lang,
+        slug: slug,
+        source_url: source_url
+      }) do
+    """
+    Article returned to draft: #{title}
+    Article: #{lang}/#{slug}
+    Draft source: #{source_url}
+    It is no longer public or included in the sitemap.
+    """
+    |> String.trim()
+  end
+
+  def present(
+        %{
+          operation: :revised,
+          title: title,
+          lang: lang,
+          slug: slug,
+          status: status,
+          source_url: source_url
+        } = article
+      ) do
+    link = article.public_url || source_url
+
+    """
+    Article updated: #{title}
+    Article: #{lang}/#{slug} · #{status}
+    Link: #{link}
+    The approved Markdown revision was synchronized with Git.
+    """
+    |> String.trim()
+  end
+
   def present(%{title: title, slug: slug, lang: lang, status: status} = article) do
-    base = "#{title}\n#{lang}/#{slug} · #{status}"
+    link = article.public_url || article.source_url
+    base = "#{title}\n#{lang}/#{slug} · #{status}\n#{link}"
 
     case Map.get(article, :body) do
       body when is_binary(body) -> base <> "\n\n" <> body
@@ -124,6 +215,17 @@ defmodule ExBlog.Agent.Presenter do
 
   def present(%{deleted: true, lang: lang, slug: slug}),
     do: "Article deleted: #{lang}/#{slug}."
+
+  def present(%{total: total, invalid: invalid, commit: commit, rebuilt_at: rebuilt_at}) do
+    """
+    Repository synchronized.
+    Commit: #{commit}
+    Indexed articles: #{total}
+    Invalid article files: #{invalid}
+    Index rebuilt: #{format_datetime(rebuilt_at)}
+    """
+    |> String.trim()
+  end
 
   def present(%{configured: true, reachable: true, models_available: available}) do
     suffix =
@@ -186,6 +288,9 @@ defmodule ExBlog.Agent.Presenter do
 
   defp yes_no(true), do: "yes"
   defp yes_no(false), do: "no"
+
+  defp format_datetime(%DateTime{} = value), do: DateTime.to_iso8601(value)
+  defp format_datetime(value), do: to_string(value)
 
   defp formatted_findings(_label, []), do: nil
 

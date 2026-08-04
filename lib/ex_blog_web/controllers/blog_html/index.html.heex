@@ -22,16 +22,22 @@
         </p>
 
         <p class="term-prompt mt-6 text-[0.78rem] t-dim">cat manifesto.md</p>
-        <h1 class="mt-4 max-w-3xl text-3xl font-bold leading-[1.12] tracking-tight text-balance t-strong sm:text-5xl lg:text-[3.4rem]">
+        <h1
+          id="homepage-title"
+          class="mt-4 max-w-3xl text-3xl font-bold leading-[1.12] tracking-tight text-balance t-strong sm:text-5xl lg:text-[3.4rem]"
+        >
           {raw(
-            gettext("Agents that read like a %{highlight}, not a magic trick.",
-              highlight: highlight(gettext("map"))
+            gettext("Build Elixir agents like %{highlight}.",
+              highlight: highlight(gettext("OTP systems"))
             )
           )}
         </h1>
-        <p class="mt-5 max-w-2xl text-[0.85rem] leading-7 t-dim sm:text-[0.92rem]">
+        <p
+          id="homepage-subtitle"
+          class="mt-5 max-w-2xl text-[0.85rem] leading-7 t-dim sm:text-[0.92rem]"
+        >
           <span class="t-faint" aria-hidden="true">// </span>{gettext(
-            "The articles below were written over Telegram by an agent that asks before it writes. Here is how it works, and what it is built on."
+            "Spectre keeps routing, state, policies, and side effects explicit—with supervised processes, recovery designed in from the start, and application logic that stays in your code."
           )}
         </p>
 

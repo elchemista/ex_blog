@@ -11,10 +11,9 @@ defmodule ExBlog.Agent.EditorialAI do
   is redacted, length-limited, and escaped by `ExBlogWeb.Prompt` before it
   reaches OpenRouter.
 
-  These helpers return a single line rather than an article-shaped response.
-  That narrow contract makes generated values interchangeable with manual
-  answers: after validation, the surrounding skill advances through exactly the
-  same state transition in either case.
+  Title and category helpers return one line. Draft and revision helpers return
+  bounded Markdown previews that remain in the workflow state until the
+  administrator explicitly confirms, modifies, or discards them.
   """
 
   alias ExBlog.AI
@@ -44,6 +43,36 @@ defmodule ExBlog.Agent.EditorialAI do
     generate(:fast, prompt, :category_generation, 80, ctx)
   end
 
+  @doc "Generates a source-grounded Markdown preview without writing to Git."
+  @spec draft(workflow(), Context.t()) :: {:ok, String.t()} | {:error, term()}
+  def draft(workflow, %Context{} = ctx) when is_map(workflow) do
+    prompt =
+      Prompt.article_generation(%{
+        lang: Map.get(workflow, :lang),
+        title: Map.get(workflow, :title),
+        category: Map.get(workflow, :category),
+        request: Map.get(workflow, :directions) || Map.get(workflow, :brief),
+        research_summary: Map.get(workflow, :research_summary),
+        source_urls: source_urls(workflow)
+      })
+
+    generate_markdown(:deep, prompt, :article_generation, "0.10", ctx)
+  end
+
+  @doc "Revises the current Markdown preview without mutating the repository."
+  @spec revise(workflow(), String.t(), Context.t()) ::
+          {:ok, String.t()} | {:error, term()}
+  def revise(workflow, instructions, %Context{} = ctx)
+      when is_map(workflow) and is_binary(instructions) do
+    prompt =
+      Prompt.article_revision(%{
+        instructions: instructions,
+        body: Map.get(workflow, :proposed_body, "")
+      })
+
+    generate_markdown(:deep, prompt, :article_revision, "0.06", ctx)
+  end
+
   defp generate(level, prompt, purpose, maximum, ctx) do
     # Purpose labels drive Prism tier selection and budget reporting. The draft
     # conversation id is used only as an operational subject reference.
@@ -58,6 +87,21 @@ defmodule ExBlog.Agent.EditorialAI do
     with {:ok, response} <- complete(level, prompt, opts, ctx),
          {:ok, text} <- response_text(response) do
       normalize_value(text, maximum)
+    end
+  end
+
+  defp generate_markdown(level, prompt, purpose, estimated_cost, ctx) do
+    opts = [
+      purpose: purpose,
+      subject_type: "article_draft",
+      subject_ref: conversation_ref(ctx),
+      conversation_id: conversation_id(ctx),
+      estimated_cost_eur: estimated_cost
+    ]
+
+    with {:ok, response} <- complete(level, prompt, opts, ctx),
+         {:ok, text} <- response_text(response) do
+      normalize_markdown(text)
     end
   end
 
@@ -97,6 +141,29 @@ defmodule ExBlog.Agent.EditorialAI do
     |> String.replace(~r/^#+\s*/u, "")
     |> String.replace(~r/^(?:title|category)\s*:\s*/iu, "")
     |> String.trim(~s("'“”‘’ ))
+  end
+
+  defp normalize_markdown(text) do
+    value =
+      text
+      |> String.trim()
+      |> String.replace(~r/^```(?:markdown|md)?\s*/iu, "")
+      |> String.replace(~r/\s*```$/u, "")
+      |> String.trim()
+
+    cond do
+      value == "" -> {:error, :empty_article_preview}
+      String.length(value) > 60_000 -> {:error, :article_preview_too_long}
+      true -> {:ok, value}
+    end
+  end
+
+  defp source_urls(workflow) do
+    workflow
+    |> Map.get(:sources, [])
+    |> Enum.map(fn source -> Map.get(source, :url) || Map.get(source, "url") end)
+    |> Enum.filter(&is_binary/1)
+    |> Enum.join("\n")
   end
 
   defp conversation_ref(ctx), do: "draft/#{conversation_id(ctx) || "anonymous"}"

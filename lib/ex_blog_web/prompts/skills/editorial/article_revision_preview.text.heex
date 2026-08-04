@@ -1,0 +1,13 @@
+Revision <%= ExBlogWeb.Prompt.escape_text(@revision_count, 8) %> is ready for “<%= ExBlogWeb.Prompt.escape_text(@title, 160) %>”.
+
+Article: <%= ExBlogWeb.Prompt.escape_text(@lang, 32) %>/<%= ExBlogWeb.Prompt.escape_text(@slug, 200) %>
+
+--- REVISED MARKDOWN ---
+<%= ExBlogWeb.Prompt.escape_text(@body, 60_000) %>
+--- END REVISION ---
+
+Nothing has been written to Git yet.
+
+- Reply `confirm` to save this exact revision.
+- Reply `modify: ...` to request another change.
+- Reply `cancel` to discard it.

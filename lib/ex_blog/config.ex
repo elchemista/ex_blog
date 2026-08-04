@@ -234,11 +234,32 @@ defmodule ExBlog.Config do
     "https://#{config.phx_host || "localhost"}"
   end
 
+  @doc "Canonical public URL for one validated article identifier."
+  @spec public_article_url(String.t(), String.t(), t()) :: String.t()
+  def public_article_url(lang, slug, config \\ get())
+      when is_binary(lang) and is_binary(slug) do
+    canonical_url(config) <> "/#{encode_path_segment(lang)}/#{encode_path_segment(slug)}"
+  end
+
+  @doc "GitHub browser URL for one file in the configured content repository."
+  @spec repository_file_url(String.t(), t()) :: String.t()
+  def repository_file_url(relative_path, config \\ get()) when is_binary(relative_path) do
+    encoded_path =
+      relative_path
+      |> Path.split()
+      |> Enum.map_join("/", &encode_path_segment/1)
+
+    branch = encode_path_segment(config.github_branch)
+    "https://github.com/#{config.github_repository}/blob/#{branch}/#{encoded_path}"
+  end
+
   @doc "GitHub HTTPS remote without embedded credentials."
   @spec repository_url(t()) :: String.t()
   def repository_url(config \\ get()) do
     "https://github.com/#{config.github_repository}.git"
   end
+
+  defp encode_path_segment(value), do: URI.encode(value, &URI.char_unreserved?/1)
 
   @doc "Absolute checkout directory on the configured volume."
   @spec repository_path(t()) :: String.t()

@@ -17,7 +17,8 @@ workflow:
 - **Spectre Kinetic** turns model output into validated `@al` actions;
 - **Spectre Prism** selects fast, balanced, or deep OpenRouter models by purpose;
 - **Spectre Beam** normalizes Telegram text and images through ExGram;
-- **Spectre Lens** audits rendered public blog pages from inside the agent;
+- **Spectre Lens** researches supplied public sources and audits rendered blog
+  pages from inside the agent;
 - **Spectre Work** runs the durable sync-and-verify maintenance procedure on
   the operational runtime;
 - **HEEx prompt templates** keep prompts reviewable and next to their skill;
@@ -100,7 +101,7 @@ flowchart LR
     Router --> Skills[Reader · Editorial · Operations skills]
     Skills --> Kinetic[Spectre Kinetic @al validation]
     Skills --> Prism[Spectre Prism model routing]
-    Skills --> Lens[Spectre Lens public-page audit]
+    Skills --> Lens[Spectre Lens source research · public-page audit]
     Kinetic --> Policy[Confirmation policy]
     Policy --> Writer[Markdown writer]
     Writer --> GitHub[(GitHub content repository)]
@@ -114,13 +115,13 @@ There are four different persistence responsibilities:
 
 | Store | Responsibility |
 | --- | --- |
-| GitHub repository | canonical Markdown content and its history |
+| GitHub repository | canonical Markdown, content-addressed cover images, and their history |
 | ETS | replaceable, in-memory read projection for the public blog |
 | `$EX_BLOG_DATA_DIR/runtime.dets` | agent state, semantic examples, budget ledger, OAuth token hashes, and operational records |
 | `$EX_BLOG_DATA_DIR/telegram/<session>` | persistent TDLib authorization database |
 
-Article images are content-addressed on the data volume and restored into
-`priv/static/images/articles` at boot.
+Article images are content-addressed in Git and mirrored on the data volume and
+under `priv/static/images/articles` for serving.
 
 ## How the agent works
 
@@ -182,11 +183,13 @@ The article-creation conversation is implemented as nested Spectre flows:
 
 ```text
 article_creation
+├── article_sources
 ├── article_brief
 ├── article_language
 ├── article_category
 ├── article_title
-└── article_seo
+├── article_seo
+└── article_review
 ```
 
 `Spectre.State.current_flow` is the cursor. A free-text answer is therefore
@@ -236,6 +239,8 @@ SYNC BLOG REPOSITORY
 
 The administrator never types this syntax: they ask in plain English, and
 Kinetic AL is the validated internal contract between planning and execution.
+Valid and malformed AL wrappers are removed at the reply boundary and are never
+intended to appear in Telegram.
 
 ### Policies before side effects
 
@@ -463,7 +468,11 @@ Telegram:
 
 ```text
 Administrator: I'd like to write a new article.
-Agent: Describe the topic, goal, audience, important points, and tone.
+Agent: Send one to three public source URLs.
+
+Administrator: https://example.com/typed-agent-actions
+Agent: Researches the page with Spectre Lens, gives a short sourced summary,
+       and asks for the article's angle and any specific instructions.
 
 Administrator: Explain how typed agent actions make Git publishing safer.
 Agent: Which language should I use?
@@ -481,11 +490,15 @@ Administrator: [sends a cover photo with an accessible caption]
 Agent: The image is attached. Continue with the current step.
 
 Administrator: generate SEO
-Agent: Shows the complete intake and asks for confirmation.
+Agent: Generates and shows the complete Markdown draft. Nothing is in Git yet.
 
-Administrator: yes
-Agent: Generates the article, writes one Markdown file, commits, rebases,
-       pushes, rebuilds ETS, and returns the new draft.
+Administrator: modify: add a concrete failure scenario
+Agent: Shows the revised Markdown draft.
+
+Administrator: confirm
+Agent: Saves that exact reviewed body, writes one Markdown file, commits,
+       rebases, pushes, rebuilds ETS, returns the Git link, and asks whether to
+       publish it now or keep it as a draft.
 ```
 
 Publishing is a separate protected action:
@@ -497,19 +510,24 @@ Administrator: yes
 Agent: Updates the Markdown status, commits, pushes, and refreshes the index.
 ```
 
-The wizard accepts natural replies, not only the exact keywords shown above:
-`propose a title` or `you choose for me` also trigger generation, plain `yes`
-and `no` work at the SEO step, and `stop`, `cancel`, or `never mind` leave the
-flow at any moment. The photo can be sent at any point while the
-article-creation flow is active; cancelling exits without creating an article.
+The URL regex is evaluated only while `article_sources` owns the conversation,
+so an arbitrary URL outside creation cannot be mistaken for source intake. The
+wizard accepts natural replies, not only the exact keywords shown above:
+`propose a title` or `you choose for me` trigger field generation; at review,
+`confirm` saves the displayed body, `modify: ...` loops through another preview,
+and `cancel` discards it. `stop`, `cancel`, or `never mind` leave the flow at any
+moment. A photo can be sent at any point while article creation is active.
 
 ## Talking to the agent
 
 There are no bot commands to memorize. You write what you want in English,
 and routing matches it against the dataset, the optional local classifier,
 the learned semantic cache, and finally the LLM classifier. When a request
-concerns one specific article, mention its language code and slug anywhere in
-the sentence — for example `en spectre-agents` or `en/spectre-agents`.
+concerns one specific article, you can use its exact title, `lang/slug`, public
+link, or Git link. Article lists and search results are numbered per
+conversation, so after seeing a list you can also say `edit article 4` or
+`publish article 5`; ExBlog re-checks that stored identifier against the current
+content index before doing anything.
 
 ### Reading and diagnostics
 
@@ -533,11 +551,11 @@ the sentence — for example `en spectre-agents` or `en/spectre-agents`.
 
 | You say, for example | Result | Model / confirmation |
 | --- | --- | --- |
-| “I want to write a new article” | guided brief → language → category → title → SEO conversation | fast/balanced/deep as needed; confirmation before generation and Git |
-| “Revise en/spectre-agents: add a deployment section” | Markdown revision preview; an exact approved body can then be applied | balanced by default; protected |
+| “I want to write a new article” | sources → Lens summary → directions → language → category → title → SEO → review loop | balanced/deep as needed; preview first, confirmation before Git |
+| “Edit article 4” or “Revise en/spectre-agents” | select the numbered, linked, named, or identified article; collect instructions; show a Markdown preview; save only the exact approved body | deep preview; confirmation before Git |
 | “Translate en/spectre-agents to Italian” | translated draft linked to its source | deep; protected |
 | “Generate SEO for en/spectre-agents” | SEO title, description, tags, and optional alt text | balanced; protected |
-| “Publish en/spectre-agents” | change a draft to `published` | protected |
+| “Publish article 5”, “Publish en/spectre-agents”, or “Publish: Exact title” | resolve the current indexed draft and change it to `published` | deterministic selection; protected |
 | “Unpublish en/spectre-agents” | return a published article to `draft` | protected |
 | “Delete en/spectre-agents” | remove the Markdown file | destructive and protected |
 | “Cancel”, “stop”, or “never mind” | leave article creation or reject a pending confirmation | no side effect |
@@ -965,22 +983,32 @@ PNG, GIF, or WebP images up to 10 MB. ExBlog:
 3. detects the format from magic bytes rather than the Telegram filename;
 4. stores the image under its SHA-256 digest;
 5. uses the caption as accessible cover text;
-6. adds only the public path to Markdown.
+6. keeps the upload outside Git until the draft is confirmed;
+7. commits the validated image and Markdown file together.
 
-The public and durable copies are:
+The Git, durable, and public copies are:
 
 ```text
+assets/images/articles/<sha256>.<ext>                     # content repository
+$EX_BLOG_DATA_DIR/assets/images/articles/<sha256>.<ext>  # durable mirror
 priv/static/images/articles/<sha256>.<ext>
-$EX_BLOG_DATA_DIR/assets/images/articles/<sha256>.<ext>
 ```
 
-The durable copy is restored into the release's static tree at boot.
+After a clone or sync, validated Git assets are restored into both runtime
+locations. Cancelling the editorial preview never adds the upload to Git.
 
-## Spectre Lens: public blog verification only
+## Spectre Lens: source research and public blog verification
 
-Page auditing (“check the article page …”) is a reader-skill action for
-inspecting a rendered **public blog or article page**. It is not part of
-administrator login, QR pairing, or Telegram connection testing.
+During article creation, the editorial skill accepts one to three public HTTP(S)
+URLs. Lens renders them sequentially in one request-scoped runtime, converts
+each projection with `SpectreLens.agent_context/2`, and sends only bounded,
+untrusted context to the research summarizer. Raw page content is never stored
+in the conversational state; only sanitized source identities, a short digest,
+and bounded warnings survive.
+
+Page auditing (“check the article page …”) is a separate reader-skill action
+for inspecting a rendered **public blog or article page**. Neither use is part
+of administrator login, QR pairing, or Telegram connection testing.
 
 For an audited page, Lens observes the document title, main content, semantic
 tree, links, forms, interactive elements, structured data, and browser
@@ -1053,15 +1081,17 @@ validate every ENV
 → select OpenRouter embeddings in production (or the optional local adapter in dev/test)
 → restore online semantic examples and warm the versioned vector index
 → clone or synchronize the Git repository
+→ restore validated Git-managed covers into durable and public storage
 → parse Markdown and build ETS
 → start Spectre, Prism, Kinetic, and Beam boundaries
 → start the ExGram session
 → expose Phoenix and MCP
 ```
 
-GitHub is the durable source for text content. The data volume is durable
-operational state. ETS is disposable and is rebuilt from Git. There is no Ecto
-repository and no SQL migration step.
+GitHub is the recoverable source for Markdown and confirmed covers. The data
+volume is durable operational state and an asset-serving mirror. ETS is
+disposable and is rebuilt from Git. There is no Ecto repository and no SQL
+migration step.
 
 If the application cannot validate configuration, open the content checkout,
 or start the Telegram transport, boot fails instead of exposing a partially
@@ -1107,7 +1137,7 @@ The included Fly configuration assumes:
 - one active machine, because DETS, TDLib, the checkout, and article images are
   local to that volume;
 - `PHX_SERVER=true` and HTTPS at the edge;
-- GitHub as the recoverable source of Markdown content.
+- GitHub as the recoverable source of Markdown content and confirmed covers.
 
 The production dependency set and runtime image exclude ExFastembed, local
 classifier artifacts, and native embedding-model caches. The Docker builder

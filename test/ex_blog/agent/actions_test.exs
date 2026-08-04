@@ -4,6 +4,7 @@ defmodule ExBlog.Agent.ActionsTest do
   alias ExBlog.Agent.Actions
   alias ExBlog.Agent.Presenter
   alias ExBlog.Content.Article
+  alias ExBlog.Content.Index
 
   test "article creation generates body and optional SEO before one writer call" do
     ai_complete = fn level, prompt, opts ->
@@ -72,6 +73,17 @@ defmodule ExBlog.Agent.ActionsTest do
 
     assert result.seo_title == "Spectre per redazioni"
     assert result.cover == "/images/articles/cover.jpg"
+    assert result.operation == :created
+
+    assert result.source_url ==
+             "https://github.com/example/ex-blog-content/blob/main/content/it/2026-08-04-spectre-editoriale.md"
+
+    assert result.public_url == nil
+
+    rendered = Presenter.present(result)
+    assert rendered =~ "Draft created and synchronized with Git"
+    assert rendered =~ result.source_url
+    assert rendered =~ "not public"
     assert_received {:ai_call, :deep, article_prompt, article_opts}
     assert article_prompt =~ "Spiega flow, skill, Kinetic e policy."
     assert article_opts[:purpose] == :article_generation
@@ -84,6 +96,61 @@ defmodule ExBlog.Agent.ActionsTest do
     assert params.seo_description == "Un flusso editoriale sicuro e verificabile."
     assert params.tags == ["spectre", "elixir", "workflow"]
     assert params.cover_alt == "Schema reale del workflow"
+  end
+
+  test "article creation persists the approved preview without regenerating its body" do
+    test_pid = self()
+    approved_body = "## Reviewed draft\n\nThis is the exact approved Markdown."
+
+    ai_complete = fn _level, _prompt, _opts ->
+      flunk("an approved article body must not be regenerated")
+    end
+
+    asset_root = temporary_directory()
+    on_exit(fn -> File.rm_rf!(asset_root) end)
+
+    writer = fn params, writer_opts ->
+      send(test_pid, {:approved_writer_params, params})
+      send(test_pid, {:approved_writer_opts, writer_opts})
+
+      {:ok,
+       %Article{
+         path: "content/en/2026-08-04-reviewed-draft.md",
+         title: params.title,
+         slug: params.slug,
+         lang: params.lang,
+         status: params.status,
+         date: ~D[2026-08-04],
+         category: params.category,
+         tags: params.tags,
+         body: params.body,
+         html: "<h2>Reviewed draft</h2>",
+         checksum: "reviewed-checksum"
+       }}
+    end
+
+    assert {:ok, %{operation: :created}} =
+             Actions.create_article(
+               %{
+                 title: "Reviewed draft",
+                 lang: "en",
+                 category: "Engineering",
+                 body: approved_body,
+                 generate_seo: false
+               },
+               %{
+                 opts: [
+                   ai_complete: ai_complete,
+                   article_writer: writer,
+                   article_asset_root: asset_root
+                 ],
+                 state: %{conversation_id: "approved-preview-test"}
+               }
+             )
+
+    assert_received {:approved_writer_params, params}
+    assert params.body == approved_body
+    assert_received {:approved_writer_opts, [asset_source_root: ^asset_root]}
   end
 
   test "system status combines bounded application, Telegram, OpenRouter, and budget data" do
@@ -111,5 +178,65 @@ defmodule ExBlog.Agent.ActionsTest do
     assert rendered =~ "Telegram: connected"
     assert rendered =~ "OpenRouter: reachable; all models available"
     assert rendered =~ "AI budget remaining: €"
+  end
+
+  test "an unqualified admin list includes drafts and published articles in every language" do
+    root = temporary_directory()
+    File.mkdir_p!(Path.join([root, "content", "it"]))
+    File.mkdir_p!(Path.join([root, "content", "en"]))
+
+    File.write!(
+      Path.join([root, "content", "it", "2026-08-04-bozza.md"]),
+      article("Bozza", "bozza", "it", "draft")
+    )
+
+    File.write!(
+      Path.join([root, "content", "en", "2026-08-04-published.md"]),
+      article("Published", "published", "en", "published")
+    )
+
+    start_supervised!({Index, root: root, content_root: "content"})
+    on_exit(fn -> File.rm_rf!(root) end)
+
+    assert {:ok, %{count: 2, articles: articles}} =
+             Actions.list_articles(%{}, %{input: %{text: "list"}})
+
+    assert Enum.map(articles, &{&1.lang, &1.status}) |> Enum.sort() ==
+             [{"en", :published}, {"it", :draft}]
+
+    assert {:ok, %{count: 1, articles: [published]}} =
+             Actions.list_articles(%{"lang" => "en", "status" => "published"})
+
+    assert published.public_url == "https://localhost/en/published"
+
+    rendered = Presenter.present(%{count: 2, articles: articles})
+    assert rendered =~ "2 articles"
+    assert rendered =~ "github.com/example/ex-blog-content/blob/main/content/it/"
+    assert rendered =~ "https://localhost/en/published"
+  end
+
+  defp article(title, slug, lang, status) do
+    """
+    ---
+    title: #{title}
+    slug: #{slug}
+    lang: #{lang}
+    status: #{status}
+    date: 2026-08-04
+    tags: []
+    ---
+    Article body.
+    """
+  end
+
+  defp temporary_directory do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "ex-blog-actions-#{System.unique_integer([:positive, :monotonic])}"
+      )
+
+    File.mkdir_p!(path)
+    path
   end
 end

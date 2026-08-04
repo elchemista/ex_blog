@@ -10,7 +10,7 @@ primary_region = 'fra'
   dockerfile = 'Dockerfile'
 
   [build.args]
-    LIGHTPANDA_CHANNEL = 'nightly'
+    LIGHTPANDA_IMAGE = 'docker.io/lightpanda/browser:nightly@sha256:0acfc0f9be11f97b9846c8168cff209b892a49bf2ae55c4ac20bde75dfd58afd'
     TDLIB_BUILD_JOBS = '2'
     TDLIB_IMAGE = 'registry.fly.io/freelance:tdlib-bookworm-b876ee4dcfba@sha256:1f99be7652facf5e6c4492644f7b734f50c255837a25115df657cd4169721393'
 

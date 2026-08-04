@@ -7,13 +7,13 @@ Fly environment and secrets
 └── identities, infrastructure settings, credentials, and model identifiers
 
 Git repository
-└── Markdown, editorial metadata, and content history
+└── Markdown, editorial metadata, content-addressed covers, and history
 
 DETS on the persistent volume
 └── Spectre state, reviewed semantic examples, costs, Git history, and revocable OAuth hashes
 
 Assets on the volume plus priv/static
-└── durable backing store and public projection of Telegram images
+└── runtime mirror and public projection of Git-managed Telegram images
 
 ETS
 └── rebuildable read projection of parsed articles
@@ -68,10 +68,11 @@ they happen to access the index during the swap.
 - **OpenRouter:** the token is resolved by the transport immediately before a
   `Req` call. It is not part of the compiled Prism configuration. Req retries
   remain disabled because Prism owns model-level retry policy.
-- **Browser:** Spectre Lens starts Lightpanda only for `check_page`, applies the
-  public-network policy, and always closes the tab and runtime. Raw HTML and
-  page text never enter Spectre state. Before projected content can reach a
-  model, it passes through `SpectreLens.agent_context/2` as untrusted web data.
+- **Browser:** Spectre Lens starts Lightpanda for `check_page` and bounded
+  editorial source research, applies the public-network policy, and always
+  closes every tab and runtime. Raw HTML and page text never enter Spectre
+  state. Before projected content can reach a model, it passes through
+  `SpectreLens.agent_context/2` as untrusted web data.
 - **Telegram:** the sender username resolved from ExGram's contact projection
   is checked in the gateway before Beam, media download, prompts, logging, or
   cost accounting. Photos become authenticated Beam inputs containing only
@@ -167,17 +168,28 @@ The agent installs three independent `Spectre.Skill` modules:
 - **Operations** owns safe diagnostics and protected repository
   synchronization.
 
-Article creation uses nested flows for brief, language, category, title, and
-the SEO choice. `current_flow` and `current_scope` persist between messages.
-Category and title can be filled by bounded OpenRouter leaf calls that cannot
-mutate Git. A Telegram photo is a global interrupt that attaches a cover while
-leaving the flow cursor unchanged.
+Article creation uses nested flows for source URLs, directions, language,
+category, title, the SEO choice, and draft review. `current_flow` and
+`current_scope` persist between messages. The source URL regex is evaluated by
+the continuation plug only at the source cursor. Lens converts each page through
+the untrusted-content boundary, and only a bounded summary survives in state.
+Category and title can be filled by bounded OpenRouter leaf calls. A Telegram
+photo is a global interrupt that attaches a cover while leaving the cursor
+unchanged.
 
-After intake, Kinetic validates a typed `CREATE ARTICLE` command against the
-Elixir `@al` catalog. Spectre still owns confirmation, effect persistence,
-idempotency, and execution. Only after approval may OpenRouter generate the
-body and optional SEO and may `ExBlog.Content.Writer` perform the canonical
-repository transaction.
+The deep model produces an in-memory Markdown preview. Free-form revision
+instructions loop through another preview; cancellation clears the workflow.
+An explicit review confirmation resolves the protected `create_article` effect,
+which receives the exact displayed body. Only then may optional SEO generation
+and `ExBlog.Content.Writer` perform the canonical repository transaction.
+
+Article lists persist a bounded, conversation-scoped sequence of identifiers.
+The same deterministic selector resolves a later number, exact title,
+`lang/slug`, public URL, or Git URL and then re-reads the current content index.
+Existing-article edits use their own instructions and preview cursors; only the
+exact confirmed preview becomes a protected `revise_article` effect. Publishing
+by title or number likewise stages the typed effect directly and does not ask a
+model to generate Action Language.
 
 Classifier and editorial transformation prompts are compiled HEEx templates.
 Dynamic values are redacted, bounded, and escaped before rendering. The full
@@ -187,10 +199,11 @@ walkthrough and extension points are documented in
 ## Fly.io operating model
 
 ExBlog uses one machine and one `/data` volume. This is deliberate: DETS, TDLib,
-and the working checkout are node-local state, while Markdown remains
-recoverable from GitHub. Telegram images have a durable backing store under
-`/data/assets/images/articles`; startup restores them into the release
-`priv/static` directory served at `/images/articles`.
+and the working checkout are node-local state, while Markdown and confirmed
+covers remain recoverable from GitHub. Telegram images are mirrored under
+`/data/assets/images/articles`; startup and repository sync validate Git assets
+and restore them into the release `priv/static` directory served at
+`/images/articles`.
 
 The container changes ownership only on the volume root and then drops
 privileges to the `exblog` user. The runtime image contains no Rust toolchain,

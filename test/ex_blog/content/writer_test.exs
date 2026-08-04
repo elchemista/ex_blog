@@ -3,6 +3,7 @@ defmodule ExBlog.Content.WriterTest do
 
   alias ExBlog.Config
   alias ExBlog.Content
+  alias ExBlog.Content.Asset
   alias ExBlog.Content.Git
   alias ExBlog.Content.Index
   alias ExBlog.Content.Writer
@@ -101,6 +102,64 @@ defmodule ExBlog.Content.WriterTest do
       System.cmd("git", ["--git-dir", origin, "show", "main:#{draft.path}"],
         stderr_to_stdout: true
       )
+  end
+
+  test "commits a Telegram cover and its Markdown article to Git together", %{
+    config: config,
+    origin: origin
+  } do
+    upload_root = Path.join(config.data_dir, "telegram-upload-test")
+    bytes = <<0x89, "PNG", 0x0D, 0x0A, 0x1A, 0x0A, "cover-in-git">>
+    assert {:ok, asset} = Asset.store(bytes, root: upload_root)
+
+    assert {:ok, draft} =
+             Writer.create(
+               %{
+                 title: "Article with a Git cover",
+                 lang: "it",
+                 date: "2026-08-04",
+                 body: "The reviewed article body.",
+                 cover: asset.public_path,
+                 cover_alt: "A cover committed with the article"
+               },
+               config: config,
+               asset_source_root: upload_root
+             )
+
+    asset_path = Path.join(["assets", "images", "articles", asset.filename])
+
+    {remote_asset, 0} =
+      System.cmd("git", ["--git-dir", origin, "show", "main:#{asset_path}"],
+        stderr_to_stdout: true
+      )
+
+    assert remote_asset == bytes
+
+    {article_commit, 0} =
+      System.cmd("git", [
+        "--git-dir",
+        origin,
+        "log",
+        "-1",
+        "--format=%H",
+        "main",
+        "--",
+        draft.path
+      ])
+
+    {asset_commit, 0} =
+      System.cmd("git", [
+        "--git-dir",
+        origin,
+        "log",
+        "-1",
+        "--format=%H",
+        "main",
+        "--",
+        asset_path
+      ])
+
+    assert String.trim(article_commit) == String.trim(asset_commit)
   end
 
   defp git!(args, directory, env \\ []) do

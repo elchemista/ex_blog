@@ -45,18 +45,20 @@ generated in the language selected by the administrator.
 ## A flow inside a flow
 
 Article creation is declared in `ExBlog.Agent.Skills.Editorial` as the
-`:editorial` flow, containing the `:article_creation` flow and five leaf flows:
+`:editorial` flow, containing the `:article_creation` flow and seven leaf flows:
 
 ```text
 /create
+  → article_sources  ── URL regex → Spectre Lens → bounded source digest
   → article_brief
   → article_language
   → article_category ── "generate category" → OpenRouter fast
   → article_title    ── "generate title"    → OpenRouter balanced
   → article_seo      ── "generate SEO" | "skip"
-  → CREATE ARTICLE ...
-  → confirmation policy
-  → OpenRouter deep for the body
+  → OpenRouter deep for an in-memory body preview
+  → article_review   ── "modify: ..." → revised preview
+                     ├── "cancel" → discard without Git
+                     └── "confirm" → protected CREATE ARTICLE effect
   → OpenRouter balanced for SEO and tags when requested
   → Writer → Git → ETS rebuild
 ```
@@ -68,10 +70,11 @@ every field. Global cancellation phrases (`stop`, `cancel`, `never mind`) and
 the internal `/attach-image` image marker keep precedence. An image attachment
 returns to the exact same workflow step.
 
-The continuation boundary is also why an answer such as `English`, `Platform
-engineering`, or `generate SEO` is interpreted as field data while intake is
-active. An explicit slash command remains the administrator's escape hatch for
-invoking another operation.
+The continuation boundary is also why a URL is recognized only at
+`article_sources`, and why an answer such as `English`, `Platform engineering`,
+or `generate SEO` is interpreted as field data while intake is active. An
+explicit slash command remains the administrator's escape hatch for invoking
+another operation.
 
 Language selection is deterministic. `ExBlog.Agent.Language` recognizes codes
 and English language names, then accepts only values present in
@@ -90,17 +93,20 @@ The administrator decides which fields the model should generate:
 | --- | --- | --- | --- |
 | category | `generate category` | fast | updates Spectre state only |
 | title | `generate title` | balanced | updates Spectre state only |
-| body | always generated after approval | deep | prepares canonical Markdown |
+| source digest | one to three public URLs | balanced | summarizes Lens projections into bounded state |
+| body | generated before approval | deep | stores a reviewable in-memory Markdown preview |
+| body revision | `modify: ...` | deep | replaces only the in-memory preview |
 | SEO and tags | `generate SEO` | balanced | adds validated front matter to the new draft |
 | existing SEO | “generate SEO for en/article-slug” | balanced | stages a protected Git update |
 | translation | “translate en/article-slug to Italian” | deep | stages creation of a translated draft |
 
 Intermediate generation passes through `ExBlog.Agent.EditorialAI`. Each helper
 is a read-only leaf: it returns one normalized, length-limited value, does not
-own state, and cannot mutate the repository. The body and optional SEO are
-generated inside `ExBlog.Agent.Actions.create_article/2` only after Spectre has
-received confirmation. Rejecting the effect therefore cannot leave a partial
-article behind.
+own state, and cannot mutate the repository. `EditorialResearch` likewise keeps
+raw Lens projections request-scoped and stores only a digest. The body is shown
+before any effect exists. Confirmation passes the exact reviewed body into
+`ExBlog.Agent.Actions.create_article/2`; rejecting or cancelling therefore
+cannot leave a partial article behind.
 
 ## HEEx prompts as reviewable application code
 
@@ -133,9 +139,10 @@ explicit slash command or safety regex
 ```
 
 Regex is intentionally narrow. It handles explicit `/...` commands, safety
-patterns, confirmation responses, cancellation, and image control. Natural
-English requests are handled by semantic examples, the optional classifier,
-the verified semantic cache, and finally the remote classifier.
+patterns, confirmation responses, cancellation, image control, and source URLs
+only while the source-intake cursor is active. Natural English requests are
+handled by semantic examples, the optional classifier, the verified semantic
+cache, and finally the remote classifier.
 
 Every route declares its own `via:` providers:
 
@@ -281,18 +288,21 @@ sender_id == configured administrator
   → SHA-256 filename, never the user-provided filename
   → priv/static/images/articles/<sha256>.<ext>
   → cover and cover_alt in workflow state
-  → Markdown front matter after confirmation
+  → confirmation
+  → assets/images/articles/<sha256>.<ext> + Markdown in one Git commit
 ```
 
-Image bytes never enter DETS, memory, prompts, or chat history. The TDLib
-reference is transient, and download occurs only after the administrator
-username gate and active-flow check. ExBlog accepts JPEG, PNG, WebP, and GIF
-files up to 10 MB; SVG and arbitrary documents are rejected.
+Image bytes never enter DETS, prompts, or chat history. The TDLib reference is
+transient, and download occurs only after the administrator username gate and
+active-flow check. ExBlog accepts JPEG, PNG, WebP, and GIF files up to 10 MB;
+SVG and arbitrary documents are rejected.
 
-The public copy lives in `priv/static/images/articles`. A content-addressed
-copy is also kept under `$EX_BLOG_DATA_DIR/assets/images/articles` and restored
-into `priv` at startup because a release directory is replaced during a deploy.
-The Markdown path `/images/articles/...` therefore remains stable.
+The public copy lives in `priv/static/images/articles`, with a runtime mirror
+under `$EX_BLOG_DATA_DIR/assets/images/articles`. Once the draft is confirmed,
+the same content-addressed file lives in the content repository under
+`assets/images/articles`. Clone and sync restore validated Git assets into both
+runtime locations, so `/images/articles/...` remains stable even if the volume
+must be rebuilt.
 
 The Telegram caption becomes `cover_alt`. When it is absent, the workflow uses
 a title-based fallback; supplying a caption that describes the visible content
@@ -339,10 +349,10 @@ semantic reuse cannot produce a side effect.
 
 ## Browser verification
 
-Spectre Lens is deliberately limited to the public blog: article pages, the
-index, metadata, links, images, sitemap discovery, and document warnings or
-errors. It is not used for Telegram QR pairing or administrator-session
-guidance.
+Spectre Lens is deliberately limited to public HTTP(S) pages: administrator-
+supplied editorial sources plus blog article pages, the index, metadata, links,
+images, sitemap discovery, and document warnings or errors. It is not used for
+Telegram QR pairing or administrator-session guidance.
 
 Lightpanda verifies DOM structure and semantics but has no graphical rendering
 engine. Pixel appearance, CSS behavior, and responsive breakpoints require a

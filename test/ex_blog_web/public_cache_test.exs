@@ -12,11 +12,15 @@ defmodule ExBlogWeb.PublicCacheTest do
       tracked = PublicCache.render_modules()
 
       for module <- [
+            ExBlogWeb.PublicCache,
             ExBlogWeb.Layouts,
             ExBlogWeb.CoreComponents,
             ExBlogWeb.Showcase,
+            ExBlogWeb.BlogController,
             ExBlogWeb.BlogHTML,
+            ExBlogWeb.FeedController,
             ExBlogWeb.LegalHTML,
+            ExBlogWeb.SitemapController,
             ExBlogWeb.Gettext
           ] do
         assert module in tracked,

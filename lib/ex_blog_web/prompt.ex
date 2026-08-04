@@ -30,6 +30,8 @@ defmodule ExBlogWeb.Prompt do
     assigns
     |> Map.put_new(:request, "")
     |> Map.put_new(:category, "")
+    |> Map.put_new(:research_summary, "")
+    |> Map.put_new(:source_urls, "")
     |> article_generation_prompt()
     |> rendered_to_string()
   end
@@ -78,6 +80,16 @@ defmodule ExBlogWeb.Prompt do
     |> Map.put_new(:brief, "")
     |> Map.put_new(:category_options, "")
     |> editorial_category_prompt()
+    |> rendered_to_string()
+  end
+
+  @doc "Renders the source-grounded summarization prompt for editorial research."
+  @spec editorial_research(map()) :: String.t()
+  def editorial_research(assigns) when is_map(assigns) do
+    assigns
+    |> Map.put_new(:topic, "")
+    |> Map.put_new(:source_context, "")
+    |> editorial_research_prompt()
     |> rendered_to_string()
   end
 

@@ -4,7 +4,24 @@ defmodule ExBlog.Telegram.GatewayTest do
   import ExUnit.CaptureLog
 
   alias ExBlog.Content.Asset
+  alias ExBlog.Content.Index
   alias ExBlog.Telegram.Gateway
+  alias SpectreLens.View
+
+  defmodule StartCreationClassifier do
+    @moduledoc false
+
+    def classify(_text, _opts) do
+      {:ok,
+       %{
+         label: "START_ARTICLE_CREATION",
+         accepted?: true,
+         confidence: 0.97,
+         margin: 0.2,
+         strategy: :local_classifier
+       }}
+    end
+  end
 
   test "drops a non-admin update before invoking the processor or logging content" do
     event = telegram_update(999_999, "another_user", "github-token-that-must-not-be-logged")
@@ -136,6 +153,159 @@ defmodule ExBlog.Telegram.GatewayTest do
              Gateway.handle_update(event)
   end
 
+  test "a created draft reports its Git link and opens a real publish-or-cancel decision" do
+    root = temporary_directory()
+    english = Path.join([root, "content", "en"])
+    File.mkdir_p!(english)
+
+    File.write!(
+      Path.join(english, "2026-08-04-ready-to-publish.md"),
+      """
+      ---
+      title: Ready to publish
+      slug: ready-to-publish
+      lang: en
+      status: draft
+      date: 2026-08-04
+      tags: []
+      ---
+      Generated article body.
+      """
+    )
+
+    start_supervised!({Index, root: root, content_root: "content"})
+    on_exit(fn -> File.rm_rf!(root) end)
+    conversation_id = "42"
+
+    assert {:ok, _started} =
+             Spectre.ask(ExBlog.Agent, "create an article",
+               conversation_id: conversation_id,
+               classifier_local: StartCreationClassifier
+             )
+
+    assert {:ok, researched} =
+             Spectre.ask(ExBlog.Agent, "https://example.com/library",
+               conversation_id: conversation_id,
+               lens: ExBlog.TestLens,
+               lens_opts: [
+                 view: %View{
+                   url: "https://example.com/library",
+                   title: "Example Library",
+                   markdown: "# Example Library\n\nA reliable OTP-native library.",
+                   semantic_text: "A reliable OTP-native library."
+                 }
+               ],
+               research_summarizer: fn _prompt ->
+                 {:ok,
+                  "- Example Library is OTP-native ([source](https://example.com/library)).\n\nNo version was observed."}
+               end
+             )
+
+    assert researched.reply_text =~ "Short research summary"
+
+    for answer <- [
+          "A complete practical article for Elixir developers.",
+          "en",
+          "Engineering",
+          "Ready to publish"
+        ] do
+      assert {:ok, _result} =
+               Spectre.ask(ExBlog.Agent, answer, conversation_id: conversation_id)
+    end
+
+    ai_complete = fn :deep, _prompt, _opts ->
+      {:ok, %{text: "Generated article body."}}
+    end
+
+    assert {:ok, preview} =
+             Spectre.ask(ExBlog.Agent, "skip",
+               conversation_id: conversation_id,
+               ai_complete: ai_complete
+             )
+
+    assert preview.state.current_flow == :article_review
+    assert preview.reply_text =~ "Generated article body."
+    assert Spectre.Result.pending_effect(preview) == nil
+
+    article_writer = fn _params ->
+      ExBlog.Content.get("en", "ready-to-publish", published_only?: false)
+    end
+
+    confirm = telegram_update(42, ExBlog.Config.get().admin_telegram_username, "confirm")
+
+    assert {:reply, chunks} =
+             Gateway.handle_update(confirm, article_writer: article_writer)
+
+    reply = Enum.join(chunks)
+    assert reply =~ "Draft created and synchronized with Git"
+
+    assert reply =~
+             "github.com/example/ex-blog-content/blob/main/content/en/2026-08-04-ready-to-publish.md"
+
+    assert reply =~ "Publish it now"
+    assert reply =~ "Reply “yes”"
+
+    no = telegram_update(42, ExBlog.Config.get().admin_telegram_username, "no")
+
+    assert {:reply, [cancelled]} = Gateway.handle_update(no)
+    assert cancelled == "Publication cancelled. The article remains an unpublished draft in Git."
+  end
+
+  test "publishes a draft selected by natural title without exposing Action Language" do
+    root = temporary_directory()
+    english = Path.join([root, "content", "en"])
+    File.mkdir_p!(english)
+    title = "Building a Blog with Spectre: My Library for Agent-Driven Development"
+    slug = "building-a-blog-with-spectre-my-library-for-agent-driven-development"
+
+    File.write!(
+      Path.join(english, "2026-08-04-#{slug}.md"),
+      """
+      ---
+      title: "#{title}"
+      slug: #{slug}
+      lang: en
+      status: draft
+      date: 2026-08-04
+      tags: []
+      ---
+      The article body.
+      """
+    )
+
+    start_supervised!({Index, root: root, content_root: "content"})
+    on_exit(fn -> File.rm_rf!(root) end)
+    admin = ExBlog.Config.get().admin_telegram_username
+    test_pid = self()
+
+    article_mutator = fn :published, article ->
+      send(test_pid, {:published, article.lang, article.slug})
+      {:ok, %{article | status: :published}}
+    end
+
+    request = telegram_update(42, admin, "make this article published : #{title}")
+
+    assert {:reply, confirmation_chunks} =
+             Gateway.handle_update(request, article_mutator: article_mutator)
+
+    confirmation = Enum.join(confirmation_chunks)
+    assert confirmation =~ "Publish it now"
+    assert confirmation =~ title
+    refute confirmation =~ "PUBLISH ARTICLE"
+    refute confirmation =~ "</al>"
+
+    approval = telegram_update(42, admin, "yes")
+
+    assert {:reply, published_chunks} =
+             Gateway.handle_update(approval, article_mutator: article_mutator)
+
+    published = Enum.join(published_chunks)
+    assert published =~ "Article published: #{title}"
+    assert published =~ "https://localhost/en/#{slug}"
+    refute published =~ "PUBLISH ARTICLE"
+    assert_received {:published, "en", ^slug}
+  end
+
   defp telegram_update(sender_id, sender_username, text) do
     jid = Integer.to_string(sender_id)
 
@@ -175,5 +345,16 @@ defmodule ExBlog.Telegram.GatewayTest do
          media: %{type: :image, telegram_type: :photo, file_id: 77, size: size}
        }
      }}
+  end
+
+  defp temporary_directory do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "ex-blog-gateway-#{System.unique_integer([:positive, :monotonic])}"
+      )
+
+    File.mkdir_p!(path)
+    path
   end
 end

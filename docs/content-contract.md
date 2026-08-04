@@ -103,10 +103,13 @@ An update never changes the slug or language of an existing article. A
 translation creates a new draft. Publishing, unpublishing, and deletion mutate
 the repository and require confirmation on agent-controlled surfaces.
 
-During article creation, OpenRouter generates the body and optional SEO only after the
-Spectre confirmation policy succeeds. SEO output is decoded and normalized into
-`seo_title`, `seo_description`, `cover_alt`, and `tags` before the Writer applies
-the contract limits and serializes the file.
+During article creation, OpenRouter generates a source-grounded body as an
+in-memory preview. The administrator may revise or discard it without touching
+Git. Confirming the preview resolves the Spectre policy and passes that exact
+approved body to the write action; the body is not regenerated. Optional SEO is
+then decoded and normalized into `seo_title`, `seo_description`, `cover_alt`,
+and `tags` before the Writer applies the contract limits and serializes the
+file.
 
 `ExBlog.Content.Writer` is the only canonical Markdown write boundary. Routing,
 Kinetic planning, and prompt rendering may propose an operation, but they never
@@ -120,6 +123,12 @@ accepts JPEG, PNG, WebP, and GIF files up to 10 MB, detects the format from magi
 bytes, and uses the SHA-256 digest as the filename. The Telegram-provided
 filename is never reused.
 
+The confirmed Git copy is:
+
+```text
+assets/images/articles/<sha256>.<extension>
+```
+
 The public copy served by Phoenix is:
 
 ```text
@@ -132,7 +141,9 @@ The durable backing copy is:
 $EX_BLOG_DATA_DIR/assets/images/articles/<sha256>.<extension>
 ```
 
-At startup, ExBlog validates the backing files and restores them into the
-release's static directory. Markdown stores only the public path in `cover`.
-Image bytes, Telegram file identifiers, and local TDLib paths never enter front
-matter, Spectre state, memory, or chat history.
+On confirmation, ExBlog validates the content-addressed upload and commits it in
+the same Git transaction as the Markdown file. At startup and after repository
+sync, Git-managed assets are validated and restored into the durable and public
+runtime locations. Markdown stores only the public path in `cover`. Image bytes,
+Telegram file identifiers, absolute local paths, and TDLib paths never enter
+front matter, Spectre state, prompts, or chat history.

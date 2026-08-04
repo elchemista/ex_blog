@@ -15,7 +15,9 @@ ARG TDLIB_BUILD_JOBS="2"
 # Reuse the immutable Bookworm artifact already published by Freelance. Set
 # TDLIB_IMAGE=tdlib-artifact only when deliberately rebuilding TDLib here.
 ARG TDLIB_IMAGE="registry.fly.io/freelance:tdlib-bookworm-b876ee4dcfba@sha256:1f99be7652facf5e6c4492644f7b734f50c255837a25115df657cd4169721393"
-ARG LIGHTPANDA_CHANNEL="nightly"
+# Pin the official multi-architecture image rather than resolving the moving
+# nightly release through GitHub's rate-limited API during every Depot build.
+ARG LIGHTPANDA_IMAGE="docker.io/lightpanda/browser:nightly@sha256:0acfc0f9be11f97b9846c8168cff209b892a49bf2ae55c4ac20bde75dfd58afd"
 
 
 FROM ${DEBIAN_IMAGE} AS tdlib-build
@@ -82,6 +84,15 @@ LABEL org.opencontainers.image.source="${TDLIB_JSON_CLI_REPOSITORY}" \
 
 
 FROM ${TDLIB_IMAGE} AS tdlib
+
+
+# The OCI index digest covers both amd64 and arm64 manifests and their layers,
+# so BuildKit selects the target architecture while retaining checksum-level
+# reproducibility. The official image exposes its browser at /bin/lightpanda.
+FROM ${LIGHTPANDA_IMAGE} AS lightpanda
+
+RUN test -x /bin/lightpanda \
+    && /bin/lightpanda version
 
 
 # Spectre Kinetic's Ortex dependency compiles a Rust NIF. The Rust toolchain
@@ -165,23 +176,6 @@ RUN --mount=type=cache,target=/root/.cache \
     mix deps.compile
 
 
-# Keep the 150+ MB browser download independent from ordinary application
-# source edits. Spectre Lens resolves and checksum-verifies the selected asset.
-FROM dependencies AS lightpanda
-
-ARG LIGHTPANDA_CHANNEL
-
-RUN mkdir -p /build/bin \
-    && set -- \
-    && for ebin in _build/prod/lib/*/ebin; do set -- "$@" -pa "${ebin}"; done \
-    && LIGHTPANDA_CHANNEL="${LIGHTPANDA_CHANNEL}" \
-      elixir "$@" -e \
-      'Application.ensure_all_started(:req); channel = System.fetch_env!("LIGHTPANDA_CHANNEL"); {:ok, _path} = SpectreLens.Lightpanda.install(out: "/build/bin", channel: channel, force: true)'
-
-RUN test -x /build/bin/lightpanda \
-    && /build/bin/lightpanda version
-
-
 FROM dependencies AS builder
 
 COPY priv priv
@@ -252,7 +246,7 @@ COPY --from=builder --chown=exblog:exblog \
   ./lib/ex_blog_web/prompts
 
 COPY --from=lightpanda --chown=root:root --chmod=0755 \
-  /build/bin/lightpanda \
+  /bin/lightpanda \
   /usr/local/bin/lightpanda
 
 COPY --chown=root:root --chmod=0755 \

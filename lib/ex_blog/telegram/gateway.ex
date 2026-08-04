@@ -98,11 +98,11 @@ defmodule ExBlog.Telegram.Gateway do
                  result,
                  spectre_opts(opts, conversation_id)
                ) do
-          action_text(executed)
+          action_text(executed, opts, conversation_id)
         end
 
       Result.action_outcome(result) != nil ->
-        action_text(result)
+        action_text(result, opts, conversation_id)
 
       Result.visible_reply?(result) ->
         visible_text(result)
@@ -115,12 +115,52 @@ defmodule ExBlog.Telegram.Gateway do
   defp executable_effect?(%{status: status}) when status in [:pending, :approved], do: true
   defp executable_effect?(_effect), do: false
 
-  defp action_text(result) do
+  defp action_text(result, opts, conversation_id) do
     case Result.action_outcome(result) do
-      {:ok, value} -> {:ok, Presenter.present(value)}
-      {:error, reason} -> {:ok, Presenter.present({:error, reason})}
-      {:cancelled, _reason} -> {:ok, "Operation cancelled."}
-      nil -> visible_text(result)
+      {:ok, %{operation: :created} = article} ->
+        created_article_text(article, opts, conversation_id)
+
+      {:ok, value} ->
+        {:ok, Presenter.present(value)}
+
+      {:error, reason} ->
+        {:ok, Presenter.present({:error, reason})}
+
+      {:cancelled, _reason} ->
+        {:ok, cancellation_text(result)}
+
+      nil ->
+        visible_text(result)
+    end
+  end
+
+  defp created_article_text(article, opts, conversation_id) do
+    summary = Presenter.present(article)
+    command = "publish #{article.lang}/#{article.slug}"
+
+    case Spectre.ask(
+           ExBlog.Agent,
+           %{text: command, meta: %{system_generated: :publication_offer}},
+           spectre_opts(opts, conversation_id)
+         ) do
+      {:ok, %Result{} = offer} ->
+        {:ok, prompt} = visible_text(offer)
+        {:ok, summary <> "\n\n" <> prompt}
+
+      {:error, _reason} ->
+        {:ok, summary <> publication_fallback(command)}
+    end
+  end
+
+  defp publication_fallback(command) do
+    "\n\nTo publish it later, send `#{command}`. Otherwise it remains a draft."
+  end
+
+  defp cancellation_text(%Result{effects: effects}) do
+    if Enum.any?(effects, &(&1.name == :publish_article and &1.status == :cancelled)) do
+      "Publication cancelled. The article remains an unpublished draft in Git."
+    else
+      "Operation cancelled."
     end
   end
 
@@ -135,6 +175,11 @@ defmodule ExBlog.Telegram.Gateway do
       :req_options,
       :test_pid,
       :ai_complete,
+      :lens,
+      :lens_opts,
+      :research_summarizer,
+      :article_writer,
+      :article_mutator,
       :telegram_media_downloader,
       :telegram_session_id,
       :article_asset_root

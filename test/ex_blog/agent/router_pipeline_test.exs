@@ -143,7 +143,7 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     :ok
   end
 
-  test "skill routes explicitly expose semantic and LLM providers without command regex" do
+  test "skill routes scope URL and review regexes to the active creation cursor" do
     router = Agent.__spectre_router__()
 
     assert Keyword.fetch!(router, :via) ==
@@ -178,13 +178,10 @@ defmodule ExBlog.Agent.RouterPipelineTest do
 
     for label <- [
           :START_ARTICLE_CREATION,
-          :REVISE_ARTICLE,
           :TRANSLATE_ARTICLE,
           :GENERATE_ARTICLE_SEO,
-          :PUBLISH_ARTICLE,
           :UNPUBLISH_ARTICLE,
           :DELETE_ARTICLE,
-          :SYNC_BLOG_REPOSITORY,
           :VERIFY_BLOG
         ] do
       rule = Map.fetch!(rules, label)
@@ -193,6 +190,15 @@ defmodule ExBlog.Agent.RouterPipelineTest do
       refute rule.learn
       assert length(rule.embedding) == 3
       assert rule.regex == []
+    end
+
+    for label <- [:REVISE_ARTICLE, :PUBLISH_ARTICLE, :SYNC_BLOG_REPOSITORY] do
+      rule = Map.fetch!(rules, label)
+      assert rule.via == [:regex | mutation_via]
+      refute rule.cache
+      refute rule.learn
+      assert length(rule.embedding) == 3
+      assert length(rule.regex) == 1
     end
 
     ask_ai = Map.fetch!(rules, :ASK_AI)
@@ -206,14 +212,31 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     assert {:reason, :unknown_request, _opts} = unknown.handler
 
     for label <- [
+          :CAPTURE_ARTICLE_SOURCES,
           :CAPTURE_ARTICLE_BRIEF,
           :CAPTURE_ARTICLE_LANGUAGE,
           :CAPTURE_ARTICLE_CATEGORY,
           :CAPTURE_ARTICLE_TITLE,
-          :CAPTURE_ARTICLE_SEO
+          :CAPTURE_ARTICLE_SEO,
+          :CAPTURE_ARTICLE_REVIEW,
+          :CAPTURE_ARTICLE_REVISION_INSTRUCTIONS,
+          :CAPTURE_ARTICLE_REVISION_REVIEW
         ] do
       assert Map.fetch!(rules, label).via == [:creation_continuation]
     end
+
+    assert length(Map.fetch!(rules, :CAPTURE_ARTICLE_SOURCES).regex) == 1
+    assert length(Map.fetch!(rules, :CAPTURE_ARTICLE_REVIEW).regex) == 1
+    assert length(Map.fetch!(rules, :CAPTURE_ARTICLE_REVISION_REVIEW).regex) == 1
+  end
+
+  test "a URL cannot reach the editorial source capture outside its active cursor" do
+    assert {:ok, receipt} =
+             Router.evaluate(Agent, "https://example.com/library", via: [:regex])
+
+    assert receipt.label == :UNKNOWN
+    assert receipt.strategy == :clarify
+    refute Enum.any?(receipt.candidates, &(&1.label == :CAPTURE_ARTICLE_SOURCES))
   end
 
   test "the optional static embedding provider routes skill examples" do
@@ -391,6 +414,22 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     assert receipt.strategy == :regex
     refute receipt.llm_called?
     refute_received {:embedding_called, _text}
+    refute_received {:classifier_called, _prompt, _opts}
+  end
+
+  test "git pull routes deterministically to protected repository synchronization" do
+    assert {:ok, receipt} =
+             Router.evaluate(Agent, "git pull",
+               via: [:regex, :embedding, :classifier, :semantic_cache, :llm_classifier],
+               classifier_local: CaptureLocalClassifier,
+               embedding: SimilarityEmbedding
+             )
+
+    assert receipt.label == :SYNC_BLOG_REPOSITORY
+    assert receipt.strategy == :regex
+    refute receipt.llm_called?
+    refute_received {:embedding_called, _text}
+    refute_received {:local_classifier_called, _text}
     refute_received {:classifier_called, _prompt, _opts}
   end
 

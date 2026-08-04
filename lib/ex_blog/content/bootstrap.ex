@@ -3,6 +3,7 @@ defmodule ExBlog.Content.Bootstrap do
 
   use GenServer
 
+  alias ExBlog.Content.Asset
   alias ExBlog.Content.Git
 
   def start_link(opts \\ []) do
@@ -11,8 +12,10 @@ defmodule ExBlog.Content.Bootstrap do
 
   @impl true
   def init(opts) do
-    case Git.ensure_checkout(opts) do
-      {:ok, commit} -> {:ok, %{commit: commit}}
+    with {:ok, commit} <- Git.ensure_checkout(opts),
+         :ok <- Asset.restore_from_repository(opts) do
+      {:ok, %{commit: commit}}
+    else
       {:error, reason} -> {:stop, {:content_boot_failed, reason}}
     end
   end

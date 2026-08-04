@@ -1,0 +1,7 @@
+Selected “<%= ExBlogWeb.Prompt.escape_text(@title, 160) %>”.
+
+Article: <%= ExBlogWeb.Prompt.escape_text(@lang, 32) %>/<%= ExBlogWeb.Prompt.escape_text(@slug, 200) %>
+Current status: <%= ExBlogWeb.Prompt.escape_text(@status, 32) %>
+
+What would you like to change? Send the revision instructions in your next
+message, or reply `cancel` to stop. Nothing has been written to Git.

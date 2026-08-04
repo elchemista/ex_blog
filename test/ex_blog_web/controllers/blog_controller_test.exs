@@ -43,9 +43,26 @@ defmodule ExBlogWeb.BlogControllerTest do
     document = conn |> get("/") |> html_document(200)
 
     assert one?(document, "#blog-index")
+
+    assert document |> LazyHTML.query("#homepage-title") |> LazyHTML.text() |> String.trim() ==
+             "Costruisci agenti Elixir come sistemi OTP."
+
+    assert LazyHTML.text(LazyHTML.query(document, "#homepage-subtitle")) =~
+             "Spectre mantiene espliciti routing, stato, policy ed effetti collaterali"
+
     assert one?(document, "#article-card-it-primo-articolo")
     refute one?(document, "#article-card-it-bozza-segreta")
     assert LazyHTML.attribute(LazyHTML.query(document, "html"), "lang") == ["it"]
+  end
+
+  test "renders the Spectre positioning in English", %{conn: conn} do
+    document = conn |> get("/en") |> html_document(200)
+
+    assert document |> LazyHTML.query("#homepage-title") |> LazyHTML.text() |> String.trim() ==
+             "Build Elixir agents like OTP systems."
+
+    assert LazyHTML.text(LazyHTML.query(document, "#homepage-subtitle")) =~
+             "Spectre keeps routing, state, policies, and side effects explicit"
   end
 
   test "renders sanitized article HTML, metadata, tags, and language alternatives", %{conn: conn} do
@@ -89,7 +106,12 @@ defmodule ExBlogWeb.BlogControllerTest do
 
   test "serves the dynamic sitemap, static robots, feeds, and conditional caching", %{conn: conn} do
     sitemap = get(conn, "/sitemap.xml")
+    base = ExBlog.Config.canonical_url()
+    assert response(sitemap, 200) =~ "<loc>#{base}/</loc>"
+    assert response(sitemap, 200) =~ "<loc>#{base}/it</loc>"
+    assert response(sitemap, 200) =~ "<loc>#{base}/en</loc>"
     assert response(sitemap, 200) =~ "/it/primo-articolo"
+    assert response(sitemap, 200) =~ "/en/first-article"
     refute response(sitemap, 200) =~ "bozza-segreta"
     assert get_resp_header(sitemap, "content-type") == ["application/xml; charset=utf-8"]
 

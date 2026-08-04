@@ -37,6 +37,7 @@ defmodule ExBlog.AI do
     purpose(:response_generation, prefer: :balanced)
     purpose(:category_generation, prefer: :fast)
     purpose(:title_generation, prefer: :balanced)
+    purpose(:source_research, prefer: :balanced)
     purpose(:seo_generation, prefer: :balanced)
     purpose(:article_generation, prefer: :deep)
     purpose(:page_audit, prefer: :balanced)

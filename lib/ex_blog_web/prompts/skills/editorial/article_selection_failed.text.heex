@@ -1,0 +1,9 @@
+I could not select an article to <%= ExBlogWeb.Prompt.escape_text(@operation, 40) %>.
+
+<%= ExBlogWeb.Prompt.escape_text(@message, 500) %>
+
+Available article IDs:
+<%= ExBlogWeb.Prompt.escape_text(@choices, 4_000) %>
+
+No change was made. Show the article list again to refresh its numbers, or use
+an exact title, `lang/slug`, public link, or Git link.

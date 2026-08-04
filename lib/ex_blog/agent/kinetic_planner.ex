@@ -13,6 +13,7 @@ defmodule ExBlog.Agent.KineticPlanner do
 
   require Logger
 
+  alias ExBlog.Agent.ReplySanitizer
   alias Spectre.Action
   alias Spectre.Kinetic.Catalog
   alias Spectre.Kinetic.Planner, as: DeterministicPlanner
@@ -31,19 +32,23 @@ defmodule ExBlog.Agent.KineticPlanner do
   """
 
   @task_prompt "Select the single valid action described by the untrusted planner payload."
+  @invalid_action_reply "I couldn't prepare that action safely. Please rephrase the request."
 
   @impl Spectre.Action.Planner
   def plan_response(text, ctx, opts) when is_binary(text) and is_map(ctx) and is_list(opts) do
-    case deterministic_call(:plan_response, fn ->
-           DeterministicPlanner.plan_response(text, ctx, opts)
-         end) do
-      {:ok, _response} = ok ->
-        ok
+    result =
+      case deterministic_call(:plan_response, fn ->
+             DeterministicPlanner.plan_response(text, ctx, opts)
+           end) do
+        {:ok, _response} = ok ->
+          ok
 
-      {:error, reason} ->
-        log_fallback(:plan_response, reason)
-        llm_plan_response(text, ctx, opts, reason)
-    end
+        {:error, reason} ->
+          log_fallback(:plan_response, reason)
+          llm_plan_response(text, ctx, opts, reason)
+      end
+
+    sanitize_plan_response(result, text, opts)
   end
 
   @impl Spectre.Action.Planner
@@ -65,7 +70,29 @@ defmodule ExBlog.Agent.KineticPlanner do
   end
 
   @impl Spectre.Action.Planner
-  def clean_reply(text, ctx, opts), do: DeterministicPlanner.clean_reply(text, ctx, opts)
+  def clean_reply(text, ctx, opts) do
+    text
+    |> DeterministicPlanner.clean_reply(ctx, opts)
+    |> ReplySanitizer.sanitize(opts)
+  end
+
+  defp sanitize_plan_response(
+         {:ok, %{reply_text: reply_text, actions: actions} = response},
+         raw_text,
+         opts
+       )
+       when is_binary(reply_text) and is_list(actions) do
+    clean_text = ReplySanitizer.sanitize(reply_text, opts)
+
+    visible_text =
+      if actions == [] and ReplySanitizer.internal_action_syntax?(raw_text),
+        do: @invalid_action_reply,
+        else: clean_text
+
+    {:ok, %{response | reply_text: visible_text}}
+  end
+
+  defp sanitize_plan_response(result, _raw_text, _opts), do: result
 
   defp deterministic_call(callback, function) do
     function.()

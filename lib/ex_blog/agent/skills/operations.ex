@@ -101,14 +101,16 @@ defmodule ExBlog.Agent.Skills.Operations do
       # `cache: false` prevents a learned phrase from becoming authorization.
       # Routing selects an intent; the confirmation policy grants execution.
       on :SYNC_BLOG_REPOSITORY,
+        regex: ~r/^\s*git\s+pull\s*[.!]?\s*$/iu,
+        regex_strength: :hard,
         embedding: [
           "synchronize the blog checkout with its remote repository",
           "fetch the canonical content branch and rebuild the index",
           "refresh local blog content from GitHub"
         ],
         cache: false,
-        via: [:embedding, :classifier, :llm_classifier] do
-        act(:sync_repository_prompt, intelligence: :balanced)
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
+        action(:sync_repository, args: %{})
       end
     end
 

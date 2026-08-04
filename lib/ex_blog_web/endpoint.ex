@@ -28,6 +28,7 @@ defmodule ExBlogWeb.Endpoint do
     from: :ex_blog,
     gzip: not code_reloading?,
     only: ExBlogWeb.static_paths(),
+    only_matching: ["favicon-"],
     raise_on_missing_only: code_reloading?
 
   # Code reloading can be explicitly enabled under the

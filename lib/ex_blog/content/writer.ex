@@ -10,6 +10,7 @@ defmodule ExBlog.Content.Writer do
   alias ExBlog.Config
   alias ExBlog.Content
   alias ExBlog.Content.Article
+  alias ExBlog.Content.Asset
   alias ExBlog.Content.Git
   alias ExBlog.Content.Index
 
@@ -38,10 +39,15 @@ defmodule ExBlog.Content.Writer do
          {:error, :not_found} <- Content.get(attrs.lang, attrs.slug, published_only?: false),
          relative_path <- article_path(attrs, config),
          {:ok, absolute_path} <- safe_target(relative_path, config),
+         {:ok, asset_paths} <- Asset.stage_for_git(attrs.cover, asset_options(opts, config)),
          :ok <- File.mkdir_p(Path.dirname(absolute_path)),
          :ok <- File.write(absolute_path, serialize(attrs)),
          {:ok, _commit} <-
-           commit_and_maybe_push([relative_path], "Create #{attrs.lang}/#{attrs.slug}", opts),
+           commit_and_maybe_push(
+             [relative_path | asset_paths],
+             "Create #{attrs.lang}/#{attrs.slug}",
+             opts
+           ),
          {:ok, _summary} <- Index.rebuild(),
          {:ok, article} <- Content.get(attrs.lang, attrs.slug, published_only?: false) do
       {:ok, article}
@@ -57,9 +63,14 @@ defmodule ExBlog.Content.Writer do
 
     with {:ok, attrs} <- normalize_update(article, params, config),
          {:ok, absolute_path} <- safe_target(article.path, config),
+         {:ok, asset_paths} <- Asset.stage_for_git(attrs.cover, asset_options(opts, config)),
          :ok <- File.write(absolute_path, serialize(attrs)),
          {:ok, _commit} <-
-           commit_and_maybe_push([article.path], "Update #{article.lang}/#{article.slug}", opts),
+           commit_and_maybe_push(
+             [article.path | asset_paths],
+             "Update #{article.lang}/#{article.slug}",
+             opts
+           ),
          {:ok, _summary} <- Index.rebuild() do
       Content.get(attrs.lang, attrs.slug, published_only?: false)
     end
@@ -234,6 +245,14 @@ defmodule ExBlog.Content.Writer do
       end
     end
   end
+
+  defp asset_options(opts, config) do
+    [config: config]
+    |> maybe_put(:source_root, Keyword.get(opts, :asset_source_root))
+  end
+
+  defp maybe_put(options, _key, nil), do: options
+  defp maybe_put(options, key, value), do: Keyword.put(options, key, value)
 
   defp yaml_line(_field, nil), do: []
 
