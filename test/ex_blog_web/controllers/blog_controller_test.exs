@@ -102,6 +102,7 @@ defmodule ExBlogWeb.BlogControllerTest do
     robots = get(build_conn(), "/robots.txt")
     assert response(robots, 200) =~ "Disallow: /admin"
     assert response(robots, 200) =~ "Disallow: /mcp"
+    assert response(robots, 200) =~ "Disallow: /oauth"
     assert response(robots, 200) =~ "Sitemap: https://ex-blog.fly.dev/sitemap.xml"
 
     first = get(build_conn(), "/it")
