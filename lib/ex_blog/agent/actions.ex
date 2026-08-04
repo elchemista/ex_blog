@@ -3,6 +3,7 @@ defmodule ExBlog.Agent.Actions do
   Single operational surface shared by Spectre, Telegram, MCP, and tests.
   """
 
+  alias ExBlog.Agent.Language
   alias ExBlog.Agent.PageAudit
   alias ExBlog.AI
   alias ExBlog.Budget
@@ -39,7 +40,7 @@ defmodule ExBlog.Agent.Actions do
   @spec search_articles(map(), term()) :: {:ok, map()}
   def search_articles(args, ctx \\ nil) do
     text = input_text(ctx)
-    query = argument(args, :query) || strip_command(text, ["/search", "cerca", "trova"])
+    query = argument(args, :query) || strip_command(text, ["/search", "search", "find"])
     lang = argument(args, :lang) || language_from_text(text) || Config.get().default_language
     articles = Content.search(query || "", lang: lang, status: :all)
 
@@ -289,17 +290,15 @@ defmodule ExBlog.Agent.Actions do
   defp language_from_text(nil), do: nil
 
   defp language_from_text(text) do
-    Enum.find(Config.get().supported_languages, fn lang ->
-      Regex.match?(~r/(?:^|[\s\/:])#{Regex.escape(lang)}(?:[\s\/:]|$)/i, text)
-    end)
+    Language.code_in(text, Config.get().supported_languages)
   end
 
   defp target_language(nil), do: nil
 
   defp target_language(text) do
-    case Regex.run(~r/(?:in|to|verso)\s+([a-z]{2}(?:-[A-Z]{2})?)/i, text, capture: :all_but_first) do
-      [lang] -> String.downcase(lang)
-      _other -> nil
+    case Language.parse_target(text, Config.get().supported_languages) do
+      {:ok, language} -> language
+      :error -> nil
     end
   end
 
@@ -314,7 +313,7 @@ defmodule ExBlog.Agent.Actions do
   defp title_from_request(text) do
     text
     |> String.replace(
-      ~r/^\/?(?:create|write|scrivi|crea)(?:\s+un)?(?:\s+articolo)?(?:\s+(?:su|about))?\s*/iu,
+      ~r/^\/?(?:create|write)(?:\s+me)?(?:\s+an?)?(?:\s+(?:article|post))?(?:\s+about)?\s*/iu,
       ""
     )
     |> String.trim()
