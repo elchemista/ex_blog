@@ -31,6 +31,7 @@ defmodule ExBlog.ConfigTest do
       |> Map.put("EX_BLOG_TELEGRAM_SESSION_ID", "../unsafe")
       |> Map.put("EX_BLOG_GITHUB_REPOSITORY", "not a repository")
       |> Map.put("EX_BLOG_MONTHLY_BUDGET_EUR", "-1")
+      |> Map.put("EX_BLOG_EMBEDDING_DIMENSIONS", "0")
       |> Map.put("EX_BLOG_GIT_SYNC_INTERVAL_MS", "0")
 
     assert {:error, message} = Config.load(env)
@@ -40,6 +41,7 @@ defmodule ExBlog.ConfigTest do
     assert message =~ "EX_BLOG_TELEGRAM_SESSION_ID"
     assert message =~ "EX_BLOG_GITHUB_REPOSITORY: must use the owner/repository format"
     assert message =~ "EX_BLOG_MONTHLY_BUDGET_EUR: must be a positive number"
+    assert message =~ "EX_BLOG_EMBEDDING_DIMENSIONS: must be a positive integer"
     assert message =~ "EX_BLOG_GIT_SYNC_INTERVAL_MS: must be a positive integer"
   end
 
@@ -59,6 +61,12 @@ defmodule ExBlog.ConfigTest do
     refute inspected_config =~ "openrouter-secret-value"
     assert Config.public(config).github_token == :configured
     assert Config.public(config).openrouter_token == :configured
+    assert Config.public(config).agent_language == "en"
+
+    assert Config.public(config).models.embedding ==
+             "openrouter:perplexity/pplx-embed-v1-0.6b"
+
+    assert config.embedding_dimensions == 1024
   end
 
   test "redacts every configured credential from arbitrary text" do
