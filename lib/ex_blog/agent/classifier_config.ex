@@ -1,12 +1,16 @@
 defmodule ExBlog.Agent.ClassifierConfig do
   @moduledoc """
-  Resolves the versioned dataset and generated classifier artifacts.
+  Resolves the versioned dataset and development-only classifier artifacts.
 
   ExBlog keeps the hand-written corpus in `priv/spectre/dataset.json`, so it is
-  available both from a source checkout and from an OTP release. The generated
-  classifier and its vectorized semantic mirror live beside it under
-  `priv/spectre/classifier`; those files are reproducible build artifacts and
-  are created by `mix spectre.classifier.setup`.
+  available both from a source checkout and from an OTP release. Development
+  and test can generate a classifier and semantic mirror under
+  `artifacts/spectre` with `mix spectre.classifier.setup`. That directory is not
+  part of the production release.
+
+  Production keeps only the checked-in dataset for exact matching and uses
+  OpenRouter for learned semantic embeddings. The local classifier is disabled,
+  preventing its 384-dimensional vectors from mixing with hosted 1,024d rows.
 
   Keeping path resolution here avoids a common release bug: a relative
   `priv/...` path points at the process working directory, while
@@ -17,9 +21,9 @@ defmodule ExBlog.Agent.ClassifierConfig do
 
   @encoder_model "intfloat/multilingual-e5-small"
   @dataset_relative_path "spectre/dataset.json"
-  @artifact_relative_path "spectre/classifier"
+  @source_artifact_path "artifacts/spectre"
 
-  @doc "Returns the encoder used by both the local classifier and semantic search."
+  @doc "Returns the encoder used by development/test classifier training."
   @spec encoder_model() :: String.t()
   def encoder_model, do: @encoder_model
 
@@ -31,7 +35,7 @@ defmodule ExBlog.Agent.ClassifierConfig do
   end
 
   @doc "Returns the classifier artifact directory currently installed in Spectre."
-  @spec artifact_dir() :: String.t()
+  @spec artifact_dir() :: String.t() | nil
   def artifact_dir do
     classifier_options()
     |> Keyword.get(:artifact_dir, source_artifact_dir())
@@ -43,15 +47,11 @@ defmodule ExBlog.Agent.ClassifierConfig do
 
   @doc "Returns the generated artifact path for a normal source checkout."
   @spec source_artifact_dir() :: String.t()
-  def source_artifact_dir, do: Path.expand("priv/#{@artifact_relative_path}")
+  def source_artifact_dir, do: Path.expand(@source_artifact_path)
 
   @doc "Resolves the tracked dataset inside an assembled OTP release."
   @spec release_dataset_path() :: String.t()
   def release_dataset_path, do: release_priv_path(@dataset_relative_path)
-
-  @doc "Resolves generated classifier artifacts inside an assembled OTP release."
-  @spec release_artifact_dir() :: String.t()
-  def release_artifact_dir, do: release_priv_path(@artifact_relative_path)
 
   @doc "Returns whether trained local routing is enabled for this runtime."
   @spec local_enabled?() :: boolean()
@@ -71,6 +71,7 @@ defmodule ExBlog.Agent.ClassifierConfig do
     |> Keyword.delete(:start?)
     |> Keyword.delete(:local_classifier_enabled?)
     |> Keyword.delete(:dataset_path)
+    |> Keyword.delete(:dataset_required?)
   end
 
   @doc "Logs privacy-safe boot diagnostics for the corpus and trained artifact."
@@ -78,10 +79,15 @@ defmodule ExBlog.Agent.ClassifierConfig do
   def log_boot_status do
     log_path(:dataset, dataset_path())
 
-    if start?() do
-      log_path(:classifier, Path.join(artifact_dir(), "classifier.etf"))
-    else
-      Logger.info("spectre_classifier disabled")
+    case {start?(), artifact_dir()} do
+      {true, path} when is_binary(path) ->
+        log_path(:classifier, Path.join(path, "classifier.etf"))
+
+      {true, nil} ->
+        Logger.warning("spectre_classifier missing artifact_dir")
+
+      {false, _path} ->
+        Logger.info("spectre_classifier disabled")
     end
 
     :ok
@@ -90,9 +96,12 @@ defmodule ExBlog.Agent.ClassifierConfig do
   @doc "Fails a required runtime before it serves without its versioned corpus."
   @spec validate_required_sources!() :: :ok
   def validate_required_sources! do
-    required? = Keyword.get(classifier_options(), :required?, false)
+    options = classifier_options()
 
-    if required? and not File.regular?(dataset_path()) do
+    dataset_required? =
+      Keyword.get(options, :dataset_required?, false) or Keyword.get(options, :required?, false)
+
+    if dataset_required? and not File.regular?(dataset_path()) do
       raise ExBlog.ConfigError,
         message: "Spectre classifier dataset is missing: #{dataset_path()}"
     end
