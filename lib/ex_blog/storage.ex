@@ -4,8 +4,9 @@ defmodule ExBlog.Storage do
 
   The canonical articles remain in Git. DETS keeps only local operational
   state such as Spectre conversations, learned routing examples, the AI budget
-  ledger, and bounded Git operation history. All mutations are serialized by
-  this process and synced before replying to the caller.
+  ledger, bounded Git operation history, and OAuth client/token hashes. All
+  mutations are serialized by this process and synced before replying to the
+  caller. Plaintext OAuth credentials are never passed to this store.
   """
 
   use GenServer
