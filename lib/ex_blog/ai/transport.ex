@@ -1,6 +1,16 @@
 defmodule ExBlog.AI.Transport do
   @moduledoc """
   Req transport for Prism with budget authorization and usage accounting.
+
+  Every OpenRouter request crosses this boundary in the same order: authorize
+  estimated spend, execute with Req, bound and decode the response, then record
+  provider-reported usage. A successful HTTP response is not returned when
+  usage accounting fails; silently losing cost data would break the budget
+  guarantee for later requests.
+
+  Retries are disabled here because Prism owns model-level attempts. Allowing
+  Req to retry as well would make one logical attempt consume an unpredictable
+  number of provider calls.
   """
 
   @behaviour Spectre.Prism.Adapter.Transport
@@ -25,6 +35,8 @@ defmodule ExBlog.AI.Transport do
   end
 
   defp request_options(method, url, headers, body, opts) do
+    # Application and per-call Req options are useful for tests and deployment
+    # tuning, but transport invariants below win during the final merge.
     :ex_blog
     |> Application.get_env(:openrouter_req_options, [])
     |> Keyword.merge(Keyword.get(opts, :req_options, []))
@@ -71,6 +83,8 @@ defmodule ExBlog.AI.Transport do
   defp decode_body(_body, _opts), do: {:error, :invalid_response_body}
 
   defp account(status, response, request, level, opts) when status in 200..299 do
+    # OpenRouter may omit usage fields for some models. Missing numeric counters
+    # become zero, while the request still records purpose and subject identity.
     usage = if is_map(response), do: Map.get(response, "usage", %{}), else: %{}
 
     attrs = %{
