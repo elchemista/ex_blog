@@ -1,6 +1,17 @@
 defmodule ExBlog.Agent.StateStore do
   @moduledoc """
   DETS-backed Spectre state store with optimistic concurrency.
+
+  Spectre state contains the active nested-flow cursor, pending confirmation,
+  and bounded workflow data for one conversation. Entries are namespaced by
+  both conversation id and agent module, then encoded with Spectre's state
+  codec before they reach the shared `ExBlog.Storage` DETS table.
+
+  `compare_and_swap/5` is important even for a single administrator: Telegram
+  retries, MCP calls, and asynchronous delivery can overlap. A writer may only
+  replace the revision it originally loaded, so a stale turn cannot silently
+  erase a newer flow step or policy decision. Calls without a conversation id
+  intentionally remain ephemeral and are not persisted.
   """
 
   @behaviour Spectre.State.Store
@@ -39,6 +50,7 @@ defmodule ExBlog.Agent.StateStore do
     end
   end
 
+  @doc "Deletes the persisted state for one conversation and agent namespace."
   @spec delete(String.t(), module()) :: :ok | {:error, term()}
   def delete(conversation_id, agent) do
     conversation_id
@@ -47,6 +59,8 @@ defmodule ExBlog.Agent.StateStore do
   end
 
   defp persist(conversation_id, agent, revision, expected_revision, payload) do
+    # Storage.update/3 performs the read-check-write operation inside the
+    # storage server, making the revision comparison atomic for this node.
     key = storage_key(conversation_id, agent)
 
     Storage.update(key, nil, fn
@@ -62,6 +76,8 @@ defmodule ExBlog.Agent.StateStore do
   end
 
   defp decode_entry(%{payload: payload, revision: revision}) do
+    # The envelope revision and the encoded state's revision must agree. A
+    # mismatch is treated as corruption instead of guessing which one is newer.
     with {:ok, %State{} = state} <- Codec.decode(payload),
          true <- state.revision == revision do
       {:ok, state}
