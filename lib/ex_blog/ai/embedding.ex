@@ -1,11 +1,15 @@
 defmodule ExBlog.AI.Embedding do
   @moduledoc """
-  OpenRouter embedding boundary used by Spectre's semantic cache.
+  Optional OpenRouter embedding boundary exposed through Spectre Prism.
 
-  The model and 1,024-dimensional contract mirror the production setup in the
-  sibling Freelance application. Calls still pass through ExBlog's Req-backed
-  Prism transport, so the same timeout, redaction, budget, and usage-accounting
-  boundaries apply to embeddings and text generation.
+  Calls pass through ExBlog's Req-backed Prism transport, so the same timeout,
+  redaction, budget, and usage-accounting boundaries apply to embeddings and
+  text generation.
+
+  This is not the editorial Agent's intent encoder. Trained routing and learned
+  semantic search use `ExBlog.Agent.Embedding`, backed by ExFastembed, so the
+  routing hot path does not spend OpenRouter budget and its stored vectors match
+  the classifier artifact dimensions.
   """
 
   @behaviour Spectre.Classifier.Embedding
@@ -26,6 +30,8 @@ defmodule ExBlog.AI.Embedding do
   @impl Spectre.Classifier.Embedding
   @spec embed(String.t(), keyword()) :: {:ok, [float()]} | {:error, term()}
   def embed(text, opts \\ []) when is_binary(text) and is_list(opts) do
+    # Redaction happens again here because review tools can call the semantic
+    # cache directly without passing through the normal Agent input pipeline.
     dimensions = configured_dimensions(opts)
     safe_text = Config.redact(text)
     request_opts = request_opts(opts, dimensions)
@@ -50,6 +56,8 @@ defmodule ExBlog.AI.Embedding do
   end
 
   defp request_opts(opts, dimensions) do
+    # Embeddings use the same budgeted Prism transport as completions. The
+    # purpose/subject fields make vector costs visible in the budget ledger.
     [
       transport: ExBlog.AI.Transport,
       api_key: Config.fetch_secret!(:openrouter_api_key),
