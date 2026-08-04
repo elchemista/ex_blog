@@ -1,226 +1,324 @@
-# Showcase: redazione agentica con Spectre
+# Showcase: agentic publishing with Spectre
 
-Questo progetto usa Spectre come macchina applicativa, non come semplice chat.
-Il modello propone testo; flow, skill, policy, stato ed effetti decidono cosa può
-succedere davvero. Il risultato è un editor Telegram conversazionale che resta
-deterministico nei passaggi sensibili e osservabile nei test.
+ExBlog uses Spectre as an application runtime, not as a thin chat wrapper. A
+model may propose text, but flows, skills, policies, state, and typed effects
+decide what can actually happen. The result is a conversational Telegram editor
+that remains deterministic at security-sensitive boundaries and observable in
+tests.
 
-## Mappa delle responsabilità
+## Responsibility map
 
 ```text
 ExGram / Telegram
-└── Spectre Beam: normalizzazione del canale e identità autenticata
+└── Spectre Beam: channel normalization and authenticated identity
     └── Spectre Agent
-        ├── skill Reader: lettura, ricerca e audit del blog
-        ├── skill Editorial: workflow, generazione e mutazioni protette
-        └── skill Operations: configurazione, budget e sync Git
-            ├── Spectre Prism: scelta del livello OpenRouter
-            ├── Semantic Cache: riuso verificato degli intenti di lettura
-            ├── Spectre Kinetic: AL → azione tipizzata
-            └── Spectre Policy: conferma → effetto eseguibile
+        ├── Reader skill: article discovery and public blog audits
+        ├── Editorial skill: workflows, generation, and protected mutations
+        └── Operations skill: configuration, budget, provider health, and Git sync
+            ├── Spectre Prism: OpenRouter model-tier selection
+            ├── trained local classifier: fast intent recognition
+            ├── Semantic Cache + Vettore: verified reuse of read intents
+            ├── Spectre Kinetic: Action Language → typed action
+            └── Spectre Policy: confirmation → executable effect
 ```
 
-La separazione è intenzionale:
+The separation is intentional:
 
-- Beam capisce da quale canale arriva un messaggio, senza conoscere il dominio
-  editoriale;
-- la skill editoriale possiede conversazione e stato, senza incorporare Git o
-  HTTP;
-- Prism/OpenRouter generano valori, ma non avanzano il workflow e non scrivono
-  file;
-- Kinetic traduce soltanto Action Language valida nel catalogo `@al`;
-- Spectre applica policy, persistenza, idempotenza ed esecuzione;
-- `ExBlog.Content.Writer` resta l’unico confine di scrittura del Markdown.
+- Beam knows which authenticated channel produced a message without knowing
+  editorial business rules;
+- each skill owns its conversation and route policy without embedding Git or
+  HTTP implementation details;
+- Prism and OpenRouter generate bounded values but cannot advance a workflow or
+  write a file by themselves;
+- the trained classifier and semantic cache recognize intent but never grant
+  authorization;
+- Kinetic translates only valid Action Language declared by the `@al` catalog;
+- Spectre owns policy, persistence, idempotency, and effect execution;
+- `ExBlog.Content.Writer` remains the only canonical Markdown write boundary.
 
-La lingua operativa dell’agente è sempre inglese: prompt di classificazione,
-prompt delle skill, richieste di conferma, audit e risposte Telegram sono in
-inglese. La lingua editoriale è invece un dato del workflow; corpo, SEO e
-traduzioni vengono prodotti nel codice scelto dall’amministratore.
+The agent's operating language is English. Classifier examples, HEEx prompts,
+confirmation requests, audits, and Telegram replies are all English. Editorial
+language is separate workflow data: article bodies, SEO, and translations are
+generated in the language selected by the administrator.
 
-## Flow dentro flow
+## A flow inside a flow
 
-La creazione è modellata in `ExBlog.Agent.Skills.Editorial` come una skill che
-contiene il flow `:editorial`, il sotto-flow `:article_creation` e cinque leaf
-flow:
+Article creation is declared in `ExBlog.Agent.Skills.Editorial` as the
+`:editorial` flow, containing the `:article_creation` flow and five leaf flows:
 
 ```text
 /create
   → article_brief
   → article_language
-  → article_category ── “generate category” → OpenRouter fast
-  → article_title    ── “generate title”    → OpenRouter balanced
-  → article_seo      ── “generate SEO” | “skip”
+  → article_category ── "generate category" → OpenRouter fast
+  → article_title    ── "generate title"    → OpenRouter balanced
+  → article_seo      ── "generate SEO" | "skip"
   → CREATE ARTICLE ...
-  → policy di conferma
-  → OpenRouter deep per il corpo
-  → OpenRouter balanced per SEO/tag, se richiesto
-  → Writer → Git → rebuild ETS
+  → confirmation policy
+  → OpenRouter deep for the body
+  → OpenRouter balanced for SEO and tags when requested
+  → Writer → Git → ETS rebuild
 ```
 
-`current_flow` e `current_scope` vengono salvati dallo state store DETS. Il plug
-`CreationContinuation` osserva quel cursore e assegna le risposte libere al leaf
-corretto senza spendere una classificazione LLM a ogni campo. Gli interrupt
-globali `/cancel` e `/attach-image` conservano la precedenza e, dopo una foto,
-il cursore resta esattamente sul passaggio precedente.
+The DETS-backed state store persists `current_flow` and `current_scope` between
+messages. `CreationContinuation` reads that cursor and assigns free-text replies
+to the active leaf without paying for or risking a fresh classification on
+every field. Global `/cancel` and `/attach-image` controls keep precedence. An
+image attachment returns to the exact same workflow step.
 
-Anche la lingua è deterministica: `ExBlog.Agent.Language` riconosce codici e
-nomi inglesi con regex, poi accetta soltanto un valore presente in
-`EX_BLOG_SUPPORTED_LANGUAGES`. Una risposta come `English` o `write it in
-Italian` non chiama quindi `:llm_classifier`.
+The continuation boundary is also why an answer such as `English`, `Platform
+engineering`, or `generate SEO` is interpreted as field data while intake is
+active. An explicit slash command remains the administrator's escape hatch for
+invoking another operation.
 
-Questa è una proprietà utile di Spectre: un flow può esprimere la forma della
-conversazione, mentre gli interrupt gestiscono eventi ortogonali senza spargere
-condizionali nel trasporto Telegram.
+Language selection is deterministic. `ExBlog.Agent.Language` recognizes codes
+and English language names, then accepts only values present in
+`EX_BLOG_SUPPORTED_LANGUAGES`. A reply such as `English` or `write it in
+Italian` does not require the LLM classifier.
 
-## Generazione AI a grana fine
+This is a useful property of Spectre flows: the flow expresses the shape of the
+conversation, while global interrupts handle orthogonal events without
+spreading conditional logic through the Telegram transport.
 
-L’amministratore sceglie campo per campo:
+## Fine-grained AI generation
 
-| Parte | Comando nel flow | Livello | Effetto immediato |
+The administrator decides which fields the model should generate:
+
+| Part | Workflow request | Tier | Immediate effect |
 | --- | --- | --- | --- |
-| categoria | `generate category` | fast | aggiorna solo stato Spectre |
-| titolo | `generate title` | balanced | aggiorna solo stato Spectre |
-| corpo | sempre generato dopo conferma | deep | prepara il Markdown |
-| SEO e tag | `generate SEO` | balanced | aggiunge front matter al nuovo draft |
-| SEO esistente | `/seo it slug-articolo` | balanced | update Git protetto |
-| traduzione | `/translate ...` | deep | crea un nuovo draft protetto |
+| category | `generate category` | fast | updates Spectre state only |
+| title | `generate title` | balanced | updates Spectre state only |
+| body | always generated after approval | deep | prepares canonical Markdown |
+| SEO and tags | `generate SEO` | balanced | adds validated front matter to the new draft |
+| existing SEO | `/seo en article-slug` | balanced | stages a protected Git update |
+| translation | `/translate en article-slug to it` | deep | stages creation of a translated draft |
 
-Le generazioni intermedie passano da `ExBlog.Agent.EditorialAI`. È un leaf
-read-only: restituisce un singolo valore limitato, non possiede lo stato e non
-può mutare la repository. Il corpo e la SEO vengono invece creati dentro
-`ExBlog.Agent.Actions.create_article/2`, dopo che Spectre ha ottenuto la
-conferma. Così un rifiuto non produce un articolo parziale.
+Intermediate generation passes through `ExBlog.Agent.EditorialAI`. Each helper
+is a read-only leaf: it returns one normalized, length-limited value, does not
+own state, and cannot mutate the repository. The body and optional SEO are
+generated inside `ExBlog.Agent.Actions.create_article/2` only after Spectre has
+received confirmation. Rejecting the effect therefore cannot leave a partial
+article behind.
 
-I prompt non sono stringhe concatenate nei callback. Sono template HEEx in
-`lib/ex_blog_web/prompts`, divisi tra:
+## HEEx prompts as reviewable application code
 
-- `renderers/` per richieste OpenRouter riusabili;
-- `skills/editorial/` per risposte e richieste del workflow;
-- `skills/editorial/policies/` per il confine di conferma.
+Prompts are not assembled from string fragments in callbacks. They are compiled
+HEEx templates under `lib/ex_blog_web/prompts`:
 
-Ogni valore dinamico attraversa `ExBlogWeb.Prompt.escape_text/2`, che applica
-redazione credenziali, limite di lunghezza ed escaping HTML prima del modello.
+- `renderers/` contains reusable OpenRouter generation and transformation
+  prompts;
+- `skills/editorial/` contains workflow questions and replies;
+- `skills/editorial/policies/` contains the confirmation boundary;
+- the agent root contains the English classifier prompt.
 
-## Routing e cache semantica
+Every dynamic value crosses `ExBlogWeb.Prompt.escape_text/2`, which applies
+credential redaction, a length bound, and HTML escaping before rendering. Prompt
+templates remain readable in code review and can be tested independently of the
+workflow callbacks.
 
-Il router raccoglie evidenze nel seguente ordine:
+## Multi-provider routing
+
+The router collects evidence in this order:
 
 ```text
-regex esplicita
-  → continuation del leaf flow attivo
-  → semantic cache exact
-  → semantic cache vettoriale verificata
-  → llm_classifier come fallback
+explicit slash command or safety regex
+  → continuation of the active leaf flow
+  → exact trusted dataset or verified-cache match
+  → trained local classifier
+  → verified semantic vector search
+  → arbitration
+  → llm_classifier fallback
 ```
 
-Le route di lettura dichiarano esempi `embedding:` e `learn: true`. Quando il
-fallback LLM classifica per la prima volta una formulazione nuova, Spectre può
-salvarla come esempio non verificato. `ExBlog.Agent.SemanticCache` conserva
-l’esempio e il suo vettore in DETS, così il deploy non cancella la memoria.
+Regex is intentionally narrow. It handles explicit `/...` commands, safety
+patterns, confirmation responses, cancellation, and image control. Natural
+English requests are handled by semantic examples, the trained classifier, the
+verified semantic cache, and finally the remote classifier.
 
-Non esiste una UI di review in questo showcase. Un esempio non verificato non è
-usato normalmente: viene promosso soltanto quando una richiesta successiva
-raggiunge almeno `0.985` di similarità coseno e mantiene almeno `0.05` di
-margine rispetto a label concorrenti. La ricerca ordinaria resta a `0.94`.
-Soglie e capacità dell’indice sono configurazione applicativa esplicita.
+Every route declares its own `via:` providers:
 
-L’embedding usa `openrouter:perplexity/pplx-embed-v1-0.6b` a 1024 dimensioni,
-lo stesso contratto del progetto `freelance`, attraverso il transport Req di
-Prism e lo stesso ledger di budget. Spectre non apprende route protette e qui
-solo le route read-only hanno `learn: true`; cache hit e auto-verifica non
-approvano mai una policy e non eseguono una mutazione Git.
+- read routes expose regex, optional static embeddings, the local classifier,
+  semantic cache, and the LLM fallback;
+- editorial and repository mutations expose regex, optional static embeddings,
+  and both classifiers, but opt out of semantic-cache learning;
+- article-intake leaves expose only the private
+  `:creation_continuation` provider.
 
-## Kinetic e `@al`
+`regex_strength: :hard` is provider-specific. A real slash-command match is
+decisive, but an embedding candidate attached to the same rule still needs to
+pass score and margin gates.
 
-Il catalogo operativo vive nel codice Elixir in
-`ExBlog.Agent.KineticActions`. `use SpectreKinetic` estrae nome, parametri,
-tipi, documentazione ed esempi direttamente da `@al`, `@spec` e `@doc`.
+## An ExBlog-specific trained dataset
 
-Il wizard non costruisce una mappa da eseguire a mano. Produce una frase AL
-canonica simile a questa:
+The canonical corpus is `priv/spectre/dataset.json`. It contains 204 original
+English examples: 12 examples for each of 17 classifier-visible ExBlog intents.
+It deliberately includes nearby but distinct requests such as:
 
-```text
-CREATE ARTICLE TITLE="Flow affidabili" LANG="it" CATEGORY="AI"
-BRIEF="..." GENERATE_SEO=true
-COVER="/images/articles/<sha256>.jpg" COVER_ALT="Schema del workflow"
+- list the archive versus search the archive;
+- inspect one article versus audit its rendered public page;
+- generate SEO versus revise the article body;
+- publish content versus synchronize the Git repository;
+- valid editorial work versus unknown or unsafe requests.
+
+The nested capture leaves are excluded because the persisted workflow cursor,
+not a model, owns their answers. The dataset task validates labels against the
+compiled Agent definition, rejects duplicate normalized text, enforces English,
+and requires complete intent coverage:
+
+```bash
+mix ex_blog.spectre.dataset.build --check
 ```
 
-Kinetic deve risolverla contro il catalogo tipizzato. Solo dopo Spectre crea un
-effetto con owner e scope della skill editoriale e applica
-`:editorial_confirmation`. Il provider locale chiama l’implementazione di
-dominio soltanto quando l’effetto è approvato ed eseguibile.
+Classifier bootstrap is reproducible:
 
-Questa divisione permette di aggiungere sinonimi AL o migliorare il modello di
-selezione senza spostare la sicurezza nel prompt.
+```bash
+mix spectre.classifier.setup
+```
 
-## Foto Telegram come asset editoriale
+It normalizes the training corpus, downloads
+`intfloat/multilingual-e5-small`, trains a centroid classifier, and writes a
+vectorized semantic-cache mirror. Dataset source is committed; generated model
+weights, vectors, and the local model cache are ignored by Git and rebuilt in
+the production image.
 
-Una foto segue un percorso separato dal testo, ma rientra nello stesso agent:
+## One local encoder, two safe uses
+
+`ExBlog.Agent.Embedding` wraps ExFastembed and applies E5's `query:` role prefix
+during both training and inference. The same 384-dimensional model powers:
+
+1. the local centroid classifier, which recognizes a known intent before the
+   remote LLM is considered;
+2. semantic search over trusted or reviewed read-route examples.
+
+Using one encoder prevents dimension drift between stored vectors and live
+queries. It also keeps normal routing off the OpenRouter budget. The separate
+`ExBlog.AI.Embedding` module remains available for optional hosted Prism work,
+but it is not the agent's intent encoder.
+
+Local results must meet both score and label-margin gates. An ambiguous result
+falls through to later evidence instead of being treated as authoritative. The
+remote classifier is therefore a fallback, not the default understanding
+mechanism.
+
+## Semantic cache lifecycle
+
+The seven read-only intents declare `learn: true`. When the LLM fallback first
+classifies a new eligible phrase, Spectre may store it as an unverified online
+example. `ExBlog.Agent.SemanticCache` persists the row and its embedding in DETS
+so a deployment does not erase reviewed routing knowledge.
+
+This showcase has no review UI. An unverified example is not used by normal
+search. A later request may promote it only at `0.985` cosine similarity with at
+least a `0.05` margin over competing labels. Ordinary verified search remains
+at `0.94`.
+
+The build artifact contains vectors for all 204 classifier examples, but route
+policy filters the runtime index to the 84 examples belonging to cacheable read
+intents. Writes, deletion, synchronization, unsafe input, and unknown input can
+train intent classification without becoming reusable semantic authorization.
+A cache hit can select a read handler; it can never approve a policy or execute
+a Git mutation.
+
+## Kinetic and `@al`
+
+The operational catalog lives in the Elixir module
+`ExBlog.Agent.KineticActions`. `use SpectreKinetic` derives names, parameters,
+types, documentation, and examples directly from `@al`, `@spec`, and `@doc`.
+
+The creation wizard does not build an arbitrary map and execute it manually. It
+produces canonical Action Language similar to:
 
 ```text
-sender_id == admin
-  → Beam decodifica :image
-  → metadati minimi: file_id, size, caption redatta
-  → interrupt ATTACH_ARTICLE_IMAGE
-  → verifica che article_creation sia attivo
+CREATE ARTICLE TITLE="Reliable agent flows" LANG="en" CATEGORY="AI"
+BRIEF="Explain how typed effects protect publishing" GENERATE_SEO=true
+COVER="/images/articles/<sha256>.jpg" COVER_ALT="Diagram of the editorial workflow"
+```
+
+Kinetic must resolve that text against the typed catalog. Only then does
+Spectre create an effect owned and scoped by the Editorial skill and apply
+`:editorial_confirmation`. The local provider calls the domain implementation
+only when the effect is approved and executable.
+
+This split allows the Action Language vocabulary and selection model to evolve
+without moving authorization into a prompt.
+
+## Telegram photos as editorial assets
+
+An image follows a separate input path while remaining inside the same agent:
+
+```text
+sender_id == configured administrator
+  → Beam decodes :image
+  → bounded metadata: file_id, size, redacted caption
+  → ATTACH_ARTICLE_IMAGE interrupt
+  → verify that article_creation is active
   → ExGram.download_media/3
-  → controllo dimensione e magic bytes
-  → nome SHA-256, mai il filename dell’utente
+  → enforce size and inspect magic bytes
+  → SHA-256 filename, never the user-provided filename
   → priv/static/images/articles/<sha256>.<ext>
-  → cover + cover_alt nel workflow
-  → front matter Markdown dopo conferma
+  → cover and cover_alt in workflow state
+  → Markdown front matter after confirmation
 ```
 
-I byte non entrano in DETS, memoria, prompt o chat history. Il riferimento TDLib
-è transitorio e il download avviene solo dopo il gate numerico dell’admin e la
-verifica del flow attivo. Sono ammessi JPEG, PNG, WebP e GIF fino a 10 MB; SVG e
-documenti arbitrari sono rifiutati.
+Image bytes never enter DETS, memory, prompts, or chat history. The TDLib
+reference is transient, and download occurs only after the numeric
+administrator gate and active-flow check. ExBlog accepts JPEG, PNG, WebP, and
+GIF files up to 10 MB; SVG and arbitrary documents are rejected.
 
-La copia pubblica richiesta vive in `priv/static/images/articles`. Una copia
-content-addressed viene mantenuta anche in
-`$EX_BLOG_DATA_DIR/assets/images/articles` e ripristinata in `priv` a ogni boot,
-perché la directory di una release viene sostituita durante un deploy. Il path
-pubblico `/images/articles/...` rimane quindi stabile nel Markdown.
+The public copy lives in `priv/static/images/articles`. A content-addressed
+copy is also kept under `$EX_BLOG_DATA_DIR/assets/images/articles` and restored
+into `priv` at startup because a release directory is replaced during a deploy.
+The Markdown path `/images/articles/...` therefore remains stable.
 
-La didascalia Telegram diventa `cover_alt`. Se manca, il workflow usa un
-fallback basato sul titolo; per accessibilità è preferibile inviare sempre una
-didascalia che descriva ciò che si vede davvero.
+The Telegram caption becomes `cover_alt`. When it is absent, the workflow uses
+a title-based fallback; supplying a caption that describes the visible content
+is still the accessible choice.
 
-## Policy e confini di fiducia
+## Policies and trust boundaries
 
-- Il gate `EX_BLOG_ADMIN_TELEGRAM_ID` precede Beam, Spectre, download, log e
-  chiamate OpenRouter.
-- Beam marca la sorgente autenticata; `ExBlog.Telegram.Image` rifiuta input che
-  non provengono dal mount Telegram autenticato.
-- Categoria e titolo generati sono valori, non comandi: vengono normalizzati a
-  una sola riga e limitati rispettivamente a 80 e 160 caratteri.
-- Il JSON SEO viene validato e limitato prima del Writer.
-- I path copertina scritti dall’agente devono essere HTTPS o root-relative e
-  non possono contenere traversal o backslash.
-- Ogni mutazione Git resta protetta dalla policy Spectre; il modello non può
-  auto-approvarla.
-- Budget e costo vengono autorizzati prima di ogni richiesta OpenRouter.
+- `EX_BLOG_ADMIN_TELEGRAM_ID` is checked before Beam, Spectre, downloads, logs,
+  and OpenRouter calls.
+- Beam marks the authenticated source; `ExBlog.Telegram.Image` rejects input
+  that did not originate from the authenticated Telegram mount.
+- Generated categories and titles are values, not commands. They are normalized
+  to one line and limited to 80 and 160 characters respectively.
+- SEO JSON is decoded, validated, and bounded before the Writer receives it.
+- Cover paths written by the agent must be HTTPS or root-relative and cannot
+  contain traversal segments or backslashes.
+- Every Git mutation remains protected by a Spectre policy. A model cannot
+  approve its own effect.
+- Budget and estimated cost are authorized before every OpenRouter request.
+- Input credentials are redacted before routing, memory, state, or prompts, and
+  the original `Spectre.Input.raw` value is discarded.
 
-## Dove estendere il showcase
+## Extending the showcase
 
-Per aggiungere un nuovo campo editoriale:
+To add an editorial field:
 
-1. aggiungere un leaf flow e il suo label terminale;
-2. creare il prompt conversazionale HEEx della skill;
-3. se serve AI, creare un renderer HEEx bounded e un helper read-only;
-4. aggiungere il parametro tipizzato all’azione `@al` solo se deve raggiungere
-   l’effetto finale;
-5. coprire transizione, persistenza, AL estratta e policy con test separati.
+1. add a leaf flow and its terminal label;
+2. create the skill's conversational HEEx prompt;
+3. when AI is useful, add a bounded renderer and a read-only helper;
+4. add a typed parameter to the `@al` action only when the value must reach the
+   final effect;
+5. test the transition, persisted cursor, extracted Action Language, and policy
+   independently.
 
-Per una nuova mutazione, dichiarare `requires_action`, registrarla nel provider,
-proteggerla con una policy e lasciare la scrittura in un boundary di dominio.
-Non basta aggiungere un comando al prompt: in Spectre il prompt propone, il
-runtime decide.
+To add a mutation, declare `requires_action`, register it with the provider,
+protect it with a policy, and keep the actual write in a domain boundary. Adding
+an instruction to a prompt is not enough: in Spectre, the prompt proposes and
+the runtime decides.
 
-## Verifica browser
+To add a read intent, add contrastive English examples to the skill and the
+ExBlog dataset, then rerun `mix spectre.classifier.setup`. Keep `learn: true`
+only when semantic reuse cannot produce a side effect.
 
-Spectre Lens è deliberatamente limitato al blog pubblico: articolo, indice,
-metadati, link, immagini, sitemap e warning/errori del documento. Non viene
-usato per il QR o per guidare la sessione Telegram dell’admin. Lightpanda
-verifica DOM e semantica; per pixel, CSS e breakpoint serve un backend Remote
-CDP con rendering grafico.
+## Browser verification
+
+Spectre Lens is deliberately limited to the public blog: article pages, the
+index, metadata, links, images, sitemap discovery, and document warnings or
+errors. It is not used for Telegram QR pairing or administrator-session
+guidance.
+
+Lightpanda verifies DOM structure and semantics but has no graphical rendering
+engine. Pixel appearance, CSS behavior, and responsive breakpoints require a
+Spectre Lens Remote CDP backend connected to a graphical browser.
