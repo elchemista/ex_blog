@@ -1,5 +1,5 @@
-Titolo scelto: <%= ExBlogWeb.Prompt.escape_text(@title, 160) %><%= if Map.get(assigns, :title_generated?, false) do %> (generato con OpenRouter)<% end %>.
+Selected title: <%= ExBlogWeb.Prompt.escape_text(@title, 160) %><%= if Map.get(assigns, :title_generated?, false) do %> (generated with OpenRouter)<% end %>.
 
-Rispondi `genera SEO` per produrre con OpenRouter titolo SEO, descrizione,
-testo alternativo e tag insieme all'articolo. Rispondi `salta` per creare il
-draft senza metadati SEO generati.
+Reply `generate SEO` to produce the SEO title, description, alternative text,
+and tags with OpenRouter alongside the article. Reply `skip` to create the
+draft without generated SEO metadata.
