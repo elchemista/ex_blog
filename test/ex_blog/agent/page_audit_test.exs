@@ -9,7 +9,7 @@ defmodule ExBlog.Agent.PageAuditTest do
 
     assessor = fn prompt ->
       send(self(), {:assessment_prompt, prompt})
-      {:ok, "Esito: OK\nLa pagina supera i controlli osservabili."}
+      {:ok, "Result: OK\nThe page passes every observable check."}
     end
 
     assert {:ok, audit} =
@@ -17,7 +17,7 @@ defmodule ExBlog.Agent.PageAuditTest do
                lens: ExBlog.TestLens,
                lens_opts: [test_pid: self(), view: view],
                assessor: assessor,
-               focus: "controlla accessibilità e SEO"
+               focus: "check accessibility and SEO"
              )
 
     assert audit.url == "https://example.com/article"
@@ -27,12 +27,12 @@ defmodule ExBlog.Agent.PageAuditTest do
     assert audit.metrics.h1_count == 1
     assert audit.metrics.structured_data?
     refute audit.metrics.visual_rendering?
-    assert audit.assessment =~ "Esito: OK"
+    assert audit.assessment =~ "Result: OK"
     assert Enum.any?(audit.warnings, &String.contains?(&1, "pixel-level"))
 
     assert_receive {:assessment_prompt, prompt}
     assert prompt =~ "--- BEGIN UNTRUSTED WEB CONTENT ---"
-    assert prompt =~ "controlla accessibilità e SEO"
+    assert prompt =~ "check accessibility and SEO"
     assert prompt =~ "Header, main content, and footer are present."
     refute prompt =~ "session=secret"
     refute prompt =~ "preview=1"
@@ -60,13 +60,13 @@ defmodule ExBlog.Agent.PageAuditTest do
              PageAudit.check("https://example.com/broken",
                lens: ExBlog.TestLens,
                lens_opts: [test_pid: self(), view: view],
-               assessor: fn _prompt -> "Esito: PROBLEMI\nCorreggere i metadati." end
+               assessor: fn _prompt -> "Result: ISSUES\nFix the metadata." end
              )
 
     refute audit.baseline_ok?
-    assert "Titolo del documento assente." in audit.issues
-    assert "Atteso un solo h1, trovati 2." in audit.issues
-    assert "1 immagine senza attributo alt." in audit.issues
+    assert "The document title is missing." in audit.issues
+    assert "Expected exactly one h1; found 2." in audit.issues
+    assert "1 image has no alt attribute." in audit.issues
     assert Enum.any?(audit.issues, &String.contains?(&1, "semantic_projection_failed"))
   end
 
@@ -95,7 +95,7 @@ defmodule ExBlog.Agent.PageAuditTest do
              )
 
     assert audit.baseline_ok?
-    assert audit.assessment =~ "non disponibile"
+    assert audit.assessment =~ "unavailable"
     assert Enum.any?(audit.warnings, &String.contains?(&1, "budget_exceeded"))
   end
 
