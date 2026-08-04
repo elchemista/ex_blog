@@ -12,6 +12,9 @@
 
 /.elixir_ls/
 /.claude/
+/.fastembed_cache/
+/training/
+/priv/spectre/classifier/
 
 # Ignore .fetch files in case you like to edit your project deps locally.
 /.fetch
