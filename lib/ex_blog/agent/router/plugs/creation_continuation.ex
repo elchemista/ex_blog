@@ -2,8 +2,13 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
   @moduledoc """
   Adds deterministic routing evidence for the active article creation step.
 
-  Explicit regex commands and global interrupts retain precedence. Otherwise,
+  Global interrupts and explicit slash commands retain precedence. Otherwise,
   the current nested flow owns the free-form reply without another model call.
+
+  Capture rules advertise the private provider name `:creation_continuation`.
+  Normal Spectre providers therefore cannot see them outside intake. This plug
+  is the sole bridge: it reads the persisted cursor, finds the matching scoped
+  rule, and emits hard evidence for exactly that leaf.
   """
 
   @behaviour Spectre.Router.Plug
@@ -19,10 +24,31 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
 
   @impl Spectre.Router.Plug
   def call(%Context{} = context, _state) do
-    if Context.halted?(context) or Context.hard_candidate?(context) do
-      {:cont, context}
-    else
-      route_continuation(context)
+    cond do
+      Context.halted?(context) ->
+        {:cont, context}
+
+      not active_creation?(context) ->
+        {:cont, context}
+
+      global_interrupt?(context) ->
+        # Safety, cancellation, and image attachment are global rules. They
+        # must remain available while any intake leaf owns the conversation.
+        {:cont, context}
+
+      explicit_slash_command?(context) ->
+        # A leading slash is the administrator's escape hatch for deliberately
+        # invoking another command without first cancelling the intake flow.
+        {:cont, context}
+
+      true ->
+        # A future skill may add a non-command regex that also matches an
+        # intake answer. The persisted cursor is stronger than that out-of-flow
+        # evidence, so discard only non-global regex candidates before adding
+        # the continuation candidate.
+        context
+        |> drop_non_global_regex_candidates()
+        |> route_continuation()
     end
   end
 
@@ -36,6 +62,8 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
        ) do
     with true <- Editorial.active?(state),
          %Rule{} = rule <- current_step_rule(rules, state) do
+      # The cursor is stronger evidence than linguistic similarity: during the
+      # language step, for example, "English" is data rather than a new intent.
       candidate =
         Candidate.from_rule(rule, :creation_continuation, input.text,
           score: 1.0,
@@ -54,6 +82,52 @@ defmodule ExBlog.Agent.Router.Plugs.CreationContinuation do
   end
 
   defp route_continuation(%Context{} = context), do: {:cont, context}
+
+  @spec active_creation?(Context.t()) :: boolean()
+  defp active_creation?(%Context{host_context: %{state: %State{} = state}}),
+    do: Editorial.active?(state)
+
+  defp active_creation?(_context), do: false
+
+  @spec global_interrupt?(Context.t()) :: boolean()
+  defp global_interrupt?(%Context{candidates: candidates}) do
+    Enum.any?(candidates, fn
+      %Candidate{accepted?: true, handler: handler, rule: %Rule{global?: true}}
+      when not is_nil(handler) ->
+        true
+
+      _candidate ->
+        false
+    end)
+  end
+
+  @spec explicit_slash_command?(Context.t()) :: boolean()
+  defp explicit_slash_command?(%Context{input: %{text: text}, candidates: candidates}) do
+    String.starts_with?(String.trim_leading(text), "/") and
+      Enum.any?(candidates, fn
+        %Candidate{provider: :regex, accepted?: true, handler: handler}
+        when not is_nil(handler) ->
+          true
+
+        _candidate ->
+          false
+      end)
+  end
+
+  @spec drop_non_global_regex_candidates(Context.t()) :: Context.t()
+  defp drop_non_global_regex_candidates(%Context{} = context) do
+    {discarded, retained} =
+      Enum.split_with(context.candidates, fn
+        %Candidate{provider: :regex, rule: %Rule{global?: false}} -> true
+        _candidate -> false
+      end)
+
+    labels = Enum.map(discarded, & &1.label)
+
+    context
+    |> Map.put(:candidates, retained)
+    |> Context.put_trace({:creation_continuation_discarded_regex, labels})
+  end
 
   @spec current_step_rule([Rule.t()], State.t()) :: Rule.t() | nil
   defp current_step_rule(rules, %State{current_flow: flow, current_scope: scope}) do
