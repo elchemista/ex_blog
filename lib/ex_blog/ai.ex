@@ -1,6 +1,16 @@
 defmodule ExBlog.AI do
   @moduledoc """
-  Spectre Stack and direct AI boundary for ExBlog.
+  Spectre Stack composition and direct AI boundary for ExBlog.
+
+  The Stack gives agent code stable capability names while deployment config
+  chooses concrete OpenRouter models at runtime. Prism selects a tier by
+  purpose, Beam normalizes Telegram delivery, and Kinetic validates typed
+  actions. None of those extensions owns editorial business logic; they are
+  infrastructure mounted around `ExBlog.Agent`.
+
+  Direct helpers such as `complete/3` and `health/1` exist for bounded leaf
+  operations that do not need a full Spectre reasoning turn. They still use the
+  same transport, credentials, budget authorization, and usage accounting.
   """
 
   use Spectre.Stack, id: :ex_blog
@@ -10,6 +20,8 @@ defmodule ExBlog.AI do
 
   require OpenRouter
 
+  # Stable markers are compiled into the Stack. OpenRouter resolves them to the
+  # environment's current model ids at call time, so builds contain no secrets.
   install Spectre.Prism, max_attempts: 2 do
     provider(:openrouter, OpenRouter,
       models: [
@@ -31,6 +43,8 @@ defmodule ExBlog.AI do
     default(:balanced)
   end
 
+  # Delivery is caller-owned because the Telegram gateway must acknowledge and
+  # format results after Spectre finishes the turn.
   install Spectre.Beam, delivery: :caller_owned do
     channel(:telegram,
       type: :telegram,
@@ -41,12 +55,15 @@ defmodule ExBlog.AI do
     )
   end
 
+  # Kinetic receives a single best typed action. Policy enforcement remains in
+  # Spectre Agent and is intentionally not delegated to the planner.
   install(Spectre.Kinetic,
     top_k: 1,
     tool_threshold: 0.0,
     mapping_threshold: 0.0
   )
 
+  @doc "Completes one bounded prompt through the configured Prism model tier."
   @spec complete(:fast | :balanced | :deep, String.t(), keyword()) ::
           {:ok, term()} | {:error, term()}
   def complete(level, prompt, opts \\ []) when level in [:fast, :balanced, :deep] do
@@ -54,6 +71,7 @@ defmodule ExBlog.AI do
     OpenRouter.complete(prompt, opts)
   end
 
+  @doc "Checks OpenRouter and confirms that every configured text model is advertised."
   @spec health(keyword()) :: {:ok, map()} | {:error, term()}
   def health(opts \\ []) do
     config = Config.get()
