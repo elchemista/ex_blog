@@ -37,9 +37,10 @@ defmodule ExBlog.Agent.Presenter do
     Fast model: #{models.fast}
     Balanced model: #{models.balanced}
     Deep model: #{models.deep}
-    Local classifier / semantic encoder: #{Map.get(models, :local_classifier, "not configured")}
+    Routing embedding: #{Map.get(models, :routing_embedding, "not configured")}
+    Local classifier: #{Map.get(models, :local_classifier, "not configured")}
     Remote classifier fallback: #{models.classifier}
-    Optional Prism embedding model: #{Map.get(models, :embedding, "not configured")}
+    OpenRouter embedding model: #{Map.get(models, :embedding, "not configured")}
 
     GitHub token: #{configured(config.github_token)}
     OpenRouter token: #{configured(config.openrouter_token)}
