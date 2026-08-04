@@ -2,10 +2,11 @@ defmodule ExBlog.Agent.LocalClassifier do
   @moduledoc """
   Application-owned adapter for Spectre's trained intent classifier.
 
-  The router calls this provider after deterministic and exact-cache evidence.
-  A confident local result avoids the remote LLM classifier entirely; an
-  unavailable or uncertain model simply leaves arbitration to semantic search
-  and the configured OpenRouter fallback.
+  Development and test may load the native artifact for evaluation. Production
+  disables this provider and excludes ExFastembed entirely. The router still
+  calls the boundary after deterministic and exact-cache evidence; an
+  unavailable or uncertain model simply leaves arbitration to hosted semantic
+  search and the configured OpenRouter classifier fallback.
 
   The explicit enable switch is useful for incident recovery. Disabling the
   local model never disables exact dataset matches or the LLM fallback.
