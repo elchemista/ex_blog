@@ -10,6 +10,11 @@ defmodule ExBlog.Agent.EditorialAI do
   Prompt construction lives in compiled HEEx templates. Every workflow value
   is redacted, length-limited, and escaped by `ExBlogWeb.Prompt` before it
   reaches OpenRouter.
+
+  These helpers return a single line rather than an article-shaped response.
+  That narrow contract makes generated values interchangeable with manual
+  answers: after validation, the surrounding skill advances through exactly the
+  same state transition in either case.
   """
 
   alias ExBlog.AI
@@ -40,6 +45,8 @@ defmodule ExBlog.Agent.EditorialAI do
   end
 
   defp generate(level, prompt, purpose, maximum, ctx) do
+    # Purpose labels drive Prism tier selection and budget reporting. The draft
+    # conversation id is used only as an operational subject reference.
     opts = [
       purpose: purpose,
       subject_type: "article_draft",
