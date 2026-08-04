@@ -13,17 +13,32 @@ defmodule ExBlog.Agent.Skills.Reader do
   flow :blog do
     flow :articles do
       on :LIST_ARTICLES,
-        regex: [~r/^\/articles(?:\s|$)/iu, ~r/^(?:lista|elenca).*(?:articoli|post)/iu] do
+        regex: [
+          ~r/^\/articles(?:\s|$)/iu,
+          ~r/^(?:list|show)(?:\s+me)?(?:\s+(?:all|every|the))?.*(?:articles|posts)\b/iu
+        ],
+        embedding: ["list the blog articles", "show every blog post"],
+        learn: true do
         action(:list_articles, args: %{})
       end
 
       on :READ_ARTICLE,
-        regex: [~r/^\/read(?:\s|$)/iu, ~r/^(?:leggi|mostra).*(?:articolo|post)/iu] do
+        regex: [
+          ~r/^\/read(?:\s|$)/iu,
+          ~r/^(?:read|show)(?:\s+me)?.*(?:article|post)\b/iu
+        ],
+        embedding: ["read a complete article", "show one blog post"],
+        learn: true do
         action(:read_article, args: %{})
       end
 
       on :SEARCH_ARTICLES,
-        regex: [~r/^\/search(?:\s|$)/iu, ~r/^(?:cerca|trova).*(?:articoli|post)/iu] do
+        regex: [
+          ~r/^\/search(?:\s|$)/iu,
+          ~r/^(?:search|find).*(?:articles|posts)\b/iu
+        ],
+        embedding: ["search the article archive", "find blog posts about a topic"],
+        learn: true do
         action(:search_articles, args: %{})
       end
     end
@@ -32,9 +47,10 @@ defmodule ExBlog.Agent.Skills.Reader do
       on :CHECK_BLOG_PAGE,
         regex: [
           ~r/^\/check(?:\s|$)/iu,
-          ~r/^(?:controlla|verifica|ispeziona|analizza)(?:\s+(?:la\s+)?(?:pagina|sito|blog)|\s+https?:\/\/)/iu,
           ~r/^(?:check|verify|inspect|audit)(?:\s+(?:the\s+)?(?:page|site|blog)|\s+https?:\/\/)/iu
-        ] do
+        ],
+        embedding: ["audit a public blog page", "check an article page for SEO problems"],
+        learn: true do
         action(:check_page, args: %{})
       end
     end
