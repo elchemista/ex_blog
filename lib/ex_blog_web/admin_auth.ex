@@ -15,7 +15,9 @@ defmodule ExBlogWeb.AdminAuth do
 
   @authenticated_at_key "admin_authenticated_at"
   @password_fingerprint_key "admin_password_fingerprint"
+  @return_to_key "admin_return_to"
   @session_max_age_seconds 8 * 60 * 60
+  @max_return_to_bytes 4_096
 
   @spec authenticate_password(String.t()) :: boolean()
   def authenticate_password(password) when is_binary(password) do
@@ -39,6 +41,14 @@ defmodule ExBlogWeb.AdminAuth do
 
   @spec log_out(Plug.Conn.t()) :: Plug.Conn.t()
   def log_out(conn), do: configure_session(conn, drop: true)
+
+  @doc "Consumes the safe local destination remembered before administrator login."
+  @spec pop_return_to(Plug.Conn.t()) :: {Plug.Conn.t(), String.t()}
+  def pop_return_to(conn) do
+    path = get_session(conn, @return_to_key)
+    destination = if safe_return_to?(path), do: path, else: ~p"/admin/telegram"
+    {delete_session(conn, @return_to_key), destination}
+  end
 
   @spec authenticated?(map()) :: boolean()
   def authenticated?(session) when is_map(session) do
@@ -75,6 +85,7 @@ defmodule ExBlogWeb.AdminAuth do
       conn
     else
       conn
+      |> remember_return_to()
       |> put_flash(:error, "Accedi come amministratore per continuare.")
       |> redirect(to: ~p"/admin/login")
       |> halt()
@@ -169,6 +180,24 @@ defmodule ExBlogWeb.AdminAuth do
   defp session_value(session, @password_fingerprint_key) do
     Map.get(session, @password_fingerprint_key) || Map.get(session, :admin_password_fingerprint)
   end
+
+  defp remember_return_to(%Plug.Conn{method: "GET"} = conn) do
+    query = if conn.query_string == "", do: "", else: "?" <> conn.query_string
+    destination = conn.request_path <> query
+
+    if safe_return_to?(destination),
+      do: put_session(conn, @return_to_key, destination),
+      else: conn
+  end
+
+  defp remember_return_to(conn), do: conn
+
+  defp safe_return_to?(path) when is_binary(path) do
+    byte_size(path) <= @max_return_to_bytes and String.starts_with?(path, "/") and
+      not String.starts_with?(path, "//")
+  end
+
+  defp safe_return_to?(_path), do: false
 
   defp secure_fingerprint?(fingerprint) when is_binary(fingerprint) do
     expected = password_fingerprint()
