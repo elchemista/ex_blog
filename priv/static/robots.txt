@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /mcp
+Disallow: /oauth
 
 Sitemap: https://ex-blog.fly.dev/sitemap.xml
