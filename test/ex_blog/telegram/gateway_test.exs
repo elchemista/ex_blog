@@ -56,6 +56,25 @@ defmodule ExBlog.Telegram.GatewayTest do
     assert_received {:resolved_sender, 73_921}
   end
 
+  test "resolves the username from modern TDLib usernames" do
+    admin_username = ExBlog.Config.get().admin_telegram_username
+    event = telegram_update(73_921, nil, "show the configuration")
+
+    assert {:reply, ["ok"]} =
+             Gateway.handle_update(event,
+               username_resolver: fn _sender_id ->
+                 {:ok,
+                  %{
+                    "usernames" => %{
+                      "active_usernames" => [String.upcase(admin_username)],
+                      "editable_username" => String.upcase(admin_username)
+                    }
+                  }}
+               end,
+               processor: fn _event -> {:reply, ["ok"]} end
+             )
+  end
+
   test "fails closed when Telegram cannot resolve the sender username" do
     event = telegram_update(73_921, nil, "show the configuration")
 
@@ -73,7 +92,7 @@ defmodule ExBlog.Telegram.GatewayTest do
     assert Enum.join(chunks) == String.duplicate("a", 8_500)
   end
 
-  test "drops messages sent by the connected Telegram account" do
+  test "accepts administrator messages sent by the connected Telegram account" do
     admin_username = ExBlog.Config.get().admin_telegram_username
 
     {:ex_gram_message, jid, message} =
@@ -81,10 +100,15 @@ defmodule ExBlog.Telegram.GatewayTest do
 
     event = {:ex_gram_message, jid, %{message | from_me: true}}
 
-    assert :ignore =
+    assert {:reply, ["ok"]} =
              Gateway.handle_update(event,
-               processor: fn _event -> flunk("outgoing messages must not be processed") end
+               processor: fn received ->
+                 send(self(), {:authorized, received})
+                 {:reply, ["ok"]}
+               end
              )
+
+    assert_received {:authorized, ^event}
   end
 
   test "routes an authenticated photo through Beam without downloading outside creation mode" do

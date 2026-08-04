@@ -51,6 +51,14 @@ defmodule ExBlogWeb.Admin.TelegramLive do
     run_action(socket, &Transport.request_qr/0, gettext("QR requested from Telegram."))
   end
 
+  def handle_event("switch_account", _params, socket) do
+    run_action(
+      socket,
+      &Transport.switch_account/0,
+      gettext("Telegram logout started. You can enter the new number as soon as requested.")
+    )
+  end
+
   def handle_event("provide_phone", %{"telegram_phone" => params}, socket) do
     phone = params |> Map.get("phone", "") |> normalize_phone()
 
@@ -217,6 +225,43 @@ defmodule ExBlogWeb.Admin.TelegramLive do
                   <p class="mt-2 max-w-lg text-[0.78rem] leading-6 t-faint">
                     <span aria-hidden="true">// </span>{gettext(
                       "The TDLib session is authorized and ready to receive messages from the configured administrator."
+                    )}
+                  </p>
+                  <div class="mt-6 border-t border-dashed border-[color:var(--line)] pt-5">
+                    <p class="max-w-lg text-[0.75rem] leading-6 t-faint">
+                      <span aria-hidden="true">// </span>{gettext(
+                        "To use another number, log out this Telegram session and start a new pairing."
+                      )}
+                    </p>
+                    <button
+                      id="telegram-switch-account-button"
+                      type="button"
+                      phx-click="switch_account"
+                      phx-disable-with={gettext("Disconnecting…")}
+                      data-confirm={
+                        gettext("Disconnect the current Telegram account and pair another number?")
+                      }
+                      class="term-btn mt-4"
+                    >
+                      <.icon name="hero-arrow-path-rounded-square" class="size-4" />
+                      {gettext("Use another phone number")}
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  :if={@telegram.auth_state == :switching_account}
+                  id="telegram-switching-account-panel"
+                  class="py-12"
+                  role="status"
+                >
+                  <p class="term-prompt text-[0.75rem] t-dim">telegram logout</p>
+                  <p class="mt-3 flex items-center gap-2 text-[0.8rem] t-strong">
+                    {gettext("Preparing a new Telegram login")} <.cursor />
+                  </p>
+                  <p class="mt-2 text-[0.75rem] t-faint">
+                    <span aria-hidden="true">// </span>{gettext(
+                      "The phone-number form will appear when TDLib is ready."
                     )}
                   </p>
                 </div>
@@ -618,6 +663,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
   defp auth_state_label(:wait_password), do: gettext("2FA password")
   defp auth_state_label(:submitting_password), do: gettext("Verifying 2FA")
   defp auth_state_label(:ready), do: gettext("Authorized")
+  defp auth_state_label(:switching_account), do: gettext("Changing account")
   defp auth_state_label(:starting), do: gettext("Starting")
   defp auth_state_label(:connecting), do: gettext("Connecting")
   defp auth_state_label(_state), do: gettext("Unavailable")
@@ -637,5 +683,9 @@ defmodule ExBlogWeb.Admin.TelegramLive do
     do: gettext("The Telegram 2FA password is required.")
 
   defp auth_state_description(:ready), do: gettext("The session is authorized and running.")
+
+  defp auth_state_description(:switching_account),
+    do: gettext("The current account is being disconnected before a new login.")
+
   defp auth_state_description(_state), do: gettext("Checking the ExGram session status.")
 end

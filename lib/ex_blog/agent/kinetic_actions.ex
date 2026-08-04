@@ -68,6 +68,16 @@ defmodule ExBlog.Agent.KineticActions do
   @spec budget_status() :: {:ok, map()}
   def budget_status, do: {:ok, %{}}
 
+  @al ~s(SHOW SYSTEM STATUS)
+  @doc """
+  Show application, content, Telegram, OpenRouter, and AI budget health.
+
+  AL: SHOW SYSTEM STATUS
+  AL: CHECK APPLICATION HEALTH
+  """
+  @spec system_status() :: {:ok, map()}
+  def system_status, do: {:ok, %{}}
+
   @al ~s(CHECK BLOG PAGE URL="https://example.com/articles/example")
   @doc """
   Inspect one rendered public blog page with Spectre Lens.

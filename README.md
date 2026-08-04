@@ -51,10 +51,11 @@ mix ex_blog.admin.hash_password 'choose-at-least-12-characters'
 
 Once authenticated, `/admin/telegram` lets you pair a **Telegram user account**
 through either a QR code or its phone number, login code, and optional Telegram
-2FA password. Pair the dedicated account that will receive messages for
-ExBlog. Send commands to it from the personal account whose username is set in
-`EX_BLOG_ADMIN_TELEGRAM_USERNAME`; messages sent by the paired account itself
-are outgoing messages and are ignored.
+2FA password. You can pair either a dedicated account that receives commands
+from the administrator or the administrator account itself. In both cases the
+allowed username is set in `EX_BLOG_ADMIN_TELEGRAM_USERNAME`. When a session is
+already connected, **Use another phone number** logs it out and makes the phone
+and QR pairing choices available again.
 
 Access is protected at three separate boundaries:
 
@@ -68,8 +69,11 @@ Access is protected at three separate boundaries:
    OpenRouter receive an update, the gateway resolves its sender and compares
    the normalized Telegram username with
    `EX_BLOG_ADMIN_TELEGRAM_USERNAME`. The match is case-insensitive and ignores
-   an optional leading `@`; every other sender and every outgoing message is
-   silently ignored.
+   an optional leading `@`. Both TDLib's legacy `username` field and its modern
+   `usernames.active_usernames` representation are supported; every other
+   sender is ignored. Commands sent by the
+   connected administrator account are accepted, while outbound replies are
+   identified by their TDLib message IDs and are not processed again.
 3. **Write authorization.** Passing the sender gate does not immediately mutate
    content. Git-changing editorial actions are staged and still require an
    explicit `yes` or `confirm` from the authorized conversation.
@@ -120,8 +124,9 @@ Article images are content-addressed on the data volume and restored into
 
 ## How the agent works
 
-The agent treats every administrator message as a routing problem, not as a
-chat completion. When a message arrives, it walks down an ordered list of
+The agent treats every administrator message as a routing problem before it
+decides whether the answer is deterministic, operational, or conversational.
+When a message arrives, it walks down an ordered list of
 questions, from the cheapest and most predictable to the most expensive, and
 stops at the first confident answer:
 
@@ -145,7 +150,11 @@ stops at the first confident answer:
    embedded once and compared against stored request vectors; a close enough
    match reuses the earlier routing decision.
 6. **Only then, ask a model.** When every cheaper signal misses or providers
-   disagree, one fast OpenRouter completion classifies the intent.
+   disagree, one fast OpenRouter completion classifies the intent. A local
+   `UNKNOWN` prediction is an abstention and cannot finish routing; the remote
+   classifier must reinterpret it. If the remote classifier also returns
+   `UNKNOWN`, a bounded reasoning turn answers casual conversation or asks one
+   useful clarification while showing the supported system and editorial areas.
 
 Understanding a request is deliberately separate from acting on it. Whatever
 path routing takes, a write still becomes a typed Kinetic action, is validated
@@ -158,15 +167,16 @@ concrete.
 
 ### Skills and nested flows
 
-Instead of one monolithic prompt, the agent is split into three skills, each
+Instead of one monolithic prompt, the agent is split into four skills, each
 owning a coherent slice of the work.
 [`ExBlog.Agent`](lib/ex_blog/agent.ex) installs them:
 
 | Skill | Scope |
 | --- | --- |
+| `assistance` | help/capabilities, harmless general questions, and editorial inspiration |
 | `reader` | list, read, search, and audit public blog pages |
 | `editorial` | create, revise, translate, optimize, publish, unpublish, and delete |
-| `operations` | safe configuration, provider health, budget, and Git synchronization |
+| `operations` | safe configuration, aggregate system status, provider health, budget, and Git synchronization |
 
 The article-creation conversation is implemented as nested Spectre flows:
 
@@ -361,20 +371,23 @@ margin gates make ambiguous predictions fall through instead of treating them
 as authoritative. Hosted models receive the original redacted text without the
 E5-specific prefix.
 
-The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 228 original
-English examples: 12 for each of the 19 classifier-visible ExBlog intents. The
+The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 528 original
+English examples: 24 for each of 22 routing intents. Twenty-one are locally
+routeable classifier labels; `UNKNOWN` remains in the training corpus as an
+abstention label that deliberately forces remote reinterpretation. The
 dataset includes contrastive cases such as reading versus searching, auditing
 an existing page versus generating SEO, and publishing versus repository
-synchronization. Capture fields from the nested creation wizard are excluded
+synchronization. It also distinguishes help, aggregate system health, AI spend,
+OpenRouter health, and open-ended inspiration. Capture fields from the nested creation wizard are excluded
 because the persisted flow cursor, not a model, owns those replies.
 
 The optional development bootstrap produces two artifacts from the same
 corpus under ignored `artifacts/spectre`:
 
 - `classifier.etf`, used by the warm local intent classifier;
-- `semantic_cache.jsonl`, containing precomputed local vectors for all 228
+- `semantic_cache.jsonl`, containing precomputed local vectors for all 528
   examples; development boot filters them through route policy and warms
-  Vettore with the 96 cacheable read examples.
+  Vettore with the 264 cacheable read/help/conversational examples.
 
 Production does not load either artifact. It still reads the release-safe
 dataset for exact matches. New eligible semantic rows are embedded through
@@ -382,10 +395,11 @@ OpenRouter and persisted in a namespace containing the hosted model and
 dimension identity, so a DETS store cannot mix them with local 384d rows.
 
 Spectre mirrors dataset rows into exact cache only when their route is
-cacheable. Consequently, the eight read-only intents can answer exact matches
-with no inference, while writes, deletes, sync, verification starts, unsafe
-input, and unknown input train the classifier but can never become cached
-authorization.
+cacheable. Consequently, eleven read/help/conversational intents can answer
+exact matches with no classifier inference, while writes, deletes, sync,
+verification starts, unsafe input, and unknown input can never become cached
+authorization. A conversational match still generates a fresh LLM answer; the
+cache stores only its safe routing label, never a previous reply.
 
 The provider responsibilities are:
 
@@ -504,8 +518,11 @@ the sentence — for example `en spectre-agents` or `en/spectre-agents`.
 | “Find articles that discuss semantic routing” | search across title, category, tags, and Markdown body | none |
 | “Audit https://blog.example.com/en/spectre-agents” | Spectre Lens audit of the given public page, or of the canonical blog URL when none is given | browser read plus optional balanced-model assessment |
 | “Show the safe blog configuration” | redacted, safe runtime configuration | none |
+| “Give me information” | capabilities and example requests, including operational diagnostics | none |
+| “Show system status” | app, content index, Telegram, OpenRouter, and AI-budget snapshot | one OpenRouter health read |
 | “How much budget have we spent this month?” | daily and monthly AI accounting | none |
 | “Is OpenRouter reachable?” | provider reachability and configured model availability | external read |
+| “Give me ideas for my next article” | fresh LLM brainstorming without action execution | balanced-model reasoning |
 | “Sync the content repository” | fetch the canonical branch and rebuild ETS | protected Git write operation |
 | “Sync the repository and verify all public pages” | durable sync-and-verify Work: fetch/rebuild plus a Lens audit of every published page | Git fetch/reset plus browser reads; no model calls |
 | “How did the last site verification go?” | status and report of the newest verification run | none |
@@ -690,11 +707,19 @@ legacy aliases, but new deployments should use ExGram's conventional
 | `EX_BLOG_DATA_DIR` | no | `/data` | absolute writable path for checkout, DETS, TDLib, and durable images |
 | `EX_BLOG_MCP_TOKEN` | yes | — | separate bearer for direct operator MCP clients; ChatGPT OAuth does not use it |
 | `EX_BLOG_CHATGPT_PUBLIC_BASE_URL` | no | `https://<PHX_HOST>` | public HTTPS origin for OAuth behind a tunnel or proxy; no path, query, or credentials |
+| `EX_BLOG_CORS_ORIGINS` | no | `https://<PHX_HOST>` | comma-separated browser origins allowed by CORS; use exact origins, never `*` with credentials |
 | `LIGHTPANDA_PATH` | no | searched in `PATH` and `~/.local/bin` | explicit Lightpanda executable used by Spectre Lens |
 | `PHX_HOST` | production | — | public hostname used by Phoenix, canonical metadata, feeds, sitemap, and OAuth |
+| `PHX_CHECK_ORIGINS` | no | `https://<PHX_HOST>` | comma-separated HTTPS origins accepted by Phoenix sockets and LiveView |
 | `SECRET_KEY_BASE` | production | — | signs and encrypts Phoenix sessions and related secrets |
 | `PHX_SERVER` | release | unset | set to a non-empty value, normally `true`, to start the web endpoint in a release |
 | `PORT` | no | `4000` | HTTP listen port |
+
+`PHX_HOST` is one canonical hostname, without scheme or path. Alternate public
+hosts belong in both `PHX_CHECK_ORIGINS` and `EX_BLOG_CORS_ORIGINS`. The Fly
+deployment uses `spectre.elchemista.com` as canonical and also accepts
+`https://spectre-blog.fly.dev`; local development accepts
+`http://localhost:4000` and `http://127.0.0.1:4000`.
 
 Model names in [.env.example](.env.example) are examples. Replace them with
 model IDs currently available to your OpenRouter account.
@@ -813,10 +838,11 @@ The channel is mounted in [`ExBlog.AI`](lib/ex_blog/ai.ex):
 install Spectre.Beam, delivery: :caller_owned do
   channel(:telegram,
     type: :telegram,
-    adapter: Spectre.Beam.Adapters.ExGram,
+    adapter: ExBlog.Telegram.BeamAdapter,
     capabilities: [:text, :image],
     planner_exposure: :none,
-    typing: true
+    typing: true,
+    reply_delay_ms: 2_000
   )
 end
 ```
@@ -826,7 +852,10 @@ publishes a secret-free connection projection to Phoenix PubSub, and sends
 normalized inbound messages to `Spectre.Beam`. Beam converts provider-specific
 updates into Spectre inputs; the gateway resolves the sender's Telegram profile
 and applies the administrator username gate before prompts, memory, logs, or
-OpenRouter can see the message.
+OpenRouter can see the message. Outbound replies return through Beam's ExGram
+adapter: it sends TDLib's native typing action and waits at least two seconds
+before the first reply chunk, while retaining the acknowledged Telegram message
+ID to prevent response loops.
 
 Naming note: **ExWapp is not wired into ExBlog**. Spectre Beam can support other
 adapters, including an ExWapp channel in a different application, but this
@@ -858,8 +887,7 @@ commands. Both `elchemista` and `@elchemista` are accepted, and comparison is
 case-insensitive. If the account changes its Telegram username, update this
 setting before sending more commands.
 
-ExBlog ignores messages marked by Telegram as `from_me`. In practice, the
-clearest topology is:
+The clearest multi-account topology is:
 
 ```text
 personal administrator account
@@ -868,9 +896,10 @@ dedicated Telegram account connected to ExBlog through ExGram
 ```
 
 The personal account's username is `EX_BLOG_ADMIN_TELEGRAM_USERNAME`; the
-dedicated account's phone number is the one paired from `/admin/telegram`. If
-the same connected account sends its own messages, TDLib marks them as outgoing
-and ExBlog intentionally ignores them.
+dedicated account's phone number is the one paired from `/admin/telegram`.
+Alternatively, pair the administrator account itself: its outgoing commands
+are accepted, and ExBlog records the TDLib IDs of its own replies so their
+outgoing delivery events cannot create a response loop.
 
 ### Protect the connection page
 
@@ -906,6 +935,11 @@ behind HTTPS.
      as `+393331234567`, then submit the Telegram code and, when requested, its
      two-step-verification password.
 6. Wait for the live status to become connected.
+
+To replace an already connected account, select **Use another phone number**,
+confirm the logout, and wait for the phone/QR pairing choices to reappear.
+ExBlog waits for TDLib to confirm that the old authorization is closed, then
+restarts the ExGram backend for the same configured session ID.
 
 The QR login link is held only in memory. Authentication codes and the
 two-step-verification password are forwarded to TDLib and are never persisted
@@ -1080,6 +1114,12 @@ compiles its own NIF; that toolchain is not copied into the runtime image.
 Semantic embeddings go through OpenRouter using the configured model and
 dimensions. The Fly machine is fixed at 2 shared CPUs and 1 GB RAM for Phoenix
 and TDLib.
+
+The custom Fly hostname requires both DNS address records. For the current app
+they are `A spectre.elchemista.com 66.241.124.115` and
+`AAAA spectre.elchemista.com 2a09:8280:1::15f:3650:0`. Without the A record,
+IPv4-only clients cannot reach the custom domain even when its certificate is
+already issued.
 
 The image reuses Freelance's immutable Bookworm TDLib artifact instead of
 compiling TDLib on every deployment. Private Git dependencies still require a

@@ -12,6 +12,33 @@ defmodule ExBlogWeb.MCPControllerTest do
     :ok
   end
 
+  test "accepts both configured public hosts as exact origins" do
+    previous_origins = Application.get_env(:ex_blog, :public_origins)
+
+    Application.put_env(:ex_blog, :public_origins, [
+      "https://spectre.elchemista.com",
+      "https://spectre-blog.fly.dev"
+    ])
+
+    on_exit(fn ->
+      if previous_origins do
+        Application.put_env(:ex_blog, :public_origins, previous_origins)
+      else
+        Application.delete_env(:ex_blog, :public_origins)
+      end
+    end)
+
+    for origin <- ["https://spectre.elchemista.com/", "https://spectre-blog.fly.dev"] do
+      conn =
+        build_conn()
+        |> put_req_header("origin", origin)
+        |> post("/mcp", request("initialize", %{}, System.unique_integer([:positive])))
+
+      assert %{"result" => %{"protocolVersion" => "2025-11-25"}} =
+               json_response(conn, 200)
+    end
+  end
+
   test "allows protocol discovery and returns the tool-level OAuth challenge", %{conn: conn} do
     initialized = post(conn, "/mcp", request("initialize", %{}, 1))
 
@@ -93,6 +120,10 @@ defmodule ExBlogWeb.MCPControllerTest do
 
     config_tool = Enum.find(tools, &(&1["name"] == "show_config"))
     assert config_tool["annotations"]["readOnlyHint"]
+
+    system_tool = Enum.find(tools, &(&1["name"] == "system_status"))
+    assert system_tool["annotations"]["readOnlyHint"]
+    assert system_tool["annotations"]["openWorldHint"]
 
     assert config_tool["securitySchemes"] == [
              %{"type" => "oauth2", "scopes" => ["articles:read"]}

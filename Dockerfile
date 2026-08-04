@@ -120,9 +120,10 @@ RUN mix local.hex --force \
 COPY mix.exs mix.lock ./
 COPY config config
 
-# Private Git dependencies need build-time authentication. Prefer the
-# `github_token` BuildKit secret (used by Fly); an SSH agent is supported for
-# local builds. Neither credential is copied into a layer or the final image.
+# Git dependencies are public today, but build-time authentication remains
+# available for private forks. Prefer the `github_token` BuildKit secret; an
+# SSH agent is also supported for local builds. Neither credential is copied
+# into a layer or the final image.
 RUN --mount=type=cache,target=/root/.cache \
     --mount=type=secret,id=github_token \
     --mount=type=ssh \
@@ -146,8 +147,7 @@ RUN --mount=type=cache,target=/root/.cache \
       git config --global --unset-all url."git@github.com:".insteadOf; \
       rm -rf /root/.ssh; \
     else \
-      echo >&2 "GitHub build credentials missing: pass --secret id=github_token or --ssh default"; \
-      exit 1; \
+      GIT_TERMINAL_PROMPT=0 mix deps.get --only prod; \
     fi
 
 # Normal ExGram compilation intentionally does not build TDLib. Install the

@@ -85,7 +85,9 @@ defmodule ExBlog.AgentTest do
       {"Find articles that discuss semantic routing", :SEARCH_ARTICLES},
       {"Audit the rendered article page for missing metadata", :CHECK_BLOG_PAGE},
       {"Show the safe blog configuration", :SHOW_BLOG_CONFIG},
-      {"Show the current AI spending budget", :SHOW_AI_BUDGET},
+      {"i want know how much i spend", :SHOW_AI_BUDGET},
+      {"Give me information", :SHOW_CAPABILITIES},
+      {"Show the current ExBlog system status", :SHOW_SYSTEM_STATUS},
       {"Check whether OpenRouter is configured and reachable", :CHECK_OPENROUTER},
       {"Show the latest blog verification report", :SHOW_VERIFICATION}
     ]

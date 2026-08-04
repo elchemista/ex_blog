@@ -4,6 +4,8 @@ defmodule ExBlog.Telegram.Gateway do
   Spectre, memory, logging, or provider calls.
   """
 
+  require Logger
+
   alias ExBlog.Agent.Instance
   alias ExBlog.Agent.Presenter
   alias ExBlog.Config
@@ -15,10 +17,25 @@ defmodule ExBlog.Telegram.Gateway do
   @spec handle_update(term(), keyword()) :: :ignore | {:reply, [String.t()]} | {:error, term()}
   def handle_update(event, opts \\ []) do
     admin_username = Config.get().admin_telegram_username
+    username = sender_username(event, opts)
 
-    case {sender_username(event, opts), from_me?(event)} do
-      {^admin_username, false} -> authorized(event, opts)
-      _unauthorized_or_outgoing -> :ignore
+    case username do
+      ^admin_username ->
+        Logger.info(
+          "Telegram administrator message accepted " <>
+            "sender_id=#{inspect(sender_id(event))} direction=#{message_direction(event)}"
+        )
+
+        authorized(event, opts)
+
+      _unauthorized ->
+        Logger.info(
+          "Telegram message ignored: sender is not the configured administrator " <>
+            "sender_id=#{inspect(sender_id(event))} " <>
+            "username_resolved=#{is_binary(username)} direction=#{message_direction(event)}"
+        )
+
+        :ignore
     end
   end
 
@@ -179,13 +196,56 @@ defmodule ExBlog.Telegram.Gateway do
   end
 
   defp default_username_resolver(sender_id) do
-    ExGram.get_contact(Config.get().telegram_session_id, sender_id)
+    session_id = Config.get().telegram_session_id
+    contact = ExGram.get_contact(session_id, sender_id)
+
+    case username_from_result(contact) do
+      username when is_binary(username) ->
+        username
+
+      _missing_username ->
+        ExGram.send_request_sync(
+          session_id,
+          %{"@type" => "getUser", "user_id" => sender_id},
+          timeout_ms: 5_000
+        )
+    end
   end
 
   defp username_from_result({:ok, value}), do: username_from_result(value)
   defp username_from_result(value) when is_binary(value), do: value
-  defp username_from_result(value) when is_map(value), do: field(value, :username)
+
+  defp username_from_result(value) when is_map(value) do
+    legacy_username = field(value, :username)
+    usernames = field(value, :usernames)
+
+    present_username(legacy_username) || username_from_usernames(usernames)
+  end
+
   defp username_from_result(_value), do: nil
+
+  defp username_from_usernames(usernames) when is_map(usernames) do
+    active_username =
+      usernames
+      |> field(:active_usernames)
+      |> first_present_username()
+
+    active_username || present_username(field(usernames, :editable_username))
+  end
+
+  defp username_from_usernames(_usernames), do: nil
+
+  defp first_present_username(usernames) when is_list(usernames) do
+    Enum.find_value(usernames, &present_username/1)
+  end
+
+  defp first_present_username(_usernames), do: nil
+
+  defp present_username(username) when is_binary(username) do
+    if String.trim(username) == "", do: nil, else: username
+  end
+
+  defp present_username(_username), do: nil
 
   defp normalize_username(username) when is_binary(username) do
     username
@@ -196,10 +256,16 @@ defmodule ExBlog.Telegram.Gateway do
 
   defp normalize_username(_username), do: nil
 
-  defp from_me?({:ex_gram_message, _jid, message}), do: from_me?(message)
-  defp from_me?({:ex_gram_message, _session_id, _jid, message}), do: from_me?(message)
-  defp from_me?(event) when is_map(event), do: field(event, :from_me) == true
-  defp from_me?(_event), do: false
+  defp message_direction({:ex_gram_message, _jid, message}), do: message_direction(message)
+
+  defp message_direction({:ex_gram_message, _session_id, _jid, message}),
+    do: message_direction(message)
+
+  defp message_direction(event) when is_map(event) do
+    if field(event, :from_me) == true, do: :outgoing, else: :incoming
+  end
+
+  defp message_direction(_event), do: :unknown
 
   defp field(map, key) when is_map(map),
     do: Map.get(map, key, Map.get(map, Atom.to_string(key)))

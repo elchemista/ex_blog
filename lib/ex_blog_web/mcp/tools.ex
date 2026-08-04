@@ -48,6 +48,13 @@ defmodule ExBlogWeb.MCP.Tools do
         read_only: true
       ),
       tool(
+        "system_status",
+        "Show application, content index, Telegram, OpenRouter, and AI budget health.",
+        schema(%{}),
+        read_only: true,
+        open_world: true
+      ),
+      tool(
         "check_page",
         "Open a rendered public page with Spectre Lens and assess its content, structure, accessibility, and SEO baseline.",
         schema(%{
@@ -175,6 +182,7 @@ defmodule ExBlogWeb.MCP.Tools do
   defp dispatch("show_config", arguments), do: Actions.show_config(arguments)
   defp dispatch("openrouter_status", arguments), do: Actions.openrouter_status(arguments)
   defp dispatch("budget_status", arguments), do: Actions.budget_status(arguments)
+  defp dispatch("system_status", arguments), do: Actions.system_status(arguments)
   defp dispatch("check_page", arguments), do: Actions.check_page(arguments)
   defp dispatch("create_article", arguments), do: Actions.create_article(arguments)
   defp dispatch("revise_article", arguments), do: Actions.revise_article(arguments)

@@ -17,6 +17,11 @@ defmodule ExBlog.Telegram.ClientFake do
     :ok
   end
 
+  def disconnect(session_id) do
+    notify({:disconnect, session_id})
+    :ok
+  end
+
   def status(session_id) do
     config = notify({:status, session_id})
     Map.get(config, :status, :connecting)
@@ -55,9 +60,19 @@ defmodule ExBlog.Telegram.ClientFake do
     :ok
   end
 
-  def send_message(session_id, jid, text) do
-    notify({:send_message, session_id, jid, text})
+  def send_message(session, jid, text) do
+    config = notify({:send_message, session, jid, text})
+    {:ok, Map.get(config, :sent_message_id, System.unique_integer([:positive]))}
+  end
+
+  def send_typing(session, jid, composing?) do
+    notify({:send_typing, session, jid, composing?})
     :ok
+  end
+
+  def send_request_sync(session_id, request, opts) do
+    config = notify({:send_request_sync, session_id, request, opts})
+    Map.get(config, :send_request_sync_result, {:ok, %{"@type" => "ok"}})
   end
 
   defp notify(message) do

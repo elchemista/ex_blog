@@ -48,10 +48,11 @@ defmodule ExBlog.AI do
   install Spectre.Beam, delivery: :caller_owned do
     channel(:telegram,
       type: :telegram,
-      adapter: Spectre.Beam.Adapters.ExGram,
+      adapter: ExBlog.Telegram.BeamAdapter,
       capabilities: [:text, :image],
       planner_exposure: :none,
-      typing: true
+      typing: true,
+      reply_delay_ms: 2_000
     )
   end
 

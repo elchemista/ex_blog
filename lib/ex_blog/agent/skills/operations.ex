@@ -33,6 +33,7 @@ defmodule ExBlog.Agent.Skills.Operations do
   requires_action(:show_config, mode: :read)
   requires_action(:openrouter_status, mode: :read)
   requires_action(:budget_status, mode: :read)
+  requires_action(:system_status, mode: :read)
   requires_action(:sync_repository, mode: :write)
 
   # The policy belongs to the skill so its prompts, attempts, and pending state
@@ -82,6 +83,17 @@ defmodule ExBlog.Agent.Skills.Operations do
         learn: true,
         via: [:embedding, :classifier, :semantic_cache, :llm_classifier] do
         action(:openrouter_status, args: %{})
+      end
+
+      on :SHOW_SYSTEM_STATUS,
+        embedding: [
+          "show the current ExBlog system status",
+          "report whether the application, Telegram, content, and AI services are healthy",
+          "give me a complete operational health summary"
+        ],
+        learn: true,
+        via: [:embedding, :classifier, :semantic_cache, :llm_classifier] do
+        action(:system_status, args: %{})
       end
     end
 

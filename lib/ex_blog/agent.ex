@@ -25,12 +25,14 @@ defmodule ExBlog.Agent do
     input_timeout: 30_000
 
   alias ExBlog.Agent.RouterPipeline
+  alias ExBlog.Agent.Skills.Assistance
   alias ExBlog.Agent.Skills.Editorial
   alias ExBlog.Agent.Skills.Operations
   alias ExBlog.Agent.Skills.Reader
   alias ExBlog.AI.OpenRouter
   alias ExBlogWeb.Prompt
 
+  require Assistance
   require Editorial
   require Operations
   require Reader
@@ -86,8 +88,11 @@ defmodule ExBlog.Agent do
       :READ_ARTICLE,
       :SEARCH_ARTICLES,
       :CHECK_BLOG_PAGE,
+      :SHOW_CAPABILITIES,
+      :ASK_AI,
       :SHOW_BLOG_CONFIG,
       :SHOW_AI_BUDGET,
+      :SHOW_SYSTEM_STATUS,
       :CHECK_OPENROUTER,
       :SYNC_BLOG_REPOSITORY,
       :VERIFY_BLOG,
@@ -132,6 +137,7 @@ defmodule ExBlog.Agent do
       show_config: :read,
       openrouter_status: :read,
       budget_status: :read,
+      system_status: :read,
       check_page: :read,
       create_article: :write,
       revise_article: :write,
@@ -169,12 +175,15 @@ defmodule ExBlog.Agent do
     ]
   )
 
+  skill(Assistance, as: :assistance)
+
   skill(Operations,
     as: :operations,
     bind: [
       show_config: :show_config,
       openrouter_status: :openrouter_status,
       budget_status: :budget_status,
+      system_status: :system_status,
       sync_repository: :sync_repository
     ]
   )
@@ -196,12 +205,18 @@ defmodule ExBlog.Agent do
     reply(:unsafe_request)
   end
 
-  # UNKNOWN is visible to both classifiers. It gives out-of-domain local
-  # predictions and LLM failures a declared handler without exposing the route
-  # to regex, static embeddings, or semantic cache.
+  # UNKNOWN is intentionally invisible to the local classifier. A confident
+  # local abstention therefore cannot become the final route: arbitration must
+  # ask the remote classifier to reinterpret the request first. If that model
+  # also returns UNKNOWN, a separate response-generation turn answers naturally
+  # or asks one useful clarification without allowing action planning.
   flow :fallback do
-    on :UNKNOWN, via: [:classifier, :llm_classifier], cache: false do
-      reply(:unknown_request)
+    on :UNKNOWN, via: [:llm_classifier], cache: false do
+      reason(:unknown_request,
+        intelligence: :balanced,
+        maximum_output_tokens: 240,
+        temperature: 0.2
+      )
     end
   end
 end

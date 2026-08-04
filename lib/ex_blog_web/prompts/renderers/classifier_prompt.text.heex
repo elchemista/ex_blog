@@ -6,7 +6,15 @@ Output contract:
 - Do not return punctuation, Markdown, JSON, XML, prose, or Action Language.
 - Prefer the most specific available label.
 - When an active flow is present, interpret a free-form reply as the current flow step unless it is an explicit command.
-- Choose UNKNOWN for ambiguity, unrelated work, or credential/infrastructure changes.
+- Requests about help, capabilities, how ExBlog works, system health, Telegram,
+  AI spending, budget, OpenRouter, and blog verification are supported routes;
+  do not classify them as unrelated infrastructure.
+- Spending, cost, usage, bill, allowance, or remaining-budget questions belong
+  to SHOW_AI_BUDGET even when phrased informally or with imperfect grammar.
+- Creative brainstorming, inspiration, harmless general questions, greetings,
+  and conversational thinking belong to ASK_AI.
+- Choose UNKNOWN only when no supplied label reasonably fits, the request is
+  genuinely ambiguous, or it asks for unsupported credential changes.
 
 Available route tree:
 <route-tree>

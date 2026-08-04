@@ -83,14 +83,26 @@ defmodule ExBlogWeb.Admin.TelegramLiveTest do
     assert_receive {ClientFake, {:provide_password, "admin_live_test", "telegram-secret"}}
   end
 
-  test "switches to the connected state and clears pairing controls", %{conn: conn} do
+  test "lets a connected administrator switch to another phone number", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/admin/telegram")
 
     send_snapshot(view, :ready, :connected)
 
     assert has_element?(view, "#telegram-connected-panel")
+    assert has_element?(view, "#telegram-switch-account-button")
     refute has_element?(view, "#telegram-phone-form")
     refute has_element?(view, "#telegram-qr-panel")
+
+    view |> element("#telegram-switch-account-button") |> render_click()
+
+    assert_receive {ClientFake,
+                    {:send_request_sync, "admin_live_test", %{"@type" => "logOut"},
+                     [timeout_ms: 15_000]}}
+
+    assert has_element?(view, "#telegram-switching-account-panel")
+
+    send_snapshot(view, :wait_phone_number, :authenticating)
+    assert has_element?(view, "#telegram-phone-form")
   end
 
   defp send_snapshot(view, auth_state, connection_status, overrides \\ []) do

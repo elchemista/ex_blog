@@ -38,18 +38,56 @@ defmodule ExBlogWeb.Plugs.MCPSecurity do
   end
 
   defp origin_allowed?(conn, origin) do
-    uri = URI.parse(origin)
-    configured_host = Config.get().phx_host
-    allowed_hosts = if configured_host, do: [configured_host], else: [conn.host]
-
-    if uri.scheme in ["http", "https"] and uri.host in allowed_hosts and
-         uri.userinfo == nil and uri.query == nil and uri.fragment == nil and
-         uri.path in [nil, "", "/"] do
+    with {:ok, normalized_origin} <- normalize_origin(origin),
+         true <- normalized_origin in allowed_origins(conn) do
       :ok
     else
-      {:error, :invalid_origin}
+      _invalid_or_unlisted -> {:error, :invalid_origin}
     end
   end
+
+  defp allowed_origins(conn) do
+    case Application.get_env(:ex_blog, :public_origins, []) do
+      origins when is_list(origins) and origins != [] ->
+        Enum.flat_map(origins, &normalized_origin_list/1)
+
+      _missing ->
+        host = Config.get().phx_host || conn.host
+        [{"https", String.downcase(host), 443}, {"http", String.downcase(host), 80}]
+    end
+  end
+
+  defp normalized_origin_list(origin) do
+    case normalize_origin(origin) do
+      {:ok, normalized} -> [normalized]
+      {:error, :invalid_origin} -> []
+    end
+  end
+
+  defp normalize_origin(origin) when is_binary(origin) do
+    case URI.parse(origin) do
+      %URI{
+        scheme: scheme,
+        host: host,
+        port: port,
+        path: path,
+        query: nil,
+        fragment: nil,
+        userinfo: nil
+      }
+      when scheme in ["http", "https"] and is_binary(host) and host != "" and
+             path in [nil, "", "/"] ->
+        {:ok, {scheme, String.downcase(host), port || default_port(scheme)}}
+
+      _invalid ->
+        {:error, :invalid_origin}
+    end
+  end
+
+  defp normalize_origin(_origin), do: {:error, :invalid_origin}
+
+  defp default_port("https"), do: 443
+  defp default_port("http"), do: 80
 
   defp valid_protocol_version(conn) do
     case get_req_header(conn, "mcp-protocol-version") do

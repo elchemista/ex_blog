@@ -60,6 +60,39 @@ defmodule ExBlog.Agent.Presenter do
   end
 
   def present(%{
+        system_status: true,
+        application: application,
+        public_url: public_url,
+        content: content,
+        telegram: telegram,
+        openrouter: openrouter,
+        budget: budget
+      }) do
+    openrouter_status =
+      cond do
+        openrouter.reachable && openrouter.models_available -> "reachable; all models available"
+        openrouter.reachable -> "reachable; one or more configured models unavailable"
+        true -> "unreachable (#{Map.get(openrouter, :reason, :unavailable)})"
+      end
+
+    telegram_status =
+      "#{telegram.connection_status} (authorization: #{telegram.auth_state}, " <>
+        "last error: #{yes_no(telegram.last_error?)})"
+
+    """
+    System status
+    Application: #{application.status}
+    Public URL: #{public_url}
+    Content index: #{content.status}; #{content.indexed_articles} articles in #{Enum.join(content.languages, ", ")}
+    Telegram: #{telegram_status}
+    OpenRouter: #{openrouter_status}
+    AI spent this month: €#{budget.spent_month_eur}
+    AI budget remaining: €#{budget.remaining_eur}
+    """
+    |> String.trim()
+  end
+
+  def present(%{
         period: period,
         spent_today_eur: today,
         spent_month_eur: month,
@@ -150,6 +183,9 @@ defmodule ExBlog.Agent.Presenter do
 
   defp display_models(models) when is_list(models) and models != [], do: Enum.join(models, ", ")
   defp display_models(_models), do: "not configured"
+
+  defp yes_no(true), do: "yes"
+  defp yes_no(false), do: "no"
 
   defp formatted_findings(_label, []), do: nil
 

@@ -29,12 +29,12 @@ msgstr "%{count} min"
 msgid "%{count} words"
 msgstr "%{count} parole"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:618
+#: lib/ex_blog_web/live/admin/telegram_live.ex:663
 #, elixir-autogen, elixir-format
 msgid "2FA password"
 msgstr "Password 2FA"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:184
+#: lib/ex_blog_web/live/admin/telegram_live.ex:192
 #, elixir-autogen, elixir-format
 msgid "Account pairing"
 msgstr "Associazione account"
@@ -55,7 +55,7 @@ msgstr "Area amministratore"
 msgid "Administrator session closed."
 msgstr "Sessione amministratore terminata."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:264
+#: lib/ex_blog_web/live/admin/telegram_live.ex:309
 #, elixir-autogen, elixir-format
 msgid "Alternatively, enter the international number linked to the account."
 msgstr "In alternativa inserisci il numero internazionale associato all'account."
@@ -80,7 +80,7 @@ msgstr "Autorizza"
 msgid "Authorize %{client}"
 msgstr "Autorizza %{client}"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:620
+#: lib/ex_blog_web/live/admin/telegram_live.ex:665
 #, elixir-autogen, elixir-format
 msgid "Authorized"
 msgstr "Autorizzata"
@@ -100,37 +100,37 @@ msgstr "Categoria"
 msgid "Category: %{category}"
 msgstr "Categoria: %{category}"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:640
+#: lib/ex_blog_web/live/admin/telegram_live.ex:690
 #, elixir-autogen, elixir-format
 msgid "Checking the ExGram session status."
 msgstr "Controllo lo stato della sessione ExGram."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:76
+#: lib/ex_blog_web/live/admin/telegram_live.ex:84
 #, elixir-autogen, elixir-format
 msgid "Code sent."
 msgstr "Codice inviato."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:442
+#: lib/ex_blog_web/live/admin/telegram_live.ex:487
 #, elixir-autogen, elixir-format
 msgid "Complete the verification"
 msgstr "Completa la verifica"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:469
+#: lib/ex_blog_web/live/admin/telegram_live.ex:514
 #, elixir-autogen, elixir-format
 msgid "Connect Telegram"
 msgstr "Connetti Telegram"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:622
+#: lib/ex_blog_web/live/admin/telegram_live.ex:668
 #, elixir-autogen, elixir-format
 msgid "Connecting"
 msgstr "Connessione"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:466
+#: lib/ex_blog_web/live/admin/telegram_live.ex:511
 #, elixir-autogen, elixir-format
 msgid "Connecting…"
 msgstr "Connessione…"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:476
+#: lib/ex_blog_web/live/admin/telegram_live.ex:521
 #, elixir-autogen, elixir-format
 msgid "Connection details"
 msgstr "Dettagli connessione"
@@ -140,7 +140,7 @@ msgstr "Dettagli connessione"
 msgid "Connection lost"
 msgstr "Connessione interrotta"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:287
+#: lib/ex_blog_web/live/admin/telegram_live.ex:332
 #, elixir-autogen, elixir-format
 msgid "Continue with the number"
 msgstr "Continua con il numero"
@@ -165,17 +165,17 @@ msgstr "Nega"
 msgid "Development notes, technical write-ups and stories published in %{language}."
 msgstr "Appunti di sviluppo, note tecniche e storie pubblicate in %{language}."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:66
+#: lib/ex_blog_web/live/admin/telegram_live.ex:74
 #, elixir-autogen, elixir-format
 msgid "Enter a valid international number, for example +393331234567."
 msgstr "Inserisci un numero internazionale valido, ad esempio +393331234567."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:413
+#: lib/ex_blog_web/live/admin/telegram_live.ex:458
 #, elixir-autogen, elixir-format
 msgid "Enter the Telegram 2FA password. It is forwarded straight to TDLib and never stored."
 msgstr "Inserisci la password Telegram 2FA. Viene inoltrata direttamente a TDLib e non viene salvata."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:372
+#: lib/ex_blog_web/live/admin/telegram_live.ex:417
 #, elixir-autogen, elixir-format
 msgid "Enter the code"
 msgstr "Inserisci il codice"
@@ -185,12 +185,12 @@ msgstr "Inserisci il codice"
 msgid "Enter the configured password to manage the Telegram connection."
 msgstr "Inserisci la password configurata per gestire la connessione Telegram."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:81
+#: lib/ex_blog_web/live/admin/telegram_live.ex:89
 #, elixir-autogen, elixir-format
 msgid "Enter the numeric code received from Telegram."
 msgstr "Inserisci il codice numerico ricevuto da Telegram."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:100
+#: lib/ex_blog_web/live/admin/telegram_live.ex:108
 #, elixir-autogen, elixir-format
 msgid "Enter the two-step verification password."
 msgstr "Inserisci la password di verifica in due passaggi."
@@ -205,27 +205,27 @@ msgstr "Tutti gli articoli della categoria %{category}."
 msgid "Every article tagged %{tag}."
 msgstr "Tutti gli articoli associati al tag %{tag}."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:351
+#: lib/ex_blog_web/live/admin/telegram_live.ex:396
 #, elixir-autogen, elixir-format
 msgid "Frame the code and wait for the confirmation on this page."
 msgstr "Inquadra il codice e attendi la conferma su questa pagina."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:360
+#: lib/ex_blog_web/live/admin/telegram_live.ex:405
 #, elixir-autogen, elixir-format
 msgid "Generate a new QR"
 msgstr "Genera un nuovo QR"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:250
+#: lib/ex_blog_web/live/admin/telegram_live.ex:295
 #, elixir-autogen, elixir-format
 msgid "Generate the QR"
 msgstr "Genera il QR"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:302
+#: lib/ex_blog_web/live/admin/telegram_live.ex:347
 #, elixir-autogen, elixir-format
 msgid "Generating the QR"
 msgstr "Generazione del QR"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:347
+#: lib/ex_blog_web/live/admin/telegram_live.ex:392
 #, elixir-autogen, elixir-format
 msgid "Go to Settings, Devices, Link desktop device."
 msgstr "Vai in Impostazioni, Dispositivi, Collega dispositivo desktop."
@@ -255,7 +255,7 @@ msgstr "Lingua"
 msgid "Latest posts"
 msgstr "Ultime pubblicazioni"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:612
+#: lib/ex_blog_web/live/admin/telegram_live.ex:657
 #, elixir-autogen, elixir-format
 msgid "Login choice"
 msgstr "Scelta accesso"
@@ -265,22 +265,22 @@ msgstr "Scelta accesso"
 msgid "Main navigation"
 msgstr "Navigazione principale"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:59
+#: lib/ex_blog_web/live/admin/telegram_live.ex:67
 #, elixir-autogen, elixir-format
 msgid "Number sent."
 msgstr "Numero inviato."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:212
+#: lib/ex_blog_web/live/admin/telegram_live.ex:220
 #, elixir-autogen, elixir-format
 msgid "OK — session authorized"
 msgstr "OK — sessione autorizzata"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:239
+#: lib/ex_blog_web/live/admin/telegram_live.ex:284
 #, elixir-autogen, elixir-format
 msgid "Open Telegram on an already authenticated device and scan the code."
 msgstr "Apri Telegram su un dispositivo già autenticato e scansiona il codice."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:343
+#: lib/ex_blog_web/live/admin/telegram_live.ex:388
 #, elixir-autogen, elixir-format
 msgid "Open Telegram on the already authenticated phone."
 msgstr "Apri Telegram sul telefono già autenticato."
@@ -295,12 +295,12 @@ msgstr "Apri le preferenze cookie"
 msgid "Page not found"
 msgstr "Pagina non trovata"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:236
+#: lib/ex_blog_web/live/admin/telegram_live.ex:281
 #, elixir-autogen, elixir-format
 msgid "Pair with a QR code"
 msgstr "Collega con QR"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:626
+#: lib/ex_blog_web/live/admin/telegram_live.ex:672
 #, elixir-autogen, elixir-format
 msgid "Pick the QR code or continue with the phone number."
 msgstr "Scegli il QR oppure continua con il numero di telefono."
@@ -310,12 +310,12 @@ msgstr "Scegli il QR oppure continua con il numero di telefono."
 msgid "Published"
 msgstr "Pubblicato"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:321
+#: lib/ex_blog_web/live/admin/telegram_live.ex:366
 #, elixir-autogen, elixir-format
 msgid "QR code to pair Telegram"
 msgstr "Codice QR per collegare Telegram"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:613
+#: lib/ex_blog_web/live/admin/telegram_live.ex:658
 #, elixir-autogen, elixir-format
 msgid "QR request"
 msgstr "Richiesta QR"
@@ -325,7 +325,7 @@ msgstr "Richiesta QR"
 msgid "QR requested from Telegram."
 msgstr "QR richiesto a Telegram."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:614
+#: lib/ex_blog_web/live/admin/telegram_live.ex:659
 #, elixir-autogen, elixir-format
 msgid "QR scan"
 msgstr "Scansione QR"
@@ -345,7 +345,7 @@ msgstr "Lettura"
 msgid "Reconnecting"
 msgstr "Riconnessione in corso"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:247
+#: lib/ex_blog_web/live/admin/telegram_live.ex:292
 #, elixir-autogen, elixir-format
 msgid "Requesting…"
 msgstr "Richiesta in corso…"
@@ -355,17 +355,17 @@ msgstr "Richiesta in corso…"
 msgid "Retrying in a moment"
 msgstr "Riprovo tra un istante"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:338
+#: lib/ex_blog_web/live/admin/telegram_live.ex:383
 #, elixir-autogen, elixir-format
 msgid "Scan with Telegram"
 msgstr "Scansiona con Telegram"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:616
+#: lib/ex_blog_web/live/admin/telegram_live.ex:661
 #, elixir-autogen, elixir-format
 msgid "Sending number"
 msgstr "Invio numero"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:506
+#: lib/ex_blog_web/live/admin/telegram_live.ex:551
 #, elixir-autogen, elixir-format
 msgid "Sensitive data"
 msgstr "Dati sensibili"
@@ -391,17 +391,17 @@ msgstr "Vai al contenuto"
 msgid "Something went wrong"
 msgstr "Qualcosa non ha funzionato"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:458
+#: lib/ex_blog_web/live/admin/telegram_live.ex:503
 #, elixir-autogen, elixir-format
 msgid "Start or retry the session to receive the next authentication state."
 msgstr "Avvia o riprova la sessione per ricevere il prossimo stato di autenticazione."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:621
+#: lib/ex_blog_web/live/admin/telegram_live.ex:667
 #, elixir-autogen, elixir-format
 msgid "Starting"
 msgstr "Avvio"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:455
+#: lib/ex_blog_web/live/admin/telegram_live.ex:500
 #, elixir-autogen, elixir-format
 msgid "TDLib session not started"
 msgstr "Sessione TDLib da avviare"
@@ -411,34 +411,34 @@ msgstr "Sessione TDLib da avviare"
 msgid "Tag: %{tag}"
 msgstr "Tag: %{tag}"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:508
+#: lib/ex_blog_web/live/admin/telegram_live.ex:553
 #, elixir-autogen, elixir-format
 msgid "Telegram QR codes, codes and passwords stay transient and are never written to the database or the logs."
 msgstr "QR, codici e password Telegram restano transitori e non vengono scritti nel database o nei log."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:615
+#: lib/ex_blog_web/live/admin/telegram_live.ex:660
 #, elixir-autogen, elixir-format
 msgid "Telegram code"
 msgstr "Codice Telegram"
 
 #: lib/ex_blog_web/live/admin/telegram_live.ex:26
-#: lib/ex_blog_web/live/admin/telegram_live.ex:131
+#: lib/ex_blog_web/live/admin/telegram_live.ex:139
 #, elixir-autogen, elixir-format
 msgid "Telegram connection"
 msgstr "Connessione Telegram"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:215
+#: lib/ex_blog_web/live/admin/telegram_live.ex:223
 #, elixir-autogen, elixir-format
 msgid "Telegram is connected"
 msgstr "Telegram è collegato"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:629
+#: lib/ex_blog_web/live/admin/telegram_live.ex:675
 #, elixir-autogen, elixir-format
 msgid "Telegram is preparing a temporary QR code."
 msgstr "Telegram sta preparando un QR temporaneo."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:530
-#: lib/ex_blog_web/live/admin/telegram_live.ex:533
+#: lib/ex_blog_web/live/admin/telegram_live.ex:575
+#: lib/ex_blog_web/live/admin/telegram_live.ex:578
 #, elixir-autogen, elixir-format
 msgid "Telegram is unavailable. Try again soon."
 msgstr "Telegram non è disponibile. Riprova tra poco."
@@ -448,32 +448,32 @@ msgstr "Telegram non è disponibile. Riprova tra poco."
 msgid "Telegram reconnection started."
 msgstr "Riconnessione Telegram avviata."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:199
+#: lib/ex_blog_web/live/admin/telegram_live.ex:207
 #, elixir-autogen, elixir-format
 msgid "Telegram reported a problem. You can refresh the status or retry the connection."
 msgstr "Telegram ha segnalato un problema. Puoi aggiornare lo stato o riprovare la connessione."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:375
+#: lib/ex_blog_web/live/admin/telegram_live.ex:420
 #, elixir-autogen, elixir-format
 msgid "Telegram sent a code to the account. ExBlog will not store it."
 msgstr "Telegram ha inviato un codice all'account. Non verrà memorizzato da ExBlog."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:632
+#: lib/ex_blog_web/live/admin/telegram_live.ex:678
 #, elixir-autogen, elixir-format
 msgid "The QR code is ready to be scanned."
 msgstr "Il QR è pronto per essere scansionato."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:331
+#: lib/ex_blog_web/live/admin/telegram_live.ex:376
 #, elixir-autogen, elixir-format
 msgid "The QR could not be rendered. Request a new one."
 msgstr "Non è stato possibile renderizzare il QR. Richiedine uno nuovo."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:218
+#: lib/ex_blog_web/live/admin/telegram_live.ex:226
 #, elixir-autogen, elixir-format
 msgid "The TDLib session is authorized and ready to receive messages from the configured administrator."
 msgstr "La sessione TDLib è autorizzata e pronta a ricevere i messaggi dell'amministratore configurato."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:637
+#: lib/ex_blog_web/live/admin/telegram_live.ex:683
 #, elixir-autogen, elixir-format
 msgid "The Telegram 2FA password is required."
 msgstr "È richiesta la password Telegram 2FA."
@@ -503,7 +503,7 @@ msgstr "La password viene verificata contro l'hash Argon2 configurato sul server
 msgid "The requested page does not exist."
 msgstr "La pagina richiesta non esiste."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:639
+#: lib/ex_blog_web/live/admin/telegram_live.ex:685
 #, elixir-autogen, elixir-format
 msgid "The session is authorized and running."
 msgstr "La sessione è autorizzata e operativa."
@@ -521,47 +521,47 @@ msgid_plural "Too many attempts. Try again in %{count} seconds."
 msgstr[0] "Troppi tentativi. Riprova tra %{count} secondo."
 msgstr[1] "Troppi tentativi. Riprova tra %{count} secondi."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:410
+#: lib/ex_blog_web/live/admin/telegram_live.ex:455
 #, elixir-autogen, elixir-format
 msgid "Two-step verification"
 msgstr "Verifica in due passaggi"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:623
+#: lib/ex_blog_web/live/admin/telegram_live.ex:669
 #, elixir-autogen, elixir-format
 msgid "Unavailable"
 msgstr "Non disponibile"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:261
+#: lib/ex_blog_web/live/admin/telegram_live.ex:306
 #, elixir-autogen, elixir-format
 msgid "Use the phone number"
 msgstr "Usa il numero"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:94
+#: lib/ex_blog_web/live/admin/telegram_live.ex:102
 #, elixir-autogen, elixir-format
 msgid "Verification password sent."
 msgstr "Password di verifica inviata."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:398
+#: lib/ex_blog_web/live/admin/telegram_live.ex:443
 #, elixir-autogen, elixir-format
 msgid "Verify code"
 msgstr "Verifica codice"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:619
+#: lib/ex_blog_web/live/admin/telegram_live.ex:664
 #, elixir-autogen, elixir-format
 msgid "Verifying 2FA"
 msgstr "Verifica 2FA"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:617
+#: lib/ex_blog_web/live/admin/telegram_live.ex:662
 #, elixir-autogen, elixir-format
 msgid "Verifying code"
 msgstr "Verifica codice"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:634
+#: lib/ex_blog_web/live/admin/telegram_live.ex:680
 #, elixir-autogen, elixir-format
 msgid "Waiting for the code sent by Telegram."
 msgstr "Attendo il codice inviato da Telegram."
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:305
+#: lib/ex_blog_web/live/admin/telegram_live.ex:350
 #, elixir-autogen, elixir-format
 msgid "Waiting for the temporary link from Telegram…"
 msgstr "Attendo il link temporaneo da Telegram…"
@@ -576,7 +576,7 @@ msgstr "Parole"
 msgid "archive"
 msgstr "archivio"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:595
+#: lib/ex_blog_web/live/admin/telegram_live.ex:640
 #, elixir-autogen, elixir-format
 msgid "auth"
 msgstr "auth"
@@ -591,32 +591,32 @@ msgstr "categoria"
 msgid "clear filter"
 msgstr "rimuovi filtro"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:594
+#: lib/ex_blog_web/live/admin/telegram_live.ex:639
 #, elixir-autogen, elixir-format
 msgid "connected"
 msgstr "connesso"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:596
+#: lib/ex_blog_web/live/admin/telegram_live.ex:641
 #, elixir-autogen, elixir-format
 msgid "connecting"
 msgstr "connessione"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:453
+#: lib/ex_blog_web/live/admin/telegram_live.ex:498
 #, elixir-autogen, elixir-format
 msgid "connection not ready"
 msgstr "connessione non pronta"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:598
+#: lib/ex_blog_web/live/admin/telegram_live.ex:643
 #, elixir-autogen, elixir-format
 msgid "disconnected"
 msgstr "disconnesso"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:422
+#: lib/ex_blog_web/live/admin/telegram_live.ex:467
 #, elixir-autogen, elixir-format
 msgid "hint"
 msgstr "suggerimento"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:597
+#: lib/ex_blog_web/live/admin/telegram_live.ex:642
 #, elixir-autogen, elixir-format
 msgid "idle"
 msgstr "in attesa"
@@ -647,7 +647,7 @@ msgstr "apri"
 msgid "password"
 msgstr "password"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:277
+#: lib/ex_blog_web/live/admin/telegram_live.ex:322
 #, elixir-autogen, elixir-format
 msgid "phone number"
 msgstr "numero di telefono"
@@ -662,12 +662,12 @@ msgstr "in evidenza"
 msgid "published"
 msgstr "pubblicato"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:232
+#: lib/ex_blog_web/live/admin/telegram_live.ex:277
 #, elixir-autogen, elixir-format
 msgid "recommended"
 msgstr "consigliato"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:143
+#: lib/ex_blog_web/live/admin/telegram_live.ex:151
 #, elixir-autogen, elixir-format
 msgid "refresh"
 msgstr "aggiorna"
@@ -682,12 +682,12 @@ msgstr "permessi richiesti"
 msgid "tag"
 msgstr "tag"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:388
+#: lib/ex_blog_web/live/admin/telegram_live.ex:433
 #, elixir-autogen, elixir-format
 msgid "telegram code"
 msgstr "codice telegram"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:433
+#: lib/ex_blog_web/live/admin/telegram_live.ex:478
 #, elixir-autogen, elixir-format
 msgid "telegram password"
 msgstr "password telegram"
@@ -819,7 +819,7 @@ msgstr "routing, stato, policy, effetti"
 msgid "the page you are reading"
 msgstr "la pagina che stai leggendo"
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:134
+#: lib/ex_blog_web/live/admin/telegram_live.ex:142
 #, elixir-autogen, elixir-format
 msgid "Connect the account that controls Spectre and follow every TDLib authentication step in real time."
 msgstr "Collega l'account che controlla Spectre e segui in tempo reale ogni passaggio dell'autenticazione TDLib."
@@ -938,3 +938,48 @@ msgstr "Spectre — runtime OTP-nativo per agenti in Elixir. Questo sito ci gira
 #, elixir-autogen, elixir-format
 msgid "The articles below were written over Telegram by an agent that asks before it writes. Here is how it works, and what it is built on."
 msgstr "Gli articoli qui sotto sono stati scritti via Telegram da un agente che chiede prima di scrivere. Ecco come funziona e su cosa è costruito."
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:666
+#, elixir-autogen, elixir-format
+msgid "Changing account"
+msgstr "Cambio account"
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:242
+#, elixir-autogen, elixir-format
+msgid "Disconnect the current Telegram account and pair another number?"
+msgstr "Disconnettere l'account Telegram attuale e associare un altro numero?"
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:240
+#, elixir-autogen, elixir-format
+msgid "Disconnecting…"
+msgstr "Disconnessione…"
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:260
+#, elixir-autogen, elixir-format
+msgid "Preparing a new Telegram login"
+msgstr "Preparazione del nuovo accesso Telegram"
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:58
+#, elixir-autogen, elixir-format
+msgid "Telegram logout started. You can enter the new number as soon as requested."
+msgstr "Disconnessione da Telegram avviata. Potrai inserire il nuovo numero appena richiesto."
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:688
+#, elixir-autogen, elixir-format
+msgid "The current account is being disconnected before a new login."
+msgstr "L'account attuale viene disconnesso prima del nuovo accesso."
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:263
+#, elixir-autogen, elixir-format
+msgid "The phone-number form will appear when TDLib is ready."
+msgstr "Il modulo per il numero di telefono apparirà quando TDLib sarà pronto."
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:232
+#, elixir-autogen, elixir-format
+msgid "To use another number, log out this Telegram session and start a new pairing."
+msgstr "Per usare un altro numero, disconnetti questa sessione Telegram e avvia una nuova associazione."
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:247
+#, elixir-autogen, elixir-format
+msgid "Use another phone number"
+msgstr "Usa un altro numero di telefono"

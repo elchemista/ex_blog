@@ -23,6 +23,7 @@ defmodule ExBlog.Agent.KineticActionsTest do
              "show_config",
              "openrouter_status",
              "budget_status",
+             "system_status",
              "check_page",
              "create_article",
              "revise_article",

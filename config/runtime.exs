@@ -164,8 +164,25 @@ if config_env() == :prod do
   secret_key_base = System.get_env("SECRET_KEY_BASE") || String.duplicate("0", 64)
   host = System.get_env("PHX_HOST") || "localhost"
 
+  parse_origins = fn variable, default ->
+    variable
+    |> System.get_env(default)
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  check_origins = parse_origins.("PHX_CHECK_ORIGINS", "https://#{host}")
+  cors_origins = parse_origins.("EX_BLOG_CORS_ORIGINS", "https://#{host}")
+  public_origins = Enum.uniq(check_origins ++ cors_origins)
+
+  config :ex_blog,
+    cors_origins: cors_origins,
+    public_origins: public_origins
+
   config :ex_blog, ExBlogWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
+    check_origin: check_origins,
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

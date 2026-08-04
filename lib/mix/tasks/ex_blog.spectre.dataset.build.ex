@@ -183,6 +183,10 @@ defmodule Mix.Tasks.ExBlog.Spectre.Dataset.Build do
     |> Enum.map(&Spectre.Rule.new/1)
     |> Enum.filter(&(:classifier in &1.via))
     |> MapSet.new(&(to_string(&1.label) |> String.upcase()))
+    # UNKNOWN is a trained abstention label, not a locally routeable handler.
+    # Keeping it in the corpus lets the local model decline an input; the router
+    # then forces the remote classifier to reinterpret that abstention.
+    |> MapSet.put("UNKNOWN")
   end
 
   @spec dataset_key(String.t()) :: String.t()

@@ -28,6 +28,7 @@ defmodule ExBlog.Agent.Actions do
   alias ExBlog.Content
   alias ExBlog.Content.Sync
   alias ExBlog.Content.Writer
+  alias ExBlog.Telegram.Transport
   alias ExBlogWeb.Prompt
 
   # Read actions return small projections. Full Markdown is exposed only by
@@ -81,6 +82,33 @@ defmodule ExBlog.Agent.Actions do
   @doc "Returns current AI budget usage without exposing provider credentials."
   @spec budget_status(map(), term()) :: {:ok, map()}
   def budget_status(_args \\ %{}, _ctx \\ nil), do: {:ok, Budget.status()}
+
+  @doc "Returns a bounded operational snapshot of ExBlog and its integrations."
+  @spec system_status(map(), term()) :: {:ok, map()}
+  def system_status(_args \\ %{}, ctx \\ nil) do
+    config = Config.get()
+
+    indexed_articles =
+      config.supported_languages
+      |> Enum.flat_map(&Content.list(lang: &1, status: :all))
+      |> Enum.uniq_by(& &1.path)
+      |> length()
+
+    {:ok,
+     %{
+       system_status: true,
+       application: %{status: :running},
+       public_url: Config.canonical_url(config),
+       content: %{
+         status: :ready,
+         indexed_articles: indexed_articles,
+         languages: config.supported_languages
+       },
+       telegram: telegram_status(ctx),
+       openrouter: openrouter_health(ctx),
+       budget: Budget.status()
+     }}
+  end
 
   @doc "Runs the bounded Spectre Lens audit for one public blog URL."
   @spec check_page(map(), term()) :: {:ok, PageAudit.result()} | {:error, term()}
@@ -519,6 +547,70 @@ defmodule ExBlog.Agent.Actions do
 
   defp context_option(%{opts: opts}, key) when is_list(opts), do: Keyword.get(opts, key)
   defp context_option(_ctx, _key), do: nil
+
+  defp telegram_status(ctx) do
+    snapshot =
+      case context_option(ctx, :telegram_snapshot) do
+        fun when is_function(fun, 0) -> fun.()
+        snapshot when is_map(snapshot) -> snapshot
+        _default -> default_telegram_snapshot()
+      end
+
+    case snapshot do
+      snapshot when is_map(snapshot) ->
+        %{
+          connection_status: Map.get(snapshot, :connection_status, :unknown),
+          auth_state: Map.get(snapshot, :auth_state, :unknown),
+          last_error?: Map.get(snapshot, :last_error?, false) == true
+        }
+
+      _invalid ->
+        %{connection_status: :unavailable, auth_state: :unknown, last_error?: true}
+    end
+  rescue
+    _exception -> %{connection_status: :unavailable, auth_state: :unknown, last_error?: true}
+  catch
+    :exit, _reason ->
+      %{connection_status: :unavailable, auth_state: :unknown, last_error?: true}
+  end
+
+  defp default_telegram_snapshot do
+    case Process.whereis(Transport) do
+      pid when is_pid(pid) -> Transport.snapshot(pid)
+      nil -> %{connection_status: :not_started, auth_state: :not_started, last_error?: false}
+    end
+  end
+
+  defp openrouter_health(ctx) do
+    result =
+      case context_option(ctx, :openrouter_health) do
+        fun when is_function(fun, 0) -> fun.()
+        _default -> AI.health()
+      end
+
+    case result do
+      {:ok, status} when is_map(status) -> status
+      {:error, reason} -> unavailable_openrouter(reason)
+      _invalid -> unavailable_openrouter(:invalid_health_response)
+    end
+  rescue
+    _exception -> unavailable_openrouter(:health_check_failed)
+  catch
+    :exit, _reason -> unavailable_openrouter(:health_check_failed)
+  end
+
+  defp unavailable_openrouter(reason) do
+    %{
+      configured: true,
+      reachable: false,
+      models_available: false,
+      reason: health_reason(reason)
+    }
+  end
+
+  defp health_reason({reason, _detail}) when is_atom(reason), do: reason
+  defp health_reason(reason) when is_atom(reason), do: reason
+  defp health_reason(_reason), do: :unavailable
 
   defp writer_create(params, ctx) do
     case context_option(ctx, :article_writer) do

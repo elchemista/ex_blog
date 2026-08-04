@@ -16,6 +16,8 @@ config :ex_blog,
   start_content?: true,
   start_telegram?: true,
   secure_session_cookie?: config_env() == :prod,
+  public_origins: ["http://localhost:4000", "http://127.0.0.1:4000"],
+  cors_origins: ["http://localhost:4000", "http://127.0.0.1:4000"],
   semantic_cache: [
     search_threshold: 0.94,
     auto_verify_threshold: 0.985,

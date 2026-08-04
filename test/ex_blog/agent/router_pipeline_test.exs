@@ -52,7 +52,7 @@ defmodule ExBlog.Agent.RouterPipelineTest do
         send(pid, {:classifier_called, prompt, opts})
       end
 
-      {:ok, "SEARCH_ARTICLES"}
+      {:ok, Application.get_env(:ex_blog, :router_classifier_label, "SEARCH_ARTICLES")}
     end
   end
 
@@ -64,9 +64,11 @@ defmodule ExBlog.Agent.RouterPipelineTest do
         send(pid, {:local_classifier_called, text})
       end
 
+      label = Application.get_env(:ex_blog, :router_local_classifier_label, "LIST_ARTICLES")
+
       {:ok,
        %{
-         label: "LIST_ARTICLES",
+         label: label,
          accepted?: true,
          confidence: 0.97,
          margin: 0.21,
@@ -90,7 +92,7 @@ defmodule ExBlog.Agent.RouterPipelineTest do
       pipeline: ExBlog.Agent.RouterPipeline,
       via: [:llm_classifier],
       semantic_cache?: false,
-      terminal_labels: [:SEARCH_ARTICLES, :UNKNOWN]
+      terminal_labels: [:SEARCH_ARTICLES, :SHOW_AI_BUDGET, :UNKNOWN]
     )
 
     flow :blog do
@@ -104,6 +106,17 @@ defmodule ExBlog.Agent.RouterPipelineTest do
         cache: false do
         reply("search")
       end
+
+      on :SHOW_AI_BUDGET,
+        embedding: [
+          "show the AI budget",
+          "how much has the agent spent",
+          "report the remaining monthly model allowance"
+        ],
+        via: [:classifier, :llm_classifier],
+        cache: false do
+        reply("budget")
+      end
     end
 
     flow :fallback do
@@ -115,12 +128,16 @@ defmodule ExBlog.Agent.RouterPipelineTest do
 
   setup do
     previous_capture = Application.get_env(:ex_blog, :router_capture_pid)
+    previous_classifier_label = Application.get_env(:ex_blog, :router_classifier_label)
+    previous_local_label = Application.get_env(:ex_blog, :router_local_classifier_label)
     Application.put_env(:ex_blog, :router_capture_pid, self())
     :ok = SemanticCache.clear(Agent)
 
     on_exit(fn ->
       :ok = SemanticCache.clear(Agent)
       restore_env(:router_capture_pid, previous_capture)
+      restore_env(:router_classifier_label, previous_classifier_label)
+      restore_env(:router_local_classifier_label, previous_local_label)
     end)
 
     :ok
@@ -139,8 +156,10 @@ defmodule ExBlog.Agent.RouterPipelineTest do
           :READ_ARTICLE,
           :SEARCH_ARTICLES,
           :CHECK_BLOG_PAGE,
+          :SHOW_CAPABILITIES,
           :SHOW_BLOG_CONFIG,
           :SHOW_AI_BUDGET,
+          :SHOW_SYSTEM_STATUS,
           :CHECK_OPENROUTER,
           :SHOW_VERIFICATION
         ] do
@@ -170,6 +189,16 @@ defmodule ExBlog.Agent.RouterPipelineTest do
       assert length(rule.embedding) == 3
       assert rule.regex == []
     end
+
+    ask_ai = Map.fetch!(rules, :ASK_AI)
+    assert ask_ai.via == read_via
+    assert ask_ai.cache
+    refute ask_ai.learn
+    assert length(ask_ai.embedding) == 3
+
+    unknown = Map.fetch!(rules, :UNKNOWN)
+    assert unknown.via == [:llm_classifier]
+    assert {:reason, :unknown_request, _opts} = unknown.handler
 
     for label <- [
           :CAPTURE_ARTICLE_BRIEF,
@@ -248,6 +277,23 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     refute_received {:classifier_called, _prompt, _opts}
   end
 
+  test "a checked-in inspiration phrase reaches the AI reasoning route without classifier cost" do
+    request = "Give me an idea for my next article"
+
+    assert {:ok, receipt} =
+             Router.evaluate(Agent, request,
+               via: [:classifier, :semantic_cache, :llm_classifier],
+               classifier_local: CaptureLocalClassifier,
+               embedding: SimilarityEmbedding
+             )
+
+    assert receipt.label == :ASK_AI
+    assert receipt.strategy == :semantic_cache_exact
+    refute receipt.llm_called?
+    refute_received {:local_classifier_called, _text}
+    refute_received {:classifier_called, _prompt, _opts}
+  end
+
   test "the trained classifier provider handles a semantic miss before the LLM" do
     request = "surface a compact overview of everything ever written"
 
@@ -280,6 +326,27 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     assert prompt =~ "locate content that discusses a subject"
     assert prompt =~ request
     assert Keyword.fetch!(opts, :purpose) == :classifier
+  end
+
+  test "a confident local UNKNOWN abstention is reinterpreted by the LLM classifier" do
+    request = "could you total my recent model expenses"
+    Application.put_env(:ex_blog, :router_local_classifier_label, "UNKNOWN")
+    Application.put_env(:ex_blog, :router_classifier_label, "SHOW_AI_BUDGET")
+
+    assert {:ok, receipt} =
+             Router.evaluate(ClassifierAgent, request,
+               via: [:classifier, :llm_classifier],
+               classifier_local: CaptureLocalClassifier,
+               semantic_cache?: false
+             )
+
+    assert receipt.label == :SHOW_AI_BUDGET
+    assert receipt.strategy == :llm_classifier
+    assert receipt.llm_called?
+    assert_received {:local_classifier_called, ^request}
+    assert_received {:classifier_called, prompt, _opts}
+    assert prompt =~ "SHOW_AI_BUDGET"
+    assert prompt =~ request
   end
 
   test "hard interrupt regex evidence avoids embedding and LLM calls" do

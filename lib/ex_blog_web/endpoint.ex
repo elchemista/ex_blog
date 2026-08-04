@@ -41,6 +41,10 @@ defmodule ExBlogWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  plug CORSPlug,
+    origin: &__MODULE__.cors_origins/0,
+    credentials: true
+
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
@@ -50,4 +54,9 @@ defmodule ExBlogWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug ExBlogWeb.Router
+
+  @doc false
+  def cors_origins do
+    Application.get_env(:ex_blog, :cors_origins, [])
+  end
 end

@@ -60,6 +60,7 @@ defmodule ExBlog.MixProject do
        compile: false,
        depth: 1},
       {:req, "~> 0.7.2", override: true},
+      {:cors_plug, "~> 3.0"},
       {:argon2_elixir, "~> 4.1"},
       {:qr_code, "~> 3.2"},
       {:mdex, "~> 0.13.5"},

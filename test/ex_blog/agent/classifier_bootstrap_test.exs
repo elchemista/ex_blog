@@ -42,6 +42,7 @@ defmodule ExBlog.Agent.ClassifierBootstrapTest do
       |> Enum.map(&Spectre.Rule.new/1)
       |> Enum.filter(&(:classifier in &1.via))
       |> MapSet.new(&(to_string(&1.label) |> String.upcase()))
+      |> MapSet.put("UNKNOWN")
 
     counts = Enum.frequencies_by(rows, & &1["intent"])
 
@@ -60,11 +61,11 @@ defmodule ExBlog.Agent.ClassifierBootstrapTest do
     on_exit(fn -> File.rm(output) end)
 
     assert {:ok, stats} = Build.build(@dataset_path, [output])
-    assert stats.examples == 456
+    assert stats.examples == 528
     assert stats.outputs == [output]
 
     generated = output |> File.read!() |> Jason.decode!()
-    assert length(generated) == 456
+    assert length(generated) == 528
     assert generated == Enum.sort_by(generated, &{&1["intent"], dataset_key(&1["text"])})
   end
 

@@ -13,6 +13,7 @@ defmodule ExBlog.Telegram.Transport do
 
   alias ExBlog.Config
   alias ExBlog.Telegram.Gateway
+  alias Spectre.Beam.{Content, Receipt}
 
   @topic "telegram:admin_connection"
   @snapshot_event :telegram_connection_updated
@@ -33,11 +34,15 @@ defmodule ExBlog.Telegram.Transport do
           handler: handler(),
           last_error?: boolean(),
           monitor_ref: reference(),
+          reply_delay_ms: non_neg_integer(),
           password_hint: String.t() | nil,
           qr_link: String.t() | nil,
           session_id: String.t(),
-          session_pid: pid()
+          session_pid: pid(),
+          outbound_message_ids: [integer() | String.t()]
         }
+
+  @outbound_message_id_limit 256
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
@@ -62,6 +67,10 @@ defmodule ExBlog.Telegram.Transport do
   @doc "Requests a QR login link from ExGram."
   @spec request_qr(GenServer.server()) :: :ok | {:error, :telegram_unavailable}
   def request_qr(server \\ __MODULE__), do: GenServer.call(server, :request_qr)
+
+  @doc "Logs out the authorized TDLib account so another phone number can be paired."
+  @spec switch_account(GenServer.server()) :: :ok | {:error, :telegram_unavailable}
+  def switch_account(server \\ __MODULE__), do: GenServer.call(server, :switch_account, 20_000)
 
   @doc "Submits the phone number requested by TDLib."
   @spec provide_phone_number(String.t(), GenServer.server()) ::
@@ -116,10 +125,12 @@ defmodule ExBlog.Telegram.Transport do
          handler: handler,
          last_error?: false,
          monitor_ref: Process.monitor(session_pid),
+         reply_delay_ms: Keyword.get(opts, :reply_delay_ms, 2_000),
          password_hint: nil,
          qr_link: nil,
          session_id: session_id,
-         session_pid: session_pid
+         session_pid: session_pid,
+         outbound_message_ids: []
        }}
     else
       {:error, _reason} -> {:stop, :telegram_session_start_failed}
@@ -139,6 +150,26 @@ defmodule ExBlog.Telegram.Transport do
     run_client_action(state, :requesting_qr, fn ->
       state.client.request_qr_code_login(state.session_id)
     end)
+  end
+
+  def handle_call(:switch_account, _from, state) do
+    case safe_client_call(fn -> log_out(state.client, state.session_id) end) do
+      :ok ->
+        state =
+          state
+          |> Map.put(:auth_state, :switching_account)
+          |> Map.put(:connection_status, :authenticating)
+          |> Map.put(:last_error?, false)
+          |> Map.put(:password_hint, nil)
+          |> Map.put(:qr_link, nil)
+          |> broadcast_snapshot()
+
+        {:reply, :ok, state}
+
+      {:error, :telegram_unavailable} = error ->
+        state = state |> Map.put(:last_error?, true) |> broadcast_snapshot()
+        {:reply, error, state}
+    end
   end
 
   def handle_call({:provide_phone_number, phone}, _from, state) do
@@ -161,18 +192,20 @@ defmodule ExBlog.Telegram.Transport do
 
   @impl GenServer
   def handle_info({:ex_gram_message, jid, message} = event, state) when is_map(message) do
-    case state.handler.(event) do
-      :ignore ->
-        {:noreply, state}
+    handle_message(event, jid, message, state)
+  end
 
-      {:reply, chunks} when is_list(chunks) ->
-        deliver(chunks, jid, state)
-        {:noreply, state}
+  def handle_info(
+        {:ex_gram_message, session_id, jid, message} = event,
+        %{session_id: session_id} = state
+      )
+      when is_map(message) do
+    handle_message(event, jid, message, state)
+  end
 
-      {:error, _reason} ->
-        Logger.warning("Telegram message processing failed")
-        {:noreply, state}
-    end
+  def handle_info({:ex_gram_message, _other_session, _jid, message}, state)
+      when is_map(message) do
+    {:noreply, state}
   end
 
   def handle_info(
@@ -190,6 +223,13 @@ defmodule ExBlog.Telegram.Transport do
       |> broadcast_snapshot()
 
     {:noreply, state}
+  end
+
+  def handle_info(
+        {:ex_gram_session, :disconnected, _reason},
+        %{auth_state: :switching_account} = state
+      ) do
+    {:noreply, state |> Map.put(:connection_status, :authenticating) |> broadcast_snapshot()}
   end
 
   def handle_info({:ex_gram_session, :disconnected, _reason}, state) do
@@ -211,11 +251,41 @@ defmodule ExBlog.Telegram.Transport do
     {:noreply, state}
   end
 
+  def handle_info(
+        {:ex_gram_session, :auth, {:status, :closed}},
+        %{auth_state: :switching_account} = state
+      ) do
+    {:noreply, restart_for_new_account(state) |> broadcast_snapshot()}
+  end
+
   def handle_info({:ex_gram_session, :auth, event}, state) do
     {:noreply, event |> apply_auth_event(state) |> broadcast_snapshot()}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
+
+  defp handle_message(event, jid, message, state) do
+    if delivered_by_us?(message, state) do
+      Logger.debug("Telegram ignored its own delivered reply")
+      {:noreply, forget_outbound_message(state, message)}
+    else
+      dispatch_message(event, jid, state)
+    end
+  end
+
+  defp dispatch_message(event, jid, state) do
+    case state.handler.(event) do
+      :ignore ->
+        {:noreply, state}
+
+      {:reply, chunks} when is_list(chunks) ->
+        {:noreply, deliver(chunks, jid, state)}
+
+      {:error, _reason} ->
+        Logger.warning("Telegram message processing failed")
+        {:noreply, state}
+    end
+  end
 
   defp run_client_action(state, pending_state, operation) do
     case safe_client_call(operation) do
@@ -245,6 +315,30 @@ defmodule ExBlog.Telegram.Transport do
     _exception -> {:error, :telegram_unavailable}
   catch
     :exit, _reason -> {:error, :telegram_unavailable}
+  end
+
+  defp log_out(client, session_id) do
+    case client.send_request_sync(session_id, %{"@type" => "logOut"}, timeout_ms: 15_000) do
+      {:ok, _response} -> :ok
+      :ok -> :ok
+      {:error, _reason} = error -> error
+      _unexpected -> {:error, :unexpected_response}
+    end
+  end
+
+  defp restart_for_new_account(state) do
+    with :ok <- safe_client_call(fn -> state.client.disconnect(state.session_id) end),
+         :ok <- safe_client_call(fn -> state.client.connect(state.session_id) end) do
+      state
+      |> Map.put(:auth_state, :switching_account)
+      |> Map.put(:connection_status, :connecting)
+      |> Map.put(:last_error?, false)
+    else
+      {:error, :telegram_unavailable} ->
+        state
+        |> disconnected_state()
+        |> Map.put(:last_error?, true)
+    end
   end
 
   defp apply_auth_event({:wait_phone_number}, state) do
@@ -364,18 +458,73 @@ defmodule ExBlog.Telegram.Transport do
 
   defp deliver(chunks, jid, state) do
     result =
-      Enum.reduce_while(chunks, :ok, fn chunk, :ok ->
-        case state.client.send_message(state.session_id, jid, chunk) do
-          :ok -> {:cont, :ok}
-          {:ok, _message_id} -> {:cont, :ok}
-          {:error, _reason} -> {:halt, :error}
+      chunks
+      |> Enum.with_index()
+      |> Enum.reduce_while({:ok, state}, fn {chunk, index}, {:ok, current_state} ->
+        case deliver_chunk(chunk, jid, index, current_state) do
+          {:ok, message_id} when is_integer(message_id) or is_binary(message_id) ->
+            {:cont, {:ok, remember_outbound_message(current_state, message_id)}}
+
+          {:ok, _missing_message_id} ->
+            {:cont, {:ok, current_state}}
+
+          {:error, _reason} ->
+            {:halt, {:error, current_state}}
         end
       end)
 
-    if result == :error do
-      Logger.warning("Telegram reply delivery failed")
-    end
+    case result do
+      {:ok, new_state} ->
+        new_state
 
-    :ok
+      {:error, new_state} ->
+        Logger.warning("Telegram reply delivery failed")
+        new_state
+    end
   end
+
+  defp deliver_chunk(chunk, jid, index, state) do
+    with {:ok, config} <- Spectre.Beam.config(ExBlog.Agent),
+         {:ok, %Receipt{provider_message_id: message_id}} <-
+           Spectre.Beam.deliver(
+             config,
+             :telegram,
+             %{
+               conversation_id: jid,
+               to: jid,
+               content: Content.text(chunk),
+               idempotency_key: outbound_id(state.session_id)
+             },
+             adapter_opts: [client: state.session_pid, module: state.client],
+             typing: index == 0,
+             reply_delay_ms: if(index == 0, do: state.reply_delay_ms, else: 0)
+           ) do
+      {:ok, message_id}
+    end
+  end
+
+  defp outbound_id(session_id) do
+    unique = System.unique_integer([:positive, :monotonic])
+    "telegram:#{session_id}:#{unique}"
+  end
+
+  defp delivered_by_us?(message, state) do
+    field(message, :from_me) == true and
+      field(message, :id) in state.outbound_message_ids
+  end
+
+  defp remember_outbound_message(state, message_id) do
+    ids =
+      [message_id | state.outbound_message_ids]
+      |> Enum.uniq()
+      |> Enum.take(@outbound_message_id_limit)
+
+    Map.put(state, :outbound_message_ids, ids)
+  end
+
+  defp forget_outbound_message(state, message) do
+    Map.update!(state, :outbound_message_ids, &List.delete(&1, field(message, :id)))
+  end
+
+  defp field(map, key), do: Map.get(map, key, Map.get(map, Atom.to_string(key)))
 end

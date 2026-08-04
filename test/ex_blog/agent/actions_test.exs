@@ -2,6 +2,7 @@ defmodule ExBlog.Agent.ActionsTest do
   use ExBlog.DataCase, async: false
 
   alias ExBlog.Agent.Actions
+  alias ExBlog.Agent.Presenter
   alias ExBlog.Content.Article
 
   test "article creation generates body and optional SEO before one writer call" do
@@ -83,5 +84,32 @@ defmodule ExBlog.Agent.ActionsTest do
     assert params.seo_description == "Un flusso editoriale sicuro e verificabile."
     assert params.tags == ["spectre", "elixir", "workflow"]
     assert params.cover_alt == "Schema reale del workflow"
+  end
+
+  test "system status combines bounded application, Telegram, OpenRouter, and budget data" do
+    ctx = %{
+      opts: [
+        telegram_snapshot: fn ->
+          %{connection_status: :connected, auth_state: :ready, last_error?: false}
+        end,
+        openrouter_health: fn ->
+          {:ok, %{configured: true, reachable: true, models_available: true}}
+        end
+      ]
+    }
+
+    assert {:ok, status} = Actions.system_status(%{}, ctx)
+    assert status.system_status
+    assert status.application.status == :running
+    assert status.telegram.connection_status == :connected
+    assert status.telegram.auth_state == :ready
+    assert status.openrouter.models_available
+    assert is_integer(status.content.indexed_articles)
+
+    rendered = Presenter.present(status)
+    assert rendered =~ "System status"
+    assert rendered =~ "Telegram: connected"
+    assert rendered =~ "OpenRouter: reachable; all models available"
+    assert rendered =~ "AI budget remaining: €"
   end
 end

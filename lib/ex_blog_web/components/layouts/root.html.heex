@@ -7,6 +7,7 @@
     <meta name="description" content={assigns[:meta_description] || default_description()} />
     <meta name="robots" content={assigns[:robots] || "index,follow,max-image-preview:large"} />
     <meta name="theme-color" content="#050506" />
+    <link rel="icon" type="image/svg+xml" href={~p"/favicon.svg"} />
 
     <title>{document_title(assigns[:page_title])}</title>
     <link rel="canonical" href={assigns[:canonical_url] || ExBlog.Config.canonical_url()} />
