@@ -3,7 +3,7 @@ defmodule ExBlog.Agent.Presenter do
 
   @spec present(term()) :: String.t()
   def present({:ok, value}), do: present(value)
-  def present({:error, reason}), do: "Operazione non riuscita: #{reason_text(reason)}"
+  def present({:error, reason}), do: "Operation failed: #{reason_text(reason)}"
 
   def present(
         %{
@@ -14,16 +14,20 @@ defmodule ExBlog.Agent.Presenter do
           models: models
         } = config
       ) do
+    agent_language = Map.get(config, :agent_language, "en")
+
     """
     Repository: #{repository}
     Branch: #{branch}
-    Lingua predefinita: #{default_language}
-    Lingue supportate: #{Enum.join(languages, ", ")}
+    Agent language: #{agent_language}
+    Default article language: #{default_language}
+    Supported article languages: #{Enum.join(languages, ", ")}
 
     Fast model: #{models.fast}
     Balanced model: #{models.balanced}
     Deep model: #{models.deep}
     Classifier: #{models.classifier}
+    Embedding model: #{Map.get(models, :embedding, "not configured")}
 
     GitHub token: #{configured(config.github_token)}
     OpenRouter token: #{configured(config.openrouter_token)}
@@ -37,7 +41,7 @@ defmodule ExBlog.Agent.Presenter do
         "- [#{article.lang}] #{article.title} (#{article.slug}, #{article.status})"
       end)
 
-    if rows == "", do: "Nessun articolo trovato.", else: "#{count} articoli:\n#{rows}"
+    if rows == "", do: "No articles found.", else: "#{count} articles:\n#{rows}"
   end
 
   def present(%{
@@ -48,11 +52,11 @@ defmodule ExBlog.Agent.Presenter do
         monthly_budget_eur: budget
       }) do
     """
-    Budget #{period}
-    Speso oggi: €#{today}
-    Speso questo mese: €#{month}
-    Budget mensile: €#{budget}
-    Rimanente: €#{remaining}
+    Budget: #{period}
+    Spent today: €#{today}
+    Spent this month: €#{month}
+    Monthly budget: €#{budget}
+    Remaining: €#{remaining}
     """
     |> String.trim()
   end
@@ -67,19 +71,19 @@ defmodule ExBlog.Agent.Presenter do
   end
 
   def present(%{diff: diff, proposed_body: _body}) do
-    "Revisione pronta. Conferma applicando il proposed_body seguente.\n\n#{diff}"
+    "The revision is ready. Confirm it by applying the proposed_body below.\n\n#{diff}"
   end
 
   def present(%{deleted: true, lang: lang, slug: slug}),
-    do: "Articolo eliminato: #{lang}/#{slug}."
+    do: "Article deleted: #{lang}/#{slug}."
 
   def present(%{configured: true, reachable: true, models_available: available}) do
     suffix =
       if available,
-        do: "i modelli configurati sono disponibili",
-        else: "alcuni modelli non risultano disponibili"
+        do: "all configured models are available",
+        else: "some configured models are unavailable"
 
-    "OpenRouter è configurato e raggiungibile; #{suffix}."
+    "OpenRouter is configured and reachable; #{suffix}."
   end
 
   def present(%{
@@ -90,20 +94,20 @@ defmodule ExBlog.Agent.Presenter do
         warnings: warnings,
         assessment: assessment
       }) do
-    status = if baseline_ok?, do: "superati", else: "problemi rilevati"
+    status = if baseline_ok?, do: "passed", else: "issues detected"
 
     details =
       [
-        formatted_findings("Problemi", issues),
-        formatted_findings("Avvisi", warnings)
+        formatted_findings("Issues", issues),
+        formatted_findings("Warnings", warnings)
       ]
       |> Enum.reject(&is_nil/1)
       |> Enum.join("\n")
 
     [
-      "Controllo pagina: #{title || "senza titolo"}",
+      "Page audit: #{title || "untitled"}",
       url,
-      "Controlli tecnici: #{status}",
+      "Technical checks: #{status}",
       details,
       assessment
     ]
@@ -123,8 +127,8 @@ defmodule ExBlog.Agent.Presenter do
 
   def present(value), do: inspect(value, limit: 50, printable_limit: 8_000)
 
-  defp configured(:configured), do: "configurato"
-  defp configured(_other), do: "non configurato"
+  defp configured(:configured), do: "configured"
+  defp configured(_other), do: "not configured"
 
   defp formatted_findings(_label, []), do: nil
 
