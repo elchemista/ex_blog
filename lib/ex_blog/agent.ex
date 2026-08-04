@@ -1,6 +1,10 @@
 defmodule ExBlog.Agent do
   @moduledoc """
-  Spectre editorial agent. Business rules remain in `ExBlog.Agent.Actions`.
+  English-first Spectre editorial agent.
+
+  English is the operational language for prompts and visible replies. Article
+  generation and translation still obey the target language captured by the
+  editorial flow. Business rules remain in `ExBlog.Agent.Actions`.
   """
 
   use Spectre.Agent,
@@ -30,7 +34,7 @@ defmodule ExBlog.Agent do
 
   router(
     pipeline: RouterPipeline,
-    via: [:regex, :llm_classifier],
+    via: [:regex, :semantic_cache, :llm_classifier],
     terminal_labels: [
       :UNSAFE,
       :CANCEL_ARTICLE_CREATION,
@@ -57,7 +61,12 @@ defmodule ExBlog.Agent do
       :DELETE_ARTICLE,
       :UNKNOWN
     ],
-    semantic_cache?: false,
+    semantic_cache?: true,
+    semantic_cache: ExBlog.Agent.SemanticCache,
+    embedding: {ExBlog.AI.Embedding, []},
+    semantic_learn?: true,
+    semantic_learn_min_chars: 8,
+    semantic_learn_max_chars: 1_000,
     classification_log?: false
   )
 
@@ -120,8 +129,7 @@ defmodule ExBlog.Agent do
   )
 
   interrupt :UNSAFE,
-    regex:
-      ~r/(?:ignore|ignora).*(?:instructions|istruzioni)|(?:show|mostra).*(?:token|secret)|system\s+prompt/iu,
+    regex: ~r/ignore.*instructions|show.*(?:token|secret)|system\s+prompt/iu,
     via: [:regex],
     cache: false do
     reply(:unsafe_request)
