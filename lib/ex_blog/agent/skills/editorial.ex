@@ -22,6 +22,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
 
   alias ExBlog.Agent.EditorialAI
   alias ExBlog.Agent.KineticActions
+  alias ExBlog.Agent.Language
   alias ExBlog.Config
   alias ExBlog.Content
   alias ExBlog.Content.Asset
@@ -54,8 +55,8 @@ defmodule ExBlog.Agent.Skills.Editorial do
 
   policy :editorial_confirmation do
     request(:confirm_editorial_action)
-    accept(:approved, regex: ~r/^(?:s[iì]|yes|confermo)$/iu)
-    reject(:rejected, regex: ~r/^(?:no|annulla|cancel)$/iu)
+    accept(:approved, regex: ~r/^(?:yes|confirm)$/iu)
+    reject(:rejected, regex: ~r/^(?:no|cancel)$/iu)
     otherwise(ask: :confirm_editorial_action)
     attempts(3, then: :cancel_confirmation)
   end
@@ -69,8 +70,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
   protect(:delete_article, with: :editorial_confirmation)
 
   interrupt :CANCEL_ARTICLE_CREATION,
-    regex:
-      ~r/^\s*(?:\/cancel|annulla|lascia\s+(?:stare|perdere)|stop|cancel|never\s*mind)\s*[.!]?\s*$/iu,
+    regex: ~r/^\s*(?:\/cancel|stop|cancel|never\s*mind)\s*[.!]?\s*$/iu,
     cache: false do
     run(:cancel_creation)
   end
@@ -88,65 +88,65 @@ defmodule ExBlog.Agent.Skills.Editorial do
     flow :article_creation do
       on :START_ARTICLE_CREATION,
         regex:
-          ~r/^(?:\/create(?:\s|$)|(?:(?:scrivi|crea)(?:mi)?|write|create)\s+(?:un\s+|an?\s+)?(?:articolo|post)\b)/iu,
+          ~r/^(?:\/create(?:\s|$)|(?:write|create)(?:\s+me)?\s+(?:an?\s+)?(?:article|post)\b)/iu,
         cache: false do
         run(:start_creation)
       end
 
       flow :article_brief do
-        on :CAPTURE_ARTICLE_BRIEF, via: [:llm_classifier], cache: false do
+        on :CAPTURE_ARTICLE_BRIEF, cache: false do
           run(:capture_brief)
         end
       end
 
       flow :article_language do
-        on :CAPTURE_ARTICLE_LANGUAGE, via: [:llm_classifier], cache: false do
+        on :CAPTURE_ARTICLE_LANGUAGE, cache: false do
           run(:capture_language)
         end
       end
 
       flow :article_category do
-        on :CAPTURE_ARTICLE_CATEGORY, via: [:llm_classifier], cache: false do
+        on :CAPTURE_ARTICLE_CATEGORY, cache: false do
           run(:capture_category)
         end
       end
 
       flow :article_title do
-        on :CAPTURE_ARTICLE_TITLE, via: [:llm_classifier], cache: false do
+        on :CAPTURE_ARTICLE_TITLE, cache: false do
           run(:capture_title)
         end
       end
 
       flow :article_seo do
-        on :CAPTURE_ARTICLE_SEO, via: [:llm_classifier], cache: false do
+        on :CAPTURE_ARTICLE_SEO, cache: false do
           run(:capture_seo)
         end
       end
     end
 
     flow :article_changes do
-      on :REVISE_ARTICLE, regex: ~r/^(?:\/revise|rivedi|revisiona|riscrivi)/iu do
+      on :REVISE_ARTICLE, regex: ~r/^\/?(?:revise|edit|rewrite)\b/iu do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
-      on :TRANSLATE_ARTICLE, regex: ~r/^(?:\/translate|traduci)/iu do
+      on :TRANSLATE_ARTICLE, regex: ~r/^\/?translate\b/iu do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
-      on :GENERATE_ARTICLE_SEO, regex: ~r/^(?:\/seo|genera.*seo)/iu do
+      on :GENERATE_ARTICLE_SEO, regex: ~r/^(?:\/seo|generate.*seo)\b/iu do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
-      on :PUBLISH_ARTICLE, regex: ~r/^(?:\/publish|pubblica)/iu do
+      on :PUBLISH_ARTICLE, regex: ~r/^\/?publish\b/iu do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
-      on :UNPUBLISH_ARTICLE, regex: ~r/^(?:\/unpublish|ritira|depubblica)/iu do
+      on :UNPUBLISH_ARTICLE, regex: ~r/^\/?unpublish\b/iu do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
       on :DELETE_ARTICLE,
-        regex: ~r/^(?:\/delete|elimina|cancella).*(?:articolo|post)?/iu do
+        regex: ~r/^\/?delete\b.*(?:article|post)?/iu do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
     end
@@ -177,18 +177,18 @@ defmodule ExBlog.Agent.Skills.Editorial do
   @doc false
   @spec capture_language(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def capture_language(%Input{text: text} = input, %Context{} = ctx) do
-    language = text |> String.trim() |> String.downcase()
+    supported = Config.get().supported_languages
 
-    if language in Config.get().supported_languages do
-      workflow = ctx |> workflow() |> Map.put(:lang, language)
+    case Language.parse(text, supported) do
+      {:ok, language} ->
+        workflow = ctx |> workflow() |> Map.put(:lang, language)
 
-      advance(input, ctx, :article_category, workflow, :article_category_request,
-        category_options: category_options()
-      )
-    else
-      invalid_field(input, ctx, "lingua", 32,
-        allowed: Enum.join(Config.get().supported_languages, ", ")
-      )
+        advance(input, ctx, :article_category, workflow, :article_category_request,
+          category_options: category_options()
+        )
+
+      :error ->
+        invalid_field(input, ctx, "language", 32, allowed: Enum.join(supported, ", "))
     end
   end
 
@@ -200,7 +200,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     else
       case bounded_field(text, 80) do
         {:ok, category} -> continue_after_category(input, ctx, category, false)
-        {:error, _reason} -> invalid_field(input, ctx, "categoria", 80)
+        {:error, _reason} -> invalid_field(input, ctx, "category", 80)
       end
     end
   end
@@ -213,7 +213,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     else
       case bounded_field(text, 160) do
         {:ok, title} -> continue_after_title(input, ctx, title, false)
-        {:error, _reason} -> invalid_field(input, ctx, "titolo", 160)
+        {:error, _reason} -> invalid_field(input, ctx, "title", 160)
       end
     end
   end
@@ -270,7 +270,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
   @doc false
   @spec cancel_confirmation(Input.t(), Context.t()) :: String.t()
   def cancel_confirmation(_input, _ctx),
-    do: "Operazione annullata: conferma non ricevuta."
+    do: "Operation cancelled because confirmation was not received."
 
   @doc false
   @spec active?(State.t()) :: boolean()
@@ -414,23 +414,26 @@ defmodule ExBlog.Agent.Skills.Editorial do
 
   defp generate_request?(text, field) do
     value = text |> String.trim() |> String.downcase()
-    field_names = if field == :title, do: "titolo|title", else: "categoria|category"
+    field_name = if field == :title, do: "title", else: "category"
 
     Regex.match?(
-      ~r/^(?:\/?genera|generate|proponi|scegli|crea)(?:\s+(?:il|la|un|una))?(?:\s+(?:#{field_names}))?[.!]?$/iu,
+      ~r/^\/?(?:generate|propose|choose|create)(?:\s+(?:the|a|an))?(?:\s+#{field_name})?[.!]?$/iu,
       value
     ) or
-      Regex.match?(~r/^(?:fai|decidi|scegli)\s+tu[.!]?$/iu, value)
+      Regex.match?(~r/^(?:you\s+choose|choose|decide)\s+for\s+me[.!]?$/iu, value)
   end
 
   defp seo_choice(text) do
     value = text |> String.trim() |> String.downcase()
 
     cond do
-      Regex.match?(~r/^(?:\/?genera(?:\s+(?:la\s+)?)?(?:seo)?|seo|s[iì]|yes)[.!]?$/iu, value) ->
+      Regex.match?(
+        ~r/^(?:\/?generate(?:\s+the)?(?:\s+seo)?|seo|yes)[.!]?$/iu,
+        value
+      ) ->
         {:ok, true}
 
-      Regex.match?(~r/^(?:salta|senza\s+seo|no|skip)[.!]?$/iu, value) ->
+      Regex.match?(~r/^(?:skip|without\s+seo|no)[.!]?$/iu, value) ->
         {:ok, false}
 
       true ->
@@ -446,7 +449,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     |> Enum.uniq()
     |> Enum.sort()
     |> case do
-      [] -> "Nessuna categoria esistente: creane una nuova."
+      [] -> "No existing categories. Create a clear new category."
       categories -> Enum.map_join(categories, "\n", &"- #{&1}")
     end
   end
@@ -458,7 +461,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
   end
 
   defp cover_alt(%{cover_alt: value}) when is_binary(value) and value != "", do: value
-  defp cover_alt(%{cover: cover, title: title}) when is_binary(cover), do: "Copertina di #{title}"
+  defp cover_alt(%{cover: cover, title: title}) when is_binary(cover), do: "Cover for #{title}"
   defp cover_alt(_workflow), do: nil
 
   defp asset_options(%Context{opts: opts}) do
@@ -468,15 +471,18 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
-  defp step_instruction(:article_brief), do: "descrivi il brief editoriale"
-  defp step_instruction(:article_language), do: "indica la lingua"
-  defp step_instruction(:article_category), do: "scrivi la categoria o ‘genera categoria’"
-  defp step_instruction(:article_title), do: "scrivi il titolo o ‘genera titolo’"
-  defp step_instruction(:article_seo), do: "scrivi ‘genera SEO’ oppure ‘salta’"
-  defp step_instruction(_flow), do: "continua il flusso editoriale"
+  defp step_instruction(:article_brief), do: "describe the editorial brief"
+  defp step_instruction(:article_language), do: "choose the article language"
 
-  defp field_label(:category), do: "categoria"
-  defp field_label(:title), do: "titolo"
+  defp step_instruction(:article_category),
+    do: "enter a category or reply `generate category`"
+
+  defp step_instruction(:article_title), do: "enter a title or reply `generate title`"
+  defp step_instruction(:article_seo), do: "reply `generate SEO` or `skip`"
+  defp step_instruction(_flow), do: "continue the editorial workflow"
+
+  defp field_label(:category), do: "category"
+  defp field_label(:title), do: "title"
 
   @spec creation_command(map()) :: String.t()
   defp creation_command(workflow) do
