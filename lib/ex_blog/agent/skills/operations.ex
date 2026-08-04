@@ -1,6 +1,19 @@
 defmodule ExBlog.Agent.Skills.Operations do
   @moduledoc """
   Runtime diagnostics, budget visibility, and repository synchronization.
+
+  Diagnostics are cacheable, learnable read routes and therefore use regex,
+  semantic examples, the trained local classifier, verified semantic-cache
+  rows, and the LLM classifier.
+  Repository synchronization is a write route: natural-language routing may
+  use optional embeddings, the trained local classifier, or the LLM classifier,
+  while regex remains available for `/sync`. The route is never learned and
+  Spectre must complete `repository_confirmation` before execution.
+
+  Regex is deliberately limited to explicit slash commands. Natural-language
+  operations belong to the trained classifier, semantic cache, and LLM
+  fallback. `regex_strength: :hard` makes an explicit `/sync` decisive without
+  turning a weak model candidate into hard evidence.
   """
 
   use Spectre.Skill,
@@ -13,6 +26,8 @@ defmodule ExBlog.Agent.Skills.Operations do
   requires_action(:budget_status, mode: :read)
   requires_action(:sync_repository, mode: :write)
 
+  # The policy belongs to the skill so its prompts, attempts, and pending state
+  # remain scoped to Operations even when more skills define similar policies.
   policy :repository_confirmation do
     request(:confirm_repository_action)
     accept(:approved, regex: ~r/^(?:yes|confirm)$/iu)
@@ -23,39 +38,63 @@ defmodule ExBlog.Agent.Skills.Operations do
 
   protect(:sync_repository, with: :repository_confirmation)
 
+  # Runtime reads can safely participate in semantic learning. The repository
+  # branch below has an intentionally different provider and cache policy.
   flow :operations do
     flow :runtime do
       on :SHOW_BLOG_CONFIG,
-        regex: [
-          ~r/^\/config$/iu,
-          ~r/(?:show|display).*(?:configuration|config)/iu
+        regex: ~r/^\/config$/u,
+        embedding: [
+          "show the safe blog configuration",
+          "display the agent configuration",
+          "which non-secret settings is the blog using"
         ],
-        embedding: ["show the safe blog configuration", "display the agent configuration"],
-        learn: true do
+        regex_strength: :hard,
+        learn: true,
+        via: [:regex, :embedding, :classifier, :semantic_cache, :llm_classifier] do
         action(:show_config, args: %{})
       end
 
       on :SHOW_AI_BUDGET,
-        regex: [
-          ~r/^\/budget$/iu,
-          ~r/(?:budget|spend|spent|costs?)/iu
+        regex: ~r/^\/budget$/u,
+        embedding: [
+          "show the AI budget",
+          "how much has the agent spent",
+          "report the remaining monthly model allowance"
         ],
-        embedding: ["show the AI budget", "how much has the agent spent"],
-        learn: true do
+        regex_strength: :hard,
+        learn: true,
+        via: [:regex, :embedding, :classifier, :semantic_cache, :llm_classifier] do
         action(:budget_status, args: %{})
       end
 
       on :CHECK_OPENROUTER,
-        regex: ~r/openrouter.*(?:status|configured|working|available)/iu,
-        embedding: ["check whether OpenRouter is available", "show the OpenRouter status"],
-        learn: true do
+        regex: ~r/^\/openrouter$/u,
+        embedding: [
+          "check whether OpenRouter is available",
+          "show the OpenRouter status",
+          "verify that the configured AI models can be reached"
+        ],
+        regex_strength: :hard,
+        learn: true,
+        via: [:regex, :embedding, :classifier, :semantic_cache, :llm_classifier] do
         action(:openrouter_status, args: %{})
       end
     end
 
     flow :repository do
+      # `cache: false` prevents a learned phrase from becoming authorization.
+      # Routing selects an intent; the confirmation policy grants execution.
       on :SYNC_BLOG_REPOSITORY,
-        regex: [~r/^\/sync$/iu, ~r/(?:sync|update).*(?:repository|repo)/iu] do
+        regex: ~r/^\/sync$/u,
+        embedding: [
+          "synchronize the blog checkout with its remote repository",
+          "fetch the canonical content branch and rebuild the index",
+          "refresh local blog content from GitHub"
+        ],
+        regex_strength: :hard,
+        cache: false,
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
         act(:sync_repository_prompt, intelligence: :balanced)
       end
     end
