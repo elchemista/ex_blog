@@ -13,6 +13,13 @@ defmodule ExBlog.Agent.Skills.Editorial do
   generation, the completed intake becomes real Action Language, Kinetic
   validates it against the `@al` catalog, and Spectre stages the protected
   repository mutation behind the skill policy.
+
+  Route declarations expose regex, optional embedding similarity, the trained
+  local classifier, and the LLM classifier. They deliberately exclude
+  `:semantic_cache`: a historical vector match may identify an editorial
+  intent, but it must never become a reusable authorization signal for a write.
+  `regex_strength: :hard` is scoped to regex evidence, while model evidence
+  remains confidence-gated.
   """
 
   use Spectre.Skill,
@@ -45,6 +52,8 @@ defmodule ExBlog.Agent.Skills.Editorial do
     :article_seo
   ]
 
+  # These declarations are capability requirements, not direct function calls.
+  # The host agent must bind every name to an Action Provider before compilation.
   requires_action(:create_article, mode: :write)
   requires_action(:revise_article, mode: :write)
   requires_action(:translate_article, mode: :write)
@@ -53,6 +62,8 @@ defmodule ExBlog.Agent.Skills.Editorial do
   requires_action(:unpublish_article, mode: :write)
   requires_action(:delete_article, mode: :destructive)
 
+  # All repository mutations share one skill-scoped confirmation protocol.
+  # Routing only stages an effect; a separate administrator turn approves it.
   policy :editorial_confirmation do
     request(:confirm_editorial_action)
     accept(:approved, regex: ~r/^(?:yes|confirm)$/iu)
@@ -69,8 +80,11 @@ defmodule ExBlog.Agent.Skills.Editorial do
   protect(:unpublish_article, with: :editorial_confirmation)
   protect(:delete_article, with: :editorial_confirmation)
 
+  # Cancellation is regex-only because it is a control command, not an intent
+  # that should be inferred or learned from a vaguely similar sentence.
   interrupt :CANCEL_ARTICLE_CREATION,
     regex: ~r/^\s*(?:\/cancel|stop|cancel|never\s*mind)\s*[.!]?\s*$/iu,
+    via: [:regex],
     cache: false do
     run(:cancel_creation)
   end
@@ -80,85 +94,153 @@ defmodule ExBlog.Agent.Skills.Editorial do
   # conversation, then returns to that same leaf after storing the asset.
   interrupt :ATTACH_ARTICLE_IMAGE,
     regex: ~r/^\/attach-image$/u,
+    via: [:regex],
     cache: false do
     run(:attach_image)
   end
 
   flow :editorial do
+    # The parent route starts the workflow through normal intent routing. Once
+    # active, the five child leaves are owned exclusively by CreationContinuation.
     flow :article_creation do
       on :START_ARTICLE_CREATION,
-        regex:
-          ~r/^(?:\/create(?:\s|$)|(?:write|create)(?:\s+me)?\s+(?:an?\s+)?(?:article|post)\b)/iu,
+        regex: ~r/^\/create(?:\s|$)/u,
+        embedding: [
+          "start a guided workflow for a new blog article",
+          "help me prepare and write a new post",
+          "begin creating a fresh editorial draft"
+        ],
+        regex_strength: :hard,
+        via: [:regex, :embedding, :classifier, :llm_classifier],
         cache: false do
         run(:start_creation)
       end
 
+      # Capture leaves intentionally expose only the custom continuation
+      # provider. Hiding them from the global LLM classifier prevents an
+      # out-of-flow message from being classified as an arbitrary field answer.
       flow :article_brief do
-        on :CAPTURE_ARTICLE_BRIEF, cache: false do
+        on :CAPTURE_ARTICLE_BRIEF, cache: false, via: [:creation_continuation] do
           run(:capture_brief)
         end
       end
 
       flow :article_language do
-        on :CAPTURE_ARTICLE_LANGUAGE, cache: false do
+        on :CAPTURE_ARTICLE_LANGUAGE, cache: false, via: [:creation_continuation] do
           run(:capture_language)
         end
       end
 
       flow :article_category do
-        on :CAPTURE_ARTICLE_CATEGORY, cache: false do
+        on :CAPTURE_ARTICLE_CATEGORY, cache: false, via: [:creation_continuation] do
           run(:capture_category)
         end
       end
 
       flow :article_title do
-        on :CAPTURE_ARTICLE_TITLE, cache: false do
+        on :CAPTURE_ARTICLE_TITLE, cache: false, via: [:creation_continuation] do
           run(:capture_title)
         end
       end
 
       flow :article_seo do
-        on :CAPTURE_ARTICLE_SEO, cache: false do
+        on :CAPTURE_ARTICLE_SEO, cache: false, via: [:creation_continuation] do
           run(:capture_seo)
         end
       end
     end
 
+    # Existing-article operations use natural-language intent routing, then
+    # Kinetic converts the request into typed Action Language. Every resulting
+    # write still passes through `editorial_confirmation` above.
     flow :article_changes do
-      on :REVISE_ARTICLE, regex: ~r/^\/?(?:revise|edit|rewrite)\b/iu do
+      on :REVISE_ARTICLE,
+        regex: ~r/^\/(?:revise|edit|rewrite)(?:\s|$)/u,
+        embedding: [
+          "revise an existing article according to new instructions",
+          "rewrite part of a published blog post",
+          "improve the wording and structure of this draft"
+        ],
+        regex_strength: :hard,
+        cache: false,
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
-      on :TRANSLATE_ARTICLE, regex: ~r/^\/?translate\b/iu do
+      on :TRANSLATE_ARTICLE,
+        regex: ~r/^\/translate(?:\s|$)/u,
+        embedding: [
+          "translate an existing article into another language",
+          "create a localized draft from this post",
+          "make an Italian version of the English article"
+        ],
+        regex_strength: :hard,
+        cache: false,
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
-      on :GENERATE_ARTICLE_SEO, regex: ~r/^(?:\/seo|generate.*seo)\b/iu do
+      on :GENERATE_ARTICLE_SEO,
+        regex: ~r/^\/seo(?:\s|$)/u,
+        embedding: [
+          "generate search metadata for an existing article",
+          "optimize this post title and description for SEO",
+          "add tags and accessible metadata to the draft"
+        ],
+        regex_strength: :hard,
+        cache: false,
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
-      on :PUBLISH_ARTICLE, regex: ~r/^\/?publish\b/iu do
+      on :PUBLISH_ARTICLE,
+        regex: ~r/^\/publish(?:\s|$)/u,
+        embedding: [
+          "publish a draft article on the public blog",
+          "make this post visible to readers",
+          "change the article status from draft to published"
+        ],
+        regex_strength: :hard,
+        cache: false,
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
-      on :UNPUBLISH_ARTICLE, regex: ~r/^\/?unpublish\b/iu do
+      on :UNPUBLISH_ARTICLE,
+        regex: ~r/^\/unpublish(?:\s|$)/u,
+        embedding: [
+          "unpublish an article and return it to draft",
+          "hide this post from public readers",
+          "remove the published status without deleting the content"
+        ],
+        regex_strength: :hard,
+        cache: false,
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
 
       on :DELETE_ARTICLE,
-        regex: ~r/^\/?delete\b.*(?:article|post)?/iu do
+        regex: ~r/^\/delete(?:\s|$)/u,
+        embedding: [
+          "permanently delete an article from the content repository",
+          "remove this blog post and its Markdown file",
+          "erase an obsolete editorial draft"
+        ],
+        regex_strength: :hard,
+        cache: false,
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
         act(:editorial_turn_prompt, intelligence: :balanced)
       end
     end
   end
 
-  @doc false
+  @doc "Starts article intake and asks for the editorial brief."
   @spec start_creation(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def start_creation(%Input{} = input, %Context{} = ctx) do
     advance(input, ctx, :article_brief, %{}, :article_brief_request)
   end
 
-  @doc false
+  @doc "Stores the bounded brief and advances intake to language selection."
   @spec capture_brief(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def capture_brief(%Input{text: text} = input, %Context{} = ctx) do
     case bounded_field(text, 8_000) do
@@ -174,7 +256,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
-  @doc false
+  @doc "Validates one configured language and advances intake to category."
   @spec capture_language(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def capture_language(%Input{text: text} = input, %Context{} = ctx) do
     supported = Config.get().supported_languages
@@ -192,7 +274,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
-  @doc false
+  @doc "Stores or generates a category, then advances intake to the title step."
   @spec capture_category(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def capture_category(%Input{text: text} = input, %Context{} = ctx) do
     if generate_request?(text, :category) do
@@ -205,7 +287,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
-  @doc false
+  @doc "Stores or generates a title, then advances intake to the SEO choice."
   @spec capture_title(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def capture_title(%Input{text: text} = input, %Context{} = ctx) do
     if generate_request?(text, :title) do
@@ -218,7 +300,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
-  @doc false
+  @doc "Records the SEO choice and stages the protected Kinetic action."
   @spec capture_seo(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def capture_seo(%Input{text: text} = input, %Context{} = ctx) do
     case seo_choice(text) do
@@ -231,7 +313,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
-  @doc false
+  @doc "Stores an authenticated Telegram image without advancing the flow cursor."
   @spec attach_image(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def attach_image(%Input{} = input, %Context{} = ctx) do
     if active?(ctx.state) do
@@ -257,7 +339,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
-  @doc false
+  @doc "Clears an active article-intake workflow without touching the repository."
   @spec cancel_creation(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
   def cancel_creation(%Input{} = input, %Context{} = ctx) do
     if active?(ctx.state) do
@@ -267,12 +349,12 @@ defmodule ExBlog.Agent.Skills.Editorial do
     end
   end
 
-  @doc false
+  @doc "Returns the reply used when an editorial confirmation exhausts its attempts."
   @spec cancel_confirmation(Input.t(), Context.t()) :: String.t()
   def cancel_confirmation(_input, _ctx),
     do: "Operation cancelled because confirmation was not received."
 
-  @doc false
+  @doc "Returns whether persisted Spectre state currently owns an intake leaf."
   @spec active?(State.t()) :: boolean()
   def active?(%State{current_flow: flow, data: data}) do
     flow in @creation_flows and is_map(Map.get(data, @workflow_key))
