@@ -19,7 +19,10 @@ ETS
 └── rebuildable read projection of parsed articles
 
 Release priv directory
-└── versioned routing dataset and reproducible trained classifier artifacts
+└── versioned routing dataset; no native classifier or model cache
+
+Ignored development artifacts
+└── optional local classifier, 384d semantic mirror, and ExFastembed model cache
 ```
 
 Plaintext tokens are never stored in Git, DETS, ETS, Spectre state, or agent
@@ -42,16 +45,16 @@ validate environment
 → create the data directory
 → restore content-addressed public assets
 → open and repair DETS
-→ load the trained local classifier
+→ select OpenRouter as the production Spectre embedding adapter
 → restore learned semantic rows and warm the Vettore index
 → clone or synchronize the content repository
 → parse Markdown and publish a new ETS snapshot
 → start Telegram and the Phoenix endpoint
 ```
 
-A failure in a required step terminates startup. Production also treats the
-local classifier artifact as required when `SPECTRE_LOCAL_CLASSIFIER=true`, so
-a release cannot silently serve with an incomplete build.
+A failure in a required step terminates startup. Production requires the
+versioned dataset but explicitly rejects local artifact paths and attempts to
+enable `SPECTRE_LOCAL_CLASSIFIER`. ExFastembed is not a production dependency.
 
 An ETS rebuild populates a new table. One `:persistent_term` update publishes
 the complete snapshot, after which the old table is deleted. Readers retry if
@@ -109,7 +112,7 @@ expressions:
 explicit slash command or safety regex
 → active nested-flow continuation
 → exact trusted dataset or verified-cache match
-→ trained local classifier
+→ optional local classifier when available in development/test
 → verified vector semantic search
 → arbitration
 → remote LLM classifier fallback
@@ -117,19 +120,27 @@ explicit slash command or safety regex
 
 Regex is reserved for deterministic controls, safety patterns, confirmation,
 and bounded field parsing. Natural-language intent recognition belongs to the
-versioned English dataset, the local classifier, semantic search, and the LLM
-fallback.
+versioned English dataset, the optional local classifier, semantic search, and
+the LLM fallback.
 
-The local classifier and semantic cache share
-`intfloat/multilingual-e5-small` through `ExBlog.Agent.Embedding`. The adapter
-applies E5's `query:` prefix during training and inference, producing compatible
-384-dimensional vectors without spending OpenRouter budget. The checked-in
-corpus contains 204 original examples across 17 classifier-visible intents.
-Training uses all examples for the centroid classifier; boot indexes only the
-84 examples belonging to the seven cacheable read routes.
+`ExBlog.Agent.Embedding` selects its implementation by environment:
 
-`ExBlog.AI.Embedding` remains available as an optional hosted Prism capability,
-but it is not used by the agent's intent-routing hot path.
+- development and test may use ExFastembed with
+  `intfloat/multilingual-e5-small` to train a 384-dimensional centroid
+  classifier and local semantic mirror;
+- production delegates to `ExBlog.AI.Embedding`, which requests the configured
+  OpenRouter embedding model through Req and the shared budget ledger. The
+  default dimension contract is 1,024.
+
+The checked-in corpus contains 204 original examples across 17
+classifier-visible intents. Local training uses all examples for the centroid
+classifier and can index the 84 examples belonging to seven cacheable read
+routes. Production ships neither local artifact. It keeps dataset exact matches
+and embeds new eligible semantic rows through OpenRouter.
+
+Persisted semantic rows are namespaced by the selected embedding model and
+dimension identity, preventing a development 384d row from entering the same
+DETS snapshot as a production 1,024d row.
 
 New online semantic examples begin unverified and are persisted in DETS. They
 can be promoted automatically only when a later request reaches at least
@@ -140,8 +151,10 @@ policy or authorize a Git write.
 
 Budget is authorized before each OpenRouter request. After a valid response,
 token counts, model, purpose, subject, and cost are recorded in DETS.
-Deterministic and local-model operations do not depend on provider
-availability.
+Deterministic exact matches do not depend on provider availability. Production
+semantic vector search and learning do depend on OpenRouter; failure falls
+through to the normal routing error or classifier handling instead of loading a
+native model.
 
 ## Agent composition and effects
 
@@ -179,5 +192,8 @@ recoverable from GitHub. Telegram images have a durable backing store under
 `priv/static` directory served at `/images/articles`.
 
 The container changes ownership only on the volume root and then drops
-privileges to the `exblog` user. The default machine uses 2 GB of memory because
-Phoenix, TDLib, and the warm local embedding model share the same runtime.
+privileges to the `exblog` user. The runtime image contains no Rust toolchain,
+ExFastembed dependency, native embedding-model cache, or local classifier. A
+Rust toolchain exists only in the Docker builder because Spectre Kinetic's
+Ortex dependency compiles a NIF. The runtime uses the default 1 GB machine for
+Phoenix and TDLib.
