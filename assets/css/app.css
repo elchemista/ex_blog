@@ -23,8 +23,8 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* ---------------------------------------------------------------------------
-   Monochrome terminal theme. Greyscale only: emphasis comes from contrast,
-   inversion and border weight instead of hue.
+   Monochrome-first terminal theme. Layout emphasis comes from contrast,
+   inversion and border weight; code uses a restrained syntax palette.
    --------------------------------------------------------------------------- */
 
 :root,
@@ -49,6 +49,19 @@ html[data-theme="dark"] {
   --field-bg: #08080a;
   --code-bg: #08080a;
   --code-bar: #141419;
+  /* Syntax tokens. Declared once and not overridden by the light theme: code
+     keeps a dark background everywhere, so a single palette serves both. The
+     scale is anchored on the Elixir purple, with teal atoms as the only real
+     second voice; everything else stays muted so the blocks still read as part
+     of a monochrome page. */
+  --hl-keyword: #b388ff;
+  --hl-operator: #a175f0;
+  --hl-module: #d9c8ff;
+  --hl-atom: #78d9c0;
+  --hl-number: #e2a679;
+  --hl-string: #9fd18a;
+  --hl-sigil: #8ec6e8;
+  --hl-comment: #6b6b76;
 }
 
 html[data-theme="light"] {
@@ -933,39 +946,44 @@ a.term-chip--active:hover {
 
 /* --- Syntax highlighting --------------------------------------------------
    Token classes emitted by assets/js/highlight.js, for both Markdown code
-   fences and .term-code blocks. Code keeps a dark background in both themes,
-   so the scale is fixed greyscale instead of theme variables: weight and
-   contrast carry the meaning that hue would elsewhere. Blocks without a
-   declared language are never touched and keep the plain foreground. */
+   fences and .term-code blocks. Colours come from the --hl-* scale declared
+   with the dark theme; see the note there for why they are not themed. Bare or
+   unsupported fences use the safe Elixir fallback from the highlighter. */
 
 pre .hl-keyword {
-  color: #ffffff;
+  color: var(--hl-keyword);
   font-weight: 600;
 }
 
 pre .hl-operator {
-  color: #ffffff;
+  color: var(--hl-operator);
 }
 
 pre .hl-module {
-  color: #dcdce2;
+  color: var(--hl-module);
   font-weight: 500;
 }
 
 pre .hl-atom,
-pre .hl-map-key,
-pre .hl-number {
-  color: #b6b6c0;
+pre .hl-map-key {
+  color: var(--hl-atom);
 }
 
-pre .hl-string,
+pre .hl-number {
+  color: var(--hl-number);
+}
+
+pre .hl-string {
+  color: var(--hl-string);
+}
+
 pre .hl-sigil,
 pre .hl-binary {
-  color: #9a9aa6;
+  color: var(--hl-sigil);
 }
 
 pre .hl-comment {
-  color: #6b6b76;
+  color: var(--hl-comment);
   font-style: italic;
 }
 

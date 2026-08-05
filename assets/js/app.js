@@ -78,11 +78,49 @@ document.addEventListener("click", event => {
   dismiss.closest("[data-flash]")?.remove()
 })
 
-// Code blocks are rendered server side by MDEx; the highlighter only decorates
-// the ones that declare a supported language. Both entry points are guarded, so
-// running twice is a no-op.
-document.addEventListener("DOMContentLoaded", () => highlightCodeBlocks())
-if (document.readyState !== "loading") highlightCodeBlocks()
+// MDEx renders code on controller pages, while LiveView and other client-side
+// features may add or replace it later. Start once for the initial document,
+// then observe DOM patches so every page follows the same highlighting path.
+let codeHighlightingStarted = false
+
+const highlightPage = () => highlightCodeBlocks(document)
+
+const startCodeHighlighting = () => {
+  if (codeHighlightingStarted) return
+  codeHighlightingStarted = true
+
+  highlightPage()
+
+  const observer = new MutationObserver(mutations => {
+    const roots = new Set()
+
+    mutations.forEach(mutation => {
+      if (
+        mutation.target instanceof Element &&
+        mutation.target.matches("pre, pre code")
+      ) {
+        roots.add(mutation.target)
+      }
+
+      mutation.addedNodes.forEach(node => {
+        if (node instanceof Element || node instanceof DocumentFragment) roots.add(node)
+      })
+    })
+
+    roots.forEach(root => highlightCodeBlocks(root))
+  })
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class", "data-language"]
+  })
+}
+
+document.addEventListener("DOMContentLoaded", startCodeHighlighting, {once: true})
+if (document.readyState !== "loading") startCodeHighlighting()
+window.addEventListener("phx:page-loading-stop", highlightPage)
 
 const siteDomain = "spectre.elchemista.com"
 const documentLanguage = document.documentElement.lang.toLowerCase().split("-")[0]

@@ -10,10 +10,12 @@
  * block padding, so the highlighted markup replaces the content of `<code>`
  * rather than the content of `<pre>`.
  *
- * A block opts in either through the `language-*` class MDEx emits or through
- * an explicit `data-language` on the `<pre>`. Unlabelled blocks are left
- * untouched: shell transcripts and plain output share too many words with
- * Elixir to be guessed at.
+ * Every code block is highlighted. A block may name its language through the
+ * `language-*` class MDEx emits or through an explicit `data-language` on the
+ * `<pre>`, but posts are written with bare fences, so anything unlabelled — or
+ * labelled with a language we have no scanner for — falls back to Elixir. The
+ * Elixir scanner degrades gracefully on other content: `#` comments, quoted
+ * strings and numbers still land on the right tokens.
  */
 
 const ELIXIR_KEYWORDS = [
@@ -303,34 +305,65 @@ const HIGHLIGHTERS = {
   elixir: highlightElixirCode,
   ex: highlightElixirCode,
   exs: highlightElixirCode,
+  heex: highlightElixirCode,
   javascript: highlightJSCode,
-  js: highlightJSCode
+  js: highlightJSCode,
+  jsx: highlightJSCode,
+  mjs: highlightJSCode,
+  ts: highlightJSCode,
+  typescript: highlightJSCode
 }
 
-const languageOf = (pre, code) => {
-  const declared = pre.dataset.language
-  if (declared) return declared.toLowerCase()
+const DEFAULT_LANGUAGE = "elixir"
 
-  const match = /(?:^|\s)language-([\w+-]+)/.exec(code.className)
-  return match ? match[1].toLowerCase() : null
+// A WeakMap makes repeat runs cheap without trusting a DOM attribute that a
+// LiveView patch may preserve while replacing the code block's children.
+const highlightedBlocks = new WeakMap()
+
+const normalizeLanguage = language =>
+  language?.trim().toLowerCase().replace(/^(?:language|lang)-/, "") || null
+
+const languageOf = (pre, code) => {
+  const declared = pre.dataset.language || code.dataset.language
+  if (declared) return normalizeLanguage(declared)
+
+  const classes = `${pre.className} ${code.className}`
+  const match = /(?:^|\s)(?:language|lang)-([\w+-]+)/i.exec(classes)
+  return match ? normalizeLanguage(match[1]) : null
+}
+
+const codeBlocksWithin = root => {
+  if (!root?.querySelectorAll) return []
+
+  const descendants = Array.from(root.querySelectorAll("pre code"))
+  return root.matches?.("pre code") ? [root, ...descendants] : descendants
 }
 
 /**
- * Highlights every supported, not yet highlighted code block under `root`.
- * Safe to call repeatedly: each block is marked once it has been processed.
+ * Highlights every code block under `root`. Safe to call repeatedly: unchanged
+ * blocks are skipped, while blocks whose text was patched are processed again.
  */
 export const highlightCodeBlocks = (root = document) => {
-  root.querySelectorAll("pre > code").forEach(code => {
-    if (code.dataset.highlighted) return
+  codeBlocksWithin(root).forEach(code => {
+    const pre = code.closest("pre")
+    if (!pre) return
 
-    const pre = code.parentElement
-    const language = languageOf(pre, code)
-    const highlight = language && HIGHLIGHTERS[language]
-    if (!highlight) return
+    const declared = languageOf(pre, code)
+    const language = HIGHLIGHTERS[declared] ? declared : DEFAULT_LANGUAGE
+    const source = code.textContent
+    const previous = highlightedBlocks.get(code)
 
-    code.dataset.highlighted = "true"
-    // Mirrored onto the `<pre>` so styling can key off the language too.
-    pre.dataset.language = language
-    code.innerHTML = highlight(code.textContent)
+    if (
+      previous?.source === source &&
+      previous.language === language &&
+      previous.html === code.innerHTML
+    ) return
+
+    code.dataset.highlighted = language
+    // Keep the declared language untouched and expose the resolved scanner
+    // separately, so a later DOM patch can still change languages correctly.
+    pre.dataset.highlighted = language
+    code.innerHTML = HIGHLIGHTERS[language](source)
+    highlightedBlocks.set(code, {source, language, html: code.innerHTML})
   })
 }
