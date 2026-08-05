@@ -25,6 +25,7 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/ex_blog"
 import topbar from "../vendor/topbar"
 import CookieConsent from "../vendor/cookieconsent.umd"
+import {highlightCodeBlocks} from "./highlight"
 
 // The blog is designed black-first: dark is the default and light is opt-in.
 const preferredTheme = () => "dark"
@@ -76,6 +77,12 @@ document.addEventListener("click", event => {
 
   dismiss.closest("[data-flash]")?.remove()
 })
+
+// Code blocks are rendered server side by MDEx; the highlighter only decorates
+// the ones that declare a supported language. Both entry points are guarded, so
+// running twice is a no-op.
+document.addEventListener("DOMContentLoaded", () => highlightCodeBlocks())
+if (document.readyState !== "loading") highlightCodeBlocks()
 
 const siteDomain = "spectre.elchemista.com"
 const documentLanguage = document.documentElement.lang.toLowerCase().split("-")[0]

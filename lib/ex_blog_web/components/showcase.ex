@@ -101,7 +101,7 @@ defmodule ExBlogWeb.Showcase do
               "The whole agent is one module: the model, the router, a protected action, and the policy guarding it."
             )}
           </p>
-          <pre class="term-code mt-5"><code>{@dsl_example}</code></pre>
+          <pre class="term-code mt-5" data-language="elixir"><code>{@dsl_example}</code></pre>
         </div>
       </div>
 

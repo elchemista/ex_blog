@@ -931,6 +931,44 @@ a.term-chip--active:hover {
   accent-color: var(--fg-strong);
 }
 
+/* --- Syntax highlighting --------------------------------------------------
+   Token classes emitted by assets/js/highlight.js, for both Markdown code
+   fences and .term-code blocks. Code keeps a dark background in both themes,
+   so the scale is fixed greyscale instead of theme variables: weight and
+   contrast carry the meaning that hue would elsewhere. Blocks without a
+   declared language are never touched and keep the plain foreground. */
+
+pre .hl-keyword {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+pre .hl-operator {
+  color: #ffffff;
+}
+
+pre .hl-module {
+  color: #dcdce2;
+  font-weight: 500;
+}
+
+pre .hl-atom,
+pre .hl-map-key,
+pre .hl-number {
+  color: #b6b6c0;
+}
+
+pre .hl-string,
+pre .hl-sigil,
+pre .hl-binary {
+  color: #9a9aa6;
+}
+
+pre .hl-comment {
+  color: #6b6b76;
+  font-style: italic;
+}
+
 /* --- Media ---------------------------------------------------------------- */
 
 .term-media {
