@@ -52,7 +52,7 @@ defmodule ExBlog.Agent.SemanticCacheTest do
     :ok = Learned.clear(Agent, opts)
     assert {:error, :not_found} = Learned.get_example(Agent, learned.id, opts)
 
-    assert :ok = SemanticCache.restore(Agent)
+    assert :ok = SemanticCache.restore(Agent, opts)
     assert {:ok, restored} = Cache.get_example(Agent, learned.id, opts)
     assert restored.verified?
     assert restored.embedding == [1.0, 0.0]

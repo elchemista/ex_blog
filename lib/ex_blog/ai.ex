@@ -1,70 +1,18 @@
 defmodule ExBlog.AI do
   @moduledoc """
-  Spectre Stack composition and direct AI boundary for ExBlog.
+  Direct AI boundary for ExBlog.
 
-  The Stack gives agent code stable capability names while deployment config
-  chooses concrete OpenRouter models at runtime. Prism selects a tier by
-  purpose, Beam normalizes Telegram delivery, and Kinetic validates typed
-  actions. None of those extensions owns editorial business logic; they are
-  infrastructure mounted around `ExBlog.Agent`.
+  Deployment config chooses concrete OpenRouter models at runtime. Prism, Beam,
+  and Kinetic are mounted directly on `ExBlog.Agent` as focused capabilities;
+  none of them owns editorial business logic or a second Agent lifecycle.
 
   Direct helpers such as `complete/3` and `health/1` exist for bounded leaf
   operations that do not need a full Spectre reasoning turn. They still use the
   same transport, credentials, budget authorization, and usage accounting.
   """
 
-  use Spectre.Stack, id: :ex_blog
-
   alias ExBlog.AI.OpenRouter
   alias ExBlog.Config
-
-  require OpenRouter
-
-  # Stable markers are compiled into the Stack. OpenRouter resolves them to the
-  # environment's current model ids at call time, so builds contain no secrets.
-  install Spectre.Prism, max_attempts: 2 do
-    provider(:openrouter, OpenRouter,
-      models: [
-        fast: "ex-blog/runtime-fast",
-        balanced: "ex-blog/runtime-balanced",
-        deep: "ex-blog/runtime-deep"
-      ],
-      classifier: :fast,
-      embedding: [model: "ex-blog/runtime-embedding", dimensions: 1024]
-    )
-
-    purpose(:route_classification, prefer: :fast)
-    purpose(:response_generation, prefer: :balanced)
-    purpose(:category_generation, prefer: :fast)
-    purpose(:title_generation, prefer: :balanced)
-    purpose(:source_research, prefer: :balanced)
-    purpose(:seo_generation, prefer: :balanced)
-    purpose(:article_generation, prefer: :deep)
-    purpose(:page_audit, prefer: :balanced)
-    default(:balanced)
-  end
-
-  # Delivery is caller-owned because the Telegram gateway must acknowledge and
-  # format results after Spectre finishes the turn.
-  install Spectre.Beam, delivery: :caller_owned do
-    channel(:telegram,
-      type: :telegram,
-      adapter: ExBlog.Telegram.BeamAdapter,
-      capabilities: [:text, :image],
-      planner_exposure: :none,
-      typing: true,
-      reply_delay_ms: 2_000
-    )
-  end
-
-  # Kinetic receives a single best typed action. The application package keeps
-  # the native planner primary and contributes the constrained LLM fallback;
-  # policy enforcement remains in Spectre and is never delegated to either.
-  install(ExBlog.Agent.KineticPackage,
-    top_k: 1,
-    tool_threshold: 0.0,
-    mapping_threshold: 0.0
-  )
 
   @doc "Completes one bounded prompt through the configured Prism model tier."
   @spec complete(:fast | :balanced | :deep, String.t(), keyword()) ::

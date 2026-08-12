@@ -1,14 +1,21 @@
 defmodule ExBlogWeb.BlogControllerTest do
   use ExBlogWeb.ConnCase, async: false
 
+  alias ExBlog.Config
   alias ExBlog.Content.Index
 
   setup do
     root = temporary_directory()
     italian = Path.join([root, "content", "it"])
     english = Path.join([root, "content", "en"])
+    french = Path.join([root, "content", "fr"])
     File.mkdir_p!(italian)
     File.mkdir_p!(english)
+    File.mkdir_p!(french)
+
+    previous_config = Config.get()
+
+    Config.install(struct!(previous_config, supported_languages: ["it", "en", "fr"]))
 
     File.write!(
       Path.join(italian, "2026-08-03-primo-articolo.md"),
@@ -33,8 +40,47 @@ defmodule ExBlogWeb.BlogControllerTest do
       )
     )
 
+    File.write!(
+      Path.join(french, "2026-08-03-premier-article.md"),
+      article("Premier article", "premier-article", "fr", "published",
+        translation_of: "content/it/2026-08-03-primo-articolo.md"
+      )
+    )
+
+    File.write!(
+      Path.join(italian, "2026-08-03-agente-news.md"),
+      article("Agente news", "agente-news", "it", "published",
+        tags: ["elixir", "spectre", "lens", "kinetic"]
+      )
+    )
+
+    File.write!(
+      Path.join(english, "2026-08-03-news-agent.md"),
+      article("News agent", "news-agent", "en", "published",
+        tags: ["elixir", "spectre", "lens", "kinetic"]
+      )
+    )
+
+    File.write!(
+      Path.join(italian, "2026-08-03-testare-agenti.md"),
+      article("Testare agenti", "testare-agenti", "it", "published",
+        tags: ["elixir", "spectre", "exunit", "policy"]
+      )
+    )
+
+    File.write!(
+      Path.join(english, "2026-08-03-testing-agents.md"),
+      article("Testing agents", "testing-agents", "en", "published",
+        tags: ["elixir", "spectre", "exunit", "policy"]
+      )
+    )
+
     start_supervised!({Index, root: root, content_root: "content"})
-    on_exit(fn -> File.rm_rf!(root) end)
+
+    on_exit(fn ->
+      Config.install(previous_config)
+      File.rm_rf!(root)
+    end)
 
     :ok
   end
@@ -45,11 +91,12 @@ defmodule ExBlogWeb.BlogControllerTest do
     assert one?(document, "#blog-index")
 
     assert document |> LazyHTML.query("#homepage-title") |> LazyHTML.text() |> String.trim() ==
-             "Costruisci agenti Elixir come sistemi OTP."
+             "Costruisci un solo agente Elixir. Dagli solo i poteri che gli servono."
 
     assert LazyHTML.text(LazyHTML.query(document, "#homepage-subtitle")) =~
-             "Spectre mantiene espliciti routing, stato, policy ed effetti collaterali"
+             "sono poteri dello stesso agente, non agenti diversi"
 
+    assert one?(document, "#spectre-principles")
     assert one?(document, "#article-card-it-primo-articolo")
     refute one?(document, "#article-card-it-bozza-segreta")
     assert LazyHTML.attribute(LazyHTML.query(document, "html"), "lang") == ["it"]
@@ -59,10 +106,26 @@ defmodule ExBlogWeb.BlogControllerTest do
     document = conn |> get("/en") |> html_document(200)
 
     assert document |> LazyHTML.query("#homepage-title") |> LazyHTML.text() |> String.trim() ==
-             "Build Elixir agents like OTP systems."
+             "Build one Elixir agent. Give it only the powers it needs."
 
     assert LazyHTML.text(LazyHTML.query(document, "#homepage-subtitle")) =~
-             "Spectre keeps routing, state, policies, and side effects explicit"
+             "they are powers of that same agent, not different agents"
+  end
+
+  test "explains philosophy, capabilities, and governed evolution", %{conn: conn} do
+    document = conn |> get("/en") |> html_document(200)
+
+    assert one?(document, "#spectre-philosophy-proposal")
+    assert one?(document, "#spectre-philosophy-routing")
+    assert one?(document, "#spectre-philosophy-data")
+
+    assert LazyHTML.text(LazyHTML.query(document, "#spectre-capabilities-explainer")) =~
+             "one agent, one identity, and one lifecycle"
+
+    assert LazyHTML.text(LazyHTML.query(document, "#spectre-evolution")) =~
+             "The proposal is inert data"
+
+    assert one?(document, "#spectre-evolution-step-4")
   end
 
   test "renders sanitized article HTML, metadata, tags, and language alternatives", %{conn: conn} do
@@ -91,6 +154,14 @@ defmodule ExBlogWeb.BlogControllerTest do
     assert one?(document, "#not-found")
   end
 
+  test "links unambiguous legacy translations that predate translation_of", %{conn: conn} do
+    document = conn |> get("/it/agente-news") |> html_document(200)
+
+    assert one?(document, ~s(link[rel="alternate"][hreflang="en"][href$="/en/news-agent"]))
+    assert one?(document, ~s(a[hreflang="en"][href="/en/news-agent"]))
+    refute one?(document, ~s(a[href="/en/testing-agents"]))
+  end
+
   test "filters by tag and category", %{conn: conn} do
     tag_document = conn |> get("/tag/elixir?lang=it") |> html_document(200)
     assert one?(tag_document, "#active-filter")
@@ -107,12 +178,54 @@ defmodule ExBlogWeb.BlogControllerTest do
   test "serves the dynamic sitemap, static robots, feeds, and conditional caching", %{conn: conn} do
     sitemap = get(conn, "/sitemap.xml")
     base = ExBlog.Config.canonical_url()
-    assert response(sitemap, 200) =~ "<loc>#{base}/</loc>"
-    assert response(sitemap, 200) =~ "<loc>#{base}/it</loc>"
-    assert response(sitemap, 200) =~ "<loc>#{base}/en</loc>"
-    assert response(sitemap, 200) =~ "/it/primo-articolo"
-    assert response(sitemap, 200) =~ "/en/first-article"
-    refute response(sitemap, 200) =~ "bozza-segreta"
+    body = response(sitemap, 200)
+
+    assert body =~ ~s(xmlns:xhtml="http://www.w3.org/1999/xhtml")
+    assert body =~ "<loc>#{base}/</loc>"
+    assert body =~ "<loc>#{base}/it</loc>"
+    assert body =~ "<loc>#{base}/en</loc>"
+    assert body =~ "<loc>#{base}/fr</loc>"
+    assert body =~ "<loc>#{base}/it/privacy-policy</loc>"
+    assert body =~ "<loc>#{base}/fr/cookies-policy</loc>"
+    refute body =~ "bozza-segreta"
+
+    article_urls = %{
+      "it" => "#{base}/it/primo-articolo",
+      "en" => "#{base}/en/first-article",
+      "fr" => "#{base}/fr/premier-article"
+    }
+
+    article_entries = Enum.map(article_urls, fn {_language, url} -> sitemap_entry(body, url) end)
+
+    for entry <- article_entries, {language, url} <- article_urls do
+      assert entry =~
+               ~s(<xhtml:link rel="alternate" hreflang="#{language}" href="#{url}" />)
+    end
+
+    for entry <- article_entries do
+      assert entry =~
+               ~s(<xhtml:link rel="alternate" hreflang="x-default" href="#{article_urls["it"]}" />)
+    end
+
+    for {_language, url} <- article_urls do
+      assert length(Regex.scan(~r/<loc>#{Regex.escape(url)}<\/loc>/, body)) == 1
+    end
+
+    legacy_pairs = [
+      {"#{base}/it/agente-news", "#{base}/en/news-agent"},
+      {"#{base}/it/testare-agenti", "#{base}/en/testing-agents"}
+    ]
+
+    for {italian_url, english_url} <- legacy_pairs do
+      for entry <- [sitemap_entry(body, italian_url), sitemap_entry(body, english_url)] do
+        assert entry =~ ~s(hreflang="it" href="#{italian_url}")
+        assert entry =~ ~s(hreflang="en" href="#{english_url}")
+      end
+    end
+
+    news_entry = sitemap_entry(body, "#{base}/it/agente-news")
+    refute news_entry =~ "testing-agents"
+
     assert get_resp_header(sitemap, "content-type") == ["application/xml; charset=utf-8"]
 
     rss = get(build_conn(), "/feed.xml")
@@ -150,6 +263,17 @@ defmodule ExBlogWeb.BlogControllerTest do
   end
 
   defp one?(document, selector), do: document |> LazyHTML.query(selector) |> Enum.count() == 1
+
+  defp sitemap_entry(xml, url) do
+    [entry] =
+      Regex.run(
+        ~r/<url>\s*<loc>#{Regex.escape(url)}<\/loc>.*?<\/url>/s,
+        xml,
+        capture: :first
+      )
+
+    entry
+  end
 
   defp article(title, slug, language, status, opts \\ []) do
     category = Keyword.get(opts, :category)

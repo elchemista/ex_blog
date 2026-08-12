@@ -25,7 +25,8 @@ defmodule ExBlog.Agent.Skills.Editorial do
   use Spectre.Skill,
     id: :editorial,
     version: 1,
-    prompt_root: "lib/ex_blog_web/prompts/skills/editorial"
+    prompt_root: "lib/ex_blog_web/prompts/skills/editorial",
+    prompt_budget: 2_048
 
   alias ExBlog.Agent.ArticleSelector
   alias ExBlog.Agent.EditorialAI

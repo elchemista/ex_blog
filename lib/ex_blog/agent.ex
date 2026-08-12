@@ -20,9 +20,33 @@ defmodule ExBlog.Agent do
   """
 
   use Spectre.Agent,
-    stack: ExBlog.AI,
     prompt_root: "lib/ex_blog_web/prompts",
     input_timeout: 30_000
+
+  use Spectre.Prism, max_attempts: 2
+  use Spectre.Beam, delivery: :caller_owned
+
+  Code.ensure_compiled!(ExBlog.Agent.KineticExtension)
+
+  Spectre.Extension.register!(
+    __MODULE__,
+    ExBlog.Agent.KineticExtension,
+    top_k: 1,
+    tool_threshold: 0.0,
+    mapping_threshold: 0.0
+  )
+
+  # Runtime request data belongs to one typed context boundary shared by every
+  # model-backed handler. Keeping this mount on the Agent also lets compiled
+  # Skills remain self-contained under Spectre 0.3's prompt budgets.
+  inject(:untrusted_turn,
+    from: {ExBlog.Agent.PromptContext, :untrusted_turn},
+    into: :context,
+    position: :end,
+    max_bytes: 24_000,
+    recent_chat_limit: 12_000,
+    request_limit: 8_000
+  )
 
   alias ExBlog.Agent.RouterPipeline
   alias ExBlog.Agent.Skills.Assistance
@@ -36,6 +60,49 @@ defmodule ExBlog.Agent do
   require Editorial
   require Operations
   require Reader
+
+  # Prism reads the adapter catalog while this module is compiled. Make that
+  # compile-time dependency explicit so parallel compilation cannot race it.
+  Code.ensure_compiled!(OpenRouter)
+
+  # These satellite libraries extend this Agent with capabilities. They do not
+  # own another Agent, state machine, or execution lifecycle. Agent-local mounts
+  # keep the 0.2 satellite adapters on Spectre core 0.3's supported compatibility
+  # path until their Stack manifests declare the new core requirement.
+  prism do
+    provider(:openrouter, OpenRouter,
+      models: [
+        fast: "ex-blog/runtime-fast",
+        balanced: "ex-blog/runtime-balanced",
+        deep: "ex-blog/runtime-deep"
+      ],
+      classifier: :fast,
+      embedding: [model: "ex-blog/runtime-embedding", dimensions: 1024]
+    )
+
+    purpose(:route_classification, prefer: :fast)
+    purpose(:response_generation, prefer: :balanced)
+    purpose(:category_generation, prefer: :fast)
+    purpose(:title_generation, prefer: :balanced)
+    purpose(:source_research, prefer: :balanced)
+    purpose(:seo_generation, prefer: :balanced)
+    purpose(:article_generation, prefer: :deep)
+    purpose(:page_audit, prefer: :balanced)
+    default(:balanced)
+  end
+
+  # Delivery is caller-owned because the Telegram gateway must acknowledge and
+  # format results after Spectre finishes the turn.
+  beaming do
+    channel(:telegram,
+      type: :telegram,
+      adapter: ExBlog.Telegram.BeamAdapter,
+      capabilities: [:text, :image],
+      planner_exposure: :none,
+      typing: true,
+      reply_delay_ms: 2_000
+    )
+  end
 
   # The LLM classifier is the final intent provider. Spectre calls it only when
   # deterministic or semantic evidence cannot produce a confident route. Three

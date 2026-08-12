@@ -6,6 +6,7 @@ defmodule ExBlog.Content do
   alias ExBlog.Config
   alias ExBlog.Content.Article
   alias ExBlog.Content.Index
+  alias ExBlog.Content.TranslationGroups
 
   @spec list(keyword()) :: [Article.t()]
   def list(opts \\ []) do
@@ -62,11 +63,8 @@ defmodule ExBlog.Content do
 
   @spec translations(Article.t()) :: [Article.t()]
   def translations(%Article{} = article) do
-    origin = article.translation_of || article.path
-
     Index.all()
-    |> Enum.filter(&(&1.valid? and (&1.path == origin or &1.translation_of == origin)))
-    |> Enum.sort_by(& &1.lang)
+    |> TranslationGroups.for_article(article)
   end
 
   @spec stats() :: map()

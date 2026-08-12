@@ -18,7 +18,9 @@
       <div class="term-body p-5 sm:p-9">
         <p class="term-prompt text-[0.78rem] t-dim">whoami</p>
         <p class="term-out mt-1 text-[0.78rem] t-body">
-          {gettext("Spectre — OTP-native agent runtime for Elixir. This site runs on it.")}
+          {gettext(
+            "Spectre — an OTP-native runtime for agents that stay understandable, governable, and recoverable. This site runs on it."
+          )}
         </p>
 
         <p class="term-prompt mt-6 text-[0.78rem] t-dim">cat manifesto.md</p>
@@ -27,8 +29,8 @@
           class="mt-4 max-w-3xl text-3xl font-bold leading-[1.12] tracking-tight text-balance t-strong sm:text-5xl lg:text-[3.4rem]"
         >
           {raw(
-            gettext("Build Elixir agents like %{highlight}.",
-              highlight: highlight(gettext("OTP systems"))
+            gettext("Build one Elixir agent. Give it %{highlight}.",
+              highlight: highlight(gettext("only the powers it needs"))
             )
           )}
         </h1>
@@ -37,9 +39,50 @@
           class="mt-5 max-w-2xl text-[0.85rem] leading-7 t-dim sm:text-[0.92rem]"
         >
           <span class="t-faint" aria-hidden="true">// </span>{gettext(
-            "Spectre keeps routing, state, policies, and side effects explicit—with supervised processes, recovery designed in from the start, and application logic that stays in your code."
+            "Spectre gives one supervised agent ownership of its state and lifecycle. Optional spectre_* libraries add capabilities such as memory, planning, model selection, channels, or a browser: they are powers of that same agent, not different agents."
           )}
         </p>
+
+        <div
+          id="spectre-principles"
+          class="mt-8 grid gap-px overflow-hidden border border-[color:var(--line)] bg-[color:var(--line)] sm:grid-cols-3"
+        >
+          <div id="spectre-principle-boundary" class="bg-[color:var(--panel)] p-4 sm:p-5">
+            <p class="term-prompt text-[0.68rem] t-faint">01 / propose</p>
+            <h2 class="mt-2 text-[0.78rem] font-bold t-strong">
+              {gettext("The model never executes")}
+            </h2>
+            <p class="mt-2 text-[0.72rem] leading-5 t-dim">
+              {gettext(
+                "It may propose work; deterministic policies and your application decide what is allowed and when a side effect runs."
+              )}
+            </p>
+          </div>
+
+          <div id="spectre-principle-capabilities" class="bg-[color:var(--panel)] p-4 sm:p-5">
+            <p class="term-prompt text-[0.68rem] t-faint">02 / compose</p>
+            <h2 class="mt-2 text-[0.78rem] font-bold t-strong">
+              {gettext("Capabilities, not personas")}
+            </h2>
+            <p class="mt-2 text-[0.72rem] leading-5 t-dim">
+              {gettext(
+                "Install only the powers one agent needs. Each package has one job and never becomes a hidden second agent."
+              )}
+            </p>
+          </div>
+
+          <div id="spectre-principle-evolution" class="bg-[color:var(--panel)] p-4 sm:p-5">
+            <p class="term-prompt text-[0.68rem] t-faint">03 / evolve</p>
+            <h2 class="mt-2 text-[0.78rem] font-bold t-strong">
+              {gettext("Improvement stays governed")}
+            </h2>
+            <p class="mt-2 text-[0.72rem] leading-5 t-dim">
+              {gettext(
+                "The agent can learn from experience and propose a safer definition; evaluation, review, approval, activation, and rollback remain explicit."
+              )}
+            </p>
+          </div>
+        </div>
 
         <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-dashed border-[color:var(--line)] pt-5 text-[0.72rem] t-faint">
           <span class="term-prompt t-dim">ls -1 posts/ | wc -l</span>

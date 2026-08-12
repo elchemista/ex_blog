@@ -167,14 +167,21 @@ defmodule ExBlog.Agent.SemanticCache do
   end
 
   @doc "Restores one agent's online semantic rows from the durable DETS snapshot."
-  @spec restore(module()) :: :ok | {:error, term()}
-  def restore(agent \\ ExBlog.Agent) when is_atom(agent) do
+  @spec restore(module(), keyword()) :: :ok | {:error, term()}
+  def restore(agent \\ ExBlog.Agent, opts \\ [])
+
+  def restore(agent, opts) when is_atom(agent) and is_list(opts) do
     case Storage.fetch(storage_key(agent)) do
       :error ->
         :ok
 
       {:ok, rows} when is_list(rows) ->
-        case Learned.load_snapshot(agent, rows, runtime_opts(agent, [])) do
+        restore_opts =
+          agent
+          |> runtime_opts(opts)
+          |> Keyword.put(:strict?, true)
+
+        case Learned.load_snapshot(agent, rows, restore_opts) do
           {:ok, _summary} -> :ok
           {:error, _reason} = error -> error
         end

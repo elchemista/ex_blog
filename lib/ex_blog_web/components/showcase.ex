@@ -4,8 +4,8 @@ defmodule ExBlogWeb.Showcase do
 
   Every claim rendered here is sourced, not invented:
 
-    * the definition, the safety boundary and the DSL example come from
-      `deps/spectre/README.md`;
+    * the definition, philosophy, safety boundary, reflective runtime and DSL
+      example come from the published `spectre` 0.3.0 documentation;
     * each library summary comes from its own GitHub description
       (`api.github.com/users/elchemista/repos`, checked 2026-08-04);
     * the request path comes from `docs/spectre-editorial-showcase.md`.
@@ -20,12 +20,14 @@ defmodule ExBlogWeb.Showcase do
 
   @spectre_repo "elchemista/spectre"
   @blog_repo "elchemista/ex_blog"
+  @spectre_hexdocs_url "https://hexdocs.pm/spectre/0.3.0"
 
   @doc "Returns the GitHub URL of the open-source repository behind this site."
   def blog_repo_url, do: "https://github.com/" <> @blog_repo
   def blog_repo, do: @blog_repo
   def spectre_repo, do: @spectre_repo
   def spectre_repo_url, do: "https://github.com/" <> @spectre_repo
+  def spectre_hexdocs_url, do: @spectre_hexdocs_url
 
   @doc """
   The whole showcase: what Spectre is, a DSL sample, the request path this site
@@ -36,6 +38,7 @@ defmodule ExBlogWeb.Showcase do
       assigns
       |> assign(:libraries, libraries())
       |> assign(:dsl_example, dsl_example())
+      |> assign(:evolution_path, evolution_path())
 
     ~H"""
     <section id="spectre-showcase" class="mt-16 space-y-6">
@@ -43,12 +46,17 @@ defmodule ExBlogWeb.Showcase do
         <div>
           <p class="term-prompt text-[0.72rem] t-faint">man spectre</p>
           <h2 class="mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl">
-            {gettext("What Spectre is")}
+            {gettext("The Spectre philosophy")}
           </h2>
         </div>
-        <a href={spectre_repo_url()} rel="noopener noreferrer" class="term-chip">
-          github.com/{spectre_repo()}
-        </a>
+        <div class="flex flex-wrap gap-2">
+          <a href={spectre_hexdocs_url()} rel="noopener noreferrer" class="term-chip">
+            hex · 0.3.0
+          </a>
+          <a href={spectre_repo_url()} rel="noopener noreferrer" class="term-chip">
+            github.com/{spectre_repo()}
+          </a>
+        </div>
       </div>
 
       <div class="term-window overflow-hidden">
@@ -64,9 +72,48 @@ defmodule ExBlogWeb.Showcase do
         <div class="term-body p-5 sm:p-7">
           <p class="text-[0.85rem] leading-7 t-body sm:text-[0.9rem]">
             {gettext(
-              "An agent is a supervised system, not a prompt. Spectre gives it one owner per piece of state, explicit messages at every boundary, and recovery planned from the start — the way OTP treats everything else."
+              "An agent is a supervised system, not a prompt or a costume for a model. Spectre gives each agent one canonical owner for state, explicit messages at every boundary, and recovery designed in from the start — the way OTP treats everything else."
             )}
           </p>
+
+          <div class="mt-7 grid gap-4 md:grid-cols-3">
+            <div
+              id="spectre-philosophy-proposal"
+              class="border-l border-[color:var(--line-strong)] pl-4"
+            >
+              <p class="text-[0.72rem] font-bold t-strong">
+                {gettext("The model proposes")}
+              </p>
+              <p class="mt-2 text-[0.72rem] leading-5 t-dim">
+                {gettext(
+                  "It cannot skip policy, invent authority, or execute a side effect by itself."
+                )}
+              </p>
+            </div>
+            <div
+              id="spectre-philosophy-routing"
+              class="border-l border-[color:var(--line-strong)] pl-4"
+            >
+              <p class="text-[0.72rem] font-bold t-strong">
+                {gettext("Routing is a dial")}
+              </p>
+              <p class="mt-2 text-[0.72rem] leading-5 t-dim">
+                {gettext(
+                  "Choose regex, semantic evidence, or a model; the lifecycle after that choice stays deterministic."
+                )}
+              </p>
+            </div>
+            <div id="spectre-philosophy-data" class="border-l border-[color:var(--line-strong)] pl-4">
+              <p class="text-[0.72rem] font-bold t-strong">
+                {gettext("Durable behavior is data")}
+              </p>
+              <p class="mt-2 text-[0.72rem] leading-5 t-dim">
+                {gettext(
+                  "Runtime-authored skills and proposals can reference only operations already registered by the host; data never becomes executable code."
+                )}
+              </p>
+            </div>
+          </div>
 
           <p class="term-prompt mt-8 text-[0.72rem] t-faint">cat POLICY.md</p>
           <p class="mt-3 text-[0.78rem] t-dim">
@@ -172,16 +219,74 @@ defmodule ExBlogWeb.Showcase do
         </div>
       </div>
 
+      <div id="spectre-evolution" class="term-window overflow-hidden">
+        <div class="term-bar">
+          <span class="term-dots" aria-hidden="true">
+            <span class="term-dot"></span>
+            <span class="term-dot"></span>
+            <span class="term-dot"></span>
+          </span>
+          <span class="term-title">$ spectre reflect --propose</span>
+          <span class="ml-auto hidden flex-none t-faint sm:block">governed evolution</span>
+        </div>
+        <div class="term-body p-5 sm:p-7">
+          <p class="term-prompt text-[0.72rem] t-faint">man spectre-morph</p>
+          <h2 class="mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl">
+            {gettext("How an agent can improve itself")}
+          </h2>
+          <p class="mt-4 max-w-4xl text-[0.8rem] leading-7 t-dim">
+            {gettext(
+              "Spectre 0.3.0 can record explicitly enabled, redacted experience, inspect the active agent definition, and propose bounded changes to skills or configuration. The proposal is inert data: it cannot publish, approve, or activate itself."
+            )}
+          </p>
+
+          <ol class="mt-7 grid gap-px overflow-hidden border border-[color:var(--line)] bg-[color:var(--line)] sm:grid-cols-2 lg:grid-cols-4">
+            <li
+              :for={{step, index} <- Enum.with_index(@evolution_path, 1)}
+              id={"spectre-evolution-step-#{index}"}
+              class="bg-[color:var(--panel)] p-4"
+            >
+              <p class="term-prompt text-[0.66rem] t-faint">0{index} / {step.command}</p>
+              <h3 class="mt-2 text-[0.76rem] font-bold t-strong">{step.title}</h3>
+              <p class="mt-2 text-[0.7rem] leading-5 t-dim">{step.description}</p>
+            </li>
+          </ol>
+
+          <p class="mt-6 border-l-2 border-[color:var(--line-strong)] pl-4 text-[0.78rem] leading-6 t-strong">
+            {gettext(
+              "Self-improving does not mean self-authorizing: evaluation, human review when required, activation, and rollback stay outside the model."
+            )}
+          </p>
+        </div>
+      </div>
+
       <div class="flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--line)] pb-4 pt-6">
         <div>
           <p class="term-prompt text-[0.72rem] t-faint">ls -1 spectre*</p>
           <h2 class="mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl">
-            {gettext("The ecosystem")}
+            {gettext("One core, optional powers")}
           </h2>
         </div>
         <span class="term-chip">
           {ngettext("%{count} library", "%{count} libraries", length(@libraries))}
         </span>
+      </div>
+
+      <div
+        id="spectre-capabilities-explainer"
+        class="term-window border-l-2 border-l-[color:var(--line-strong)] p-5 sm:p-6"
+      >
+        <p class="term-prompt text-[0.72rem] t-faint">cat STACK.md</p>
+        <p class="mt-3 max-w-4xl text-[0.82rem] leading-7 t-body">
+          {gettext(
+            "There is still one agent, one identity, and one lifecycle. The spectre_* packages below are focused libraries you can install as capabilities — memory, planning, browser perception, model choice, channels, or protocols. They do not spawn a cast of specialist agents."
+          )}
+        </p>
+        <p class="mt-3 max-w-4xl text-[0.74rem] leading-6 t-dim">
+          {gettext(
+            "Installing a package only makes a capability available. A Flow, Work, Skill, or policy must still bind it explicitly, and the host keeps authorization and side effects."
+          )}
+        </p>
       </div>
 
       <div class="grid gap-5 md:grid-cols-2">
@@ -198,7 +303,9 @@ defmodule ExBlogWeb.Showcase do
               <span class="term-dot"></span>
             </span>
             <span class="term-title">{library.name}</span>
-            <span class="ml-auto flex-none t-faint">{library.role}</span>
+            <span class="ml-auto flex-none t-faint">
+              {if(library.core?, do: gettext("foundation"), else: gettext("capability"))} · {library.role}
+            </span>
           </div>
           <div class="term-body">
             <p class="text-[0.78rem] leading-6 t-dim">{library.tagline}</p>
@@ -262,15 +369,47 @@ defmodule ExBlogWeb.Showcase do
 
   defp request_path do
     [
-      %{node: "telegram / mcp", note: gettext("authenticated administrator")},
-      %{node: "└── spectre_beam", note: gettext("channel boundary, identity")},
-      %{node: "    └── spectre", note: gettext("routing, state, policy, effects")},
-      %{node: "        ├── skills", note: gettext("reader · editorial · operations")},
-      %{node: "        ├── spectre_prism", note: gettext("fast · balanced · deep tier")},
-      %{node: "        ├── spectre_kinetic", note: gettext("action language → typed action")},
-      %{node: "        ├── spectre_lens", note: gettext("audits the rendered page")},
-      %{node: "        └── policy", note: gettext("confirmation → effect")},
-      %{node: "            └── writer → git → ets", note: gettext("the page you are reading")}
+      %{node: "one blog agent", note: gettext("one identity · one lifecycle")},
+      %{node: "├── spectre_beam", note: gettext("channel capability")},
+      %{node: "├── spectre_prism", note: gettext("model-selection capability")},
+      %{node: "├── spectre_kinetic", note: gettext("planning capability")},
+      %{node: "├── spectre_lens", note: gettext("browser capability")},
+      %{node: "├── skills", note: gettext("reader · editorial · operations")},
+      %{node: "└── spectre core", note: gettext("routing · state · policy · effects")},
+      %{node: "    └── writer → git → ets", note: gettext("the page you are reading")}
+    ]
+  end
+
+  defp evolution_path do
+    [
+      %{
+        command: "observe",
+        title: gettext("Experience"),
+        description:
+          gettext("The host opts in and records bounded evidence with sensitive values redacted.")
+      },
+      %{
+        command: "reflect",
+        title: gettext("Reflection"),
+        description:
+          gettext("Spectre compares what was declared, what is active, and what was observed.")
+      },
+      %{
+        command: "propose",
+        title: gettext("Proposal"),
+        description:
+          gettext(
+            "Forge may suggest a closed change, but that proposal has no authority of its own."
+          )
+      },
+      %{
+        command: "govern",
+        title: gettext("Evaluation and activation"),
+        description:
+          gettext(
+            "Protected tests, review, approval, activation, and rollback guard every change."
+          )
+      }
     ]
   end
 
@@ -281,15 +420,17 @@ defmodule ExBlogWeb.Showcase do
         name: "spectre",
         repo: "elchemista/spectre",
         role: "runtime",
+        core?: true,
         tagline:
           gettext(
-            "Supervised Process Event Controller for Transition and Reasoning with Elixir. The runtime the rest plugs into."
+            "The OTP-native core: one owner for state, explicit lifecycle and governance. Every optional power plugs into this foundation."
           )
       },
       %{
         name: "spectre_mnemonic",
         repo: "elchemista/spectre_mnemonic",
         role: "memory",
+        core?: false,
         tagline:
           gettext(
             "Semantic memory engine: ETS working memory, durable recall, typed observations and mental models."
@@ -299,6 +440,7 @@ defmodule ExBlogWeb.Showcase do
         name: "spectre_kinetic",
         repo: "elchemista/spectre_kinetic",
         role: "planning",
+        core?: false,
         tagline:
           gettext(
             "Elixir-first planning toolkit: Action Language in, validated tool calls out. No JSON schema in the prompt."
@@ -308,18 +450,21 @@ defmodule ExBlogWeb.Showcase do
         name: "spectre_pulse",
         repo: "elchemista/spectre_pulse",
         role: "protocol",
+        core?: false,
         tagline: gettext("Transport-independent protocol for agents talking to other agents.")
       },
       %{
         name: "spectre_directive",
         repo: "elchemista/spectre_directive",
         role: "missions",
+        core?: false,
         tagline: gettext("An embeddable mission loop for Elixir agents.")
       },
       %{
         name: "spectre_lens",
         repo: "elchemista/spectre_lens",
         role: "browser",
+        core?: false,
         tagline:
           gettext(
             "Agent-first browser lens for Lightpanda, so an agent can read what it shipped."
@@ -329,6 +474,7 @@ defmodule ExBlogWeb.Showcase do
         name: "spectre_prism",
         repo: "elchemista/spectre_prism",
         role: "models",
+        core?: false,
         tagline:
           gettext(
             "Picks the model per request across OpenAI, OpenRouter, Ollama and Gemini, enforcing privacy, context, cost and latency limits before the call."
@@ -338,6 +484,7 @@ defmodule ExBlogWeb.Showcase do
         name: "spectre_beam",
         repo: "elchemista/spectre_beam",
         role: "channels",
+        core?: false,
         tagline:
           gettext(
             "The external-channel boundary: it normalizes provider events and delivers messages idempotently."
