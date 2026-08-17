@@ -30,6 +30,8 @@ defmodule ExBlog.Agent.Actions do
   alias ExBlog.Content
   alias ExBlog.Content.Sync
   alias ExBlog.Content.Writer
+  alias ExBlog.Ecosystem
+  alias ExBlog.Ecosystem.Snapshot
   alias ExBlog.Telegram.Transport
   alias ExBlogWeb.Prompt
 
@@ -124,6 +126,26 @@ defmodule ExBlog.Agent.Actions do
        openrouter: openrouter_health(ctx),
        budget: Budget.status()
      }}
+  end
+
+  @doc "Refreshes every published Spectre library status used by the home page."
+  @spec sync_ecosystem_status(map(), term()) :: {:ok, map()} | {:error, term()}
+  def sync_ecosystem_status(_args \\ %{}, ctx \\ nil) do
+    result =
+      case context_option(ctx, :ecosystem_refresh) do
+        fun when is_function(fun, 0) -> fun.()
+        _default -> Ecosystem.refresh()
+      end
+
+    case result do
+      {:ok, %Snapshot{} = snapshot} -> {:ok, ecosystem_projection(snapshot)}
+      {:error, _reason} = error -> error
+      _invalid -> {:error, :invalid_ecosystem_refresh}
+    end
+  rescue
+    _exception -> {:error, :ecosystem_refresh_failed}
+  catch
+    :exit, _reason -> {:error, :ecosystem_unavailable}
   end
 
   @doc "Runs the bounded Spectre Lens audit for one public blog URL."
@@ -659,6 +681,20 @@ defmodule ExBlog.Agent.Actions do
       reachable: false,
       models_available: false,
       reason: health_reason(reason)
+    }
+  end
+
+  defp ecosystem_projection(snapshot) do
+    %{
+      ecosystem_status: true,
+      status: snapshot.status,
+      generated_at: snapshot.generated_at,
+      fetched_at: snapshot.fetched_at,
+      summary: snapshot.summary,
+      libraries:
+        Enum.map(snapshot.libraries, fn library ->
+          Map.take(library, [:name, :status, :version, :source])
+        end)
     }
   end
 

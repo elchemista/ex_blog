@@ -131,6 +131,29 @@ defmodule ExBlog.Agent.Presenter do
   end
 
   def present(%{
+        ecosystem_status: true,
+        status: status,
+        summary: summary,
+        libraries: libraries,
+        fetched_at: fetched_at
+      }) do
+    rows =
+      Enum.map_join(libraries, "\n", fn library ->
+        version = if library.version, do: " #{library.version}", else: ""
+        "- #{library.name}: #{library.status}#{version} (#{library.source})"
+      end)
+
+    """
+    Ecosystem statuses synchronized and the home page snapshot was updated.
+    Overall status: #{status}
+    Libraries: #{summary.total}; passing: #{summary.passing}; failing: #{summary.failing}
+    Refreshed: #{format_datetime(fetched_at)}
+    #{rows}
+    """
+    |> String.trim()
+  end
+
+  def present(%{
         operation: :created,
         title: title,
         slug: slug,

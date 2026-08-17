@@ -78,6 +78,16 @@ defmodule ExBlog.Agent.KineticActions do
   @spec system_status() :: {:ok, map()}
   def system_status, do: {:ok, %{}}
 
+  @al ~s(SYNC ECOSYSTEM STATUS)
+  @doc """
+  Fetch every Spectre library compatibility check and refresh the home page.
+
+  AL: SYNC ECOSYSTEM STATUS
+  AL: REFRESH LIBRARY STATUSES
+  """
+  @spec sync_ecosystem_status() :: {:ok, map()}
+  def sync_ecosystem_status, do: {:ok, %{}}
+
   @al ~s(CHECK BLOG PAGE URL="https://example.com/articles/example")
   @doc """
   Inspect one rendered public blog page with Spectre Lens.

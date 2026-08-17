@@ -2,6 +2,7 @@ defmodule ExBlogWeb.HomeEcosystemTest do
   # Starts the named ecosystem process and reads its named ETS table.
   use ExBlogWeb.ConnCase, async: false
 
+  alias ExBlog.Agent.Actions
   alias ExBlog.Ecosystem
 
   setup do
@@ -49,6 +50,19 @@ defmodule ExBlogWeb.HomeEcosystemTest do
     assert {:ok, _snapshot} = Ecosystem.refresh(ecosystem)
 
     assert etag(conn) != passing_etag
+  end
+
+  test "the agent action refreshes the statuses rendered on the home page", %{conn: conn} do
+    stub(report("failing"))
+
+    assert {:ok, %{ecosystem_status: true, summary: %{total: 3}}} =
+             Actions.sync_ecosystem_status()
+
+    document = conn |> get(~p"/") |> html_response(200) |> LazyHTML.from_document()
+
+    assert document |> LazyHTML.query("#compat-spectre .t-fail") |> Enum.any?()
+    assert document |> LazyHTML.query("#compat-spectre_ledger .t-fail") |> Enum.any?()
+    assert document |> LazyHTML.query("#compat-spectre_lab .t-fail") |> Enum.any?()
   end
 
   defp etag(conn) do

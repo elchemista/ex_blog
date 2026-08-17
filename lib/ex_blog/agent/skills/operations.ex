@@ -1,6 +1,7 @@
 defmodule ExBlog.Agent.Skills.Operations do
   @moduledoc """
-  Runtime diagnostics, budget visibility, and repository synchronization.
+  Runtime diagnostics, ecosystem compatibility, budget visibility, and
+  repository synchronization.
 
   Diagnostics are cacheable, learnable read routes and therefore use semantic
   examples, the optional local classifier, verified semantic-cache rows, and
@@ -34,6 +35,7 @@ defmodule ExBlog.Agent.Skills.Operations do
   requires_action(:openrouter_status, mode: :read)
   requires_action(:budget_status, mode: :read)
   requires_action(:system_status, mode: :read)
+  requires_action(:sync_ecosystem_status, mode: :write)
   requires_action(:sync_repository, mode: :write)
 
   # The policy belongs to the skill so its prompts, attempts, and pending state
@@ -111,6 +113,25 @@ defmodule ExBlog.Agent.Skills.Operations do
         cache: false,
         via: [:regex, :embedding, :classifier, :llm_classifier] do
         action(:sync_repository, args: %{})
+      end
+    end
+
+    flow :ecosystem do
+      # Refreshing the public compatibility snapshot is an idempotent write to
+      # the Agent-owned runtime state. It needs no destructive-action policy,
+      # but it must never become cached authorization for a later turn.
+      on :SYNC_ECOSYSTEM_STATUS,
+        regex:
+          ~r/^\s*(?:sync|synchroni[sz]e|syncroni[sz]e)\s+(?:the\s+)?(?:ecosystem\s+|librar(?:y|ies)\s+)?status(?:es)?\s*[.!]?\s*$/iu,
+        regex_strength: :hard,
+        embedding: [
+          "synchronize every Spectre library compatibility status",
+          "refresh the ecosystem matrix shown on the home page",
+          "fetch the latest library checks and update the public status table"
+        ],
+        cache: false,
+        via: [:regex, :embedding, :classifier, :llm_classifier] do
+        action(:sync_ecosystem_status, args: %{})
       end
     end
 

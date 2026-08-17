@@ -192,7 +192,12 @@ defmodule ExBlog.Agent.RouterPipelineTest do
       assert rule.regex == []
     end
 
-    for label <- [:REVISE_ARTICLE, :PUBLISH_ARTICLE, :SYNC_BLOG_REPOSITORY] do
+    for label <- [
+          :REVISE_ARTICLE,
+          :PUBLISH_ARTICLE,
+          :SYNC_BLOG_REPOSITORY,
+          :SYNC_ECOSYSTEM_STATUS
+        ] do
       rule = Map.fetch!(rules, label)
       assert rule.via == [:regex | mutation_via]
       refute rule.cache
@@ -426,6 +431,22 @@ defmodule ExBlog.Agent.RouterPipelineTest do
              )
 
     assert receipt.label == :SYNC_BLOG_REPOSITORY
+    assert receipt.strategy == :regex
+    refute receipt.llm_called?
+    refute_received {:embedding_called, _text}
+    refute_received {:local_classifier_called, _text}
+    refute_received {:classifier_called, _prompt, _opts}
+  end
+
+  test "the administrator's status synchronization phrase refreshes the ecosystem" do
+    assert {:ok, receipt} =
+             Router.evaluate(Agent, "syncronize the status",
+               via: [:regex, :embedding, :classifier, :semantic_cache, :llm_classifier],
+               classifier_local: CaptureLocalClassifier,
+               embedding: SimilarityEmbedding
+             )
+
+    assert receipt.label == :SYNC_ECOSYSTEM_STATUS
     assert receipt.strategy == :regex
     refute receipt.llm_called?
     refute_received {:embedding_called, _text}

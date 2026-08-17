@@ -5,6 +5,7 @@ defmodule ExBlog.Agent.ActionsTest do
   alias ExBlog.Agent.Presenter
   alias ExBlog.Content.Article
   alias ExBlog.Content.Index
+  alias ExBlog.Ecosystem.Snapshot
 
   test "article creation generates body and optional SEO before one writer call" do
     ai_complete = fn level, prompt, opts ->
@@ -178,6 +179,48 @@ defmodule ExBlog.Agent.ActionsTest do
     assert rendered =~ "Telegram: connected"
     assert rendered =~ "OpenRouter: reachable; all models available"
     assert rendered =~ "AI budget remaining: €"
+  end
+
+  test "ecosystem synchronization returns every refreshed library for presentation" do
+    snapshot = %Snapshot{
+      status: :failing,
+      summary: %{total: 2, passing: 1, failing: 1},
+      generated_at: ~U[2026-08-17 12:00:00Z],
+      fetched_at: ~U[2026-08-17 12:01:00Z],
+      fingerprint: "fresh",
+      libraries: [
+        %{
+          name: "spectre",
+          status: :passing,
+          version: "0.3.2",
+          source: :hex,
+          repository_url: nil,
+          version_url: nil,
+          run_url: nil
+        },
+        %{
+          name: "spectre_lens",
+          status: :failing,
+          version: "0.2.0",
+          source: :github,
+          repository_url: nil,
+          version_url: nil,
+          run_url: nil
+        }
+      ]
+    }
+
+    ctx = %{opts: [ecosystem_refresh: fn -> {:ok, snapshot} end]}
+
+    assert {:ok, result} = Actions.sync_ecosystem_status(%{}, ctx)
+    assert result.ecosystem_status
+    assert result.summary.total == 2
+    assert Enum.map(result.libraries, & &1.name) == ["spectre", "spectre_lens"]
+
+    rendered = Presenter.present(result)
+    assert rendered =~ "home page snapshot was updated"
+    assert rendered =~ "spectre: passing 0.3.2 (hex)"
+    assert rendered =~ "spectre_lens: failing 0.2.0 (github)"
   end
 
   test "an unqualified admin list includes drafts and published articles in every language" do

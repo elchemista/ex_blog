@@ -53,7 +53,7 @@
   "rustler": {:hex, :rustler, "0.38.0", "7a8906998ff0d28e3021c0a73264abcda719bda344b2e58307c6805b0f87c9b4", [:mix], [{:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "704c03c1bf66be12b031c5a389347b91c81c5cb819a24b068b0de36fe4a5652a"},
   "rustler_precompiled": {:hex, :rustler_precompiled, "0.9.0", "3a052eda09f3d2436364645cc1f13279cf95db310eb0c17b0d8f25484b233aa0", [:mix], [{:rustler, "~> 0.23", [hex: :rustler, repo: "hexpm", optional: true]}], "hexpm", "471d97315bd3bf7b64623418b3693eedd8e47de3d1cb79a0ac8f9da7d770d94c"},
   "slugify": {:git, "https://github.com/elchemista/slugify.git", "14840a5ac5e670f3e7677d4ec9c5c83093a19ac5", [branch: "master", depth: 1]},
-  "spectre": {:git, "https://github.com/elchemista/spectre.git", "456a8b75642130bb94c2839b2731f86b752d1188", [tag: "0.3.0", depth: 1]},
+  "spectre": {:hex, :spectre, "0.3.2", "195847c077716c45a883e32e04f07b06fe94835a2bbb79dd8a0ba2fbc352b1f4", [:mix], [{:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: false]}, {:vettore, "~> 0.3.3", [hex: :vettore, repo: "hexpm", optional: false]}], "hexpm", "b1381b148f28786f7de7909d6fe67796cf77eb1c1de2115be00b6be9e60582d9"},
   "spectre_beam": {:git, "https://github.com/elchemista/spectre_beam.git", "a2e4cb599011773cc3da7b51a4a730035fd536a0", [branch: "main", depth: 1]},
   "spectre_kinetic": {:git, "https://github.com/elchemista/spectre_kinetic.git", "7b283b93fd6159420e276b800db5b508c91b0b5b", [branch: "main", depth: 1]},
   "spectre_lens": {:git, "https://github.com/elchemista/spectre_lens.git", "249cc8c6d899a5a99f4d20e39a634dabe76b20f3", [branch: "main", depth: 1]},

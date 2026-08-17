@@ -165,6 +165,7 @@ defmodule ExBlog.Agent do
       :SHOW_AI_BUDGET,
       :SHOW_SYSTEM_STATUS,
       :CHECK_OPENROUTER,
+      :SYNC_ECOSYSTEM_STATUS,
       :SYNC_BLOG_REPOSITORY,
       :VERIFY_BLOG,
       :SHOW_VERIFICATION,
@@ -215,6 +216,7 @@ defmodule ExBlog.Agent do
       budget_status: :read,
       system_status: :read,
       check_page: :read,
+      sync_ecosystem_status: :write,
       create_article: :write,
       revise_article: :write,
       translate_article: :write,
@@ -260,6 +262,7 @@ defmodule ExBlog.Agent do
       openrouter_status: :openrouter_status,
       budget_status: :budget_status,
       system_status: :system_status,
+      sync_ecosystem_status: :sync_ecosystem_status,
       sync_repository: :sync_repository
     ]
   )

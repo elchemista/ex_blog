@@ -107,6 +107,17 @@ defmodule ExBlog.AgentTest do
     end
   end
 
+  test "a status synchronization request stages the ecosystem refresh action" do
+    conversation_id = "ecosystem-sync-#{System.unique_integer([:positive])}"
+
+    assert {:ok, result} =
+             Spectre.ask(ExBlog.Agent, "syncronize the status", conversation_id: conversation_id)
+
+    assert result.route.label == :SYNC_ECOSYSTEM_STATUS
+    assert result.route.scope == {:skill, :operations}
+    assert Result.pending_effect(result).name == :sync_ecosystem_status
+  end
+
   test "an administrator can leave the budget route and list articles in the same conversation" do
     conversation_id = "route-switch-#{System.unique_integer([:positive])}"
 

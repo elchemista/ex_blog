@@ -68,7 +68,7 @@ defmodule ExBlog.MixProject do
       {:decimal, "~> 3.1"},
       {:slugify, github: "elchemista/slugify", branch: "master", depth: 1},
       {:ex_gram, github: "elchemista/ex_gram", branch: "main", depth: 1},
-      {:spectre, github: "elchemista/spectre", tag: "0.3.0", depth: 1, override: true},
+      {:spectre, "~> 0.3.2", override: true},
       {:spectre_prism,
        github: "elchemista/spectre_prism", branch: "main", depth: 1, override: true},
       {:spectre_beam,
