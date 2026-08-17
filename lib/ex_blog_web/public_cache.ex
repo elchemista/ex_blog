@@ -3,15 +3,18 @@ defmodule ExBlogWeb.PublicCache do
   Browser-cache headers for public pages.
 
   The ETag identifies a rendered response, so it has to cover *everything* that
-  shapes it: the content commit, the page variant, and the compiled code that
-  renders it. Leaving the code out means a deploy that only touches templates or
-  translations keeps answering `304 Not Modified` until an article changes, and
-  visitors keep seeing the previous page.
+  shapes it: the content commit, the page variant, the compiled code that
+  renders it, and the runtime data it embeds. Leaving the code out means a
+  deploy that only touches templates or translations keeps answering
+  `304 Not Modified` until an article changes, and visitors keep seeing the
+  previous page. The same applies to the daily ecosystem refresh, which changes
+  the home page without touching either the commit or the code.
   """
 
   import Plug.Conn
 
   alias ExBlog.Content.Index
+  alias ExBlog.Ecosystem
 
   # Modules whose compiled output ends up in a cached public response. Add any
   # new module that renders one, otherwise its changes stay invisible behind the
@@ -53,7 +56,8 @@ defmodule ExBlogWeb.PublicCache do
     source = [
       Index.commit_hash() || "uncommitted",
       variant,
-      render_version()
+      render_version(),
+      Ecosystem.fingerprint()
     ]
 
     digest = :crypto.hash(:sha256, Enum.join(source, ":")) |> Base.url_encode64(padding: false)

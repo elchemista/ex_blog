@@ -5,10 +5,13 @@ defmodule ExBlogWeb.Showcase do
   Every claim rendered here is sourced, not invented:
 
     * the definition, philosophy, safety boundary, reflective runtime and DSL
-      example come from the published `spectre` 0.3.0 documentation;
+      example come from the published `spectre` 0.3.2 documentation;
     * each library summary comes from its own GitHub description
-      (`api.github.com/users/elchemista/repos`, checked 2026-08-04);
-    * the request path comes from `docs/spectre-editorial-showcase.md`.
+      (`api.github.com/users/elchemista/repos`, checked 2026-08-16);
+    * the request path comes from `docs/spectre-editorial-showcase.md`;
+    * the compatibility matrix is not written here at all. It is the daily
+      `spectre_ecosystem` report, refreshed by `ExBlog.Ecosystem` and passed in
+      as the `ecosystem` attribute.
 
   Every `repo` below was verified to resolve on github.com. Re-check before
   adding one: a card links straight to it, so a private or renamed repository
@@ -20,19 +23,31 @@ defmodule ExBlogWeb.Showcase do
 
   @spectre_repo "elchemista/spectre"
   @blog_repo "elchemista/ex_blog"
-  @spectre_hexdocs_url "https://hexdocs.pm/spectre/0.3.0"
+  # The released version this page describes. Keep it here only: the chip, the
+  # documentation link and the reflective-runtime paragraph all read it, so a
+  # release bump is a one-line change.
+  @spectre_version "0.3.2"
+  @spectre_hexdocs_url "https://hexdocs.pm/spectre/#{@spectre_version}"
+  @ecosystem_status_url "https://elchemista.github.io/spectre_ecosystem/"
 
   @doc "Returns the GitHub URL of the open-source repository behind this site."
   def blog_repo_url, do: "https://github.com/" <> @blog_repo
   def blog_repo, do: @blog_repo
   def spectre_repo, do: @spectre_repo
   def spectre_repo_url, do: "https://github.com/" <> @spectre_repo
+  def spectre_version, do: @spectre_version
   def spectre_hexdocs_url, do: @spectre_hexdocs_url
+  def ecosystem_status_url, do: @ecosystem_status_url
 
   @doc """
   The whole showcase: what Spectre is, a DSL sample, the request path this site
-  follows, the rationale, and the library catalog.
+  follows, the rationale, the library catalog, and the compatibility matrix.
   """
+  attr :ecosystem, :any,
+    default: nil,
+    doc:
+      "an `ExBlog.Ecosystem.Snapshot`, or nil to leave the compatibility section out until the first refresh lands"
+
   def spectre_showcase(assigns) do
     assigns =
       assigns
@@ -51,7 +66,7 @@ defmodule ExBlogWeb.Showcase do
         </div>
         <div class="flex flex-wrap gap-2">
           <a href={spectre_hexdocs_url()} rel="noopener noreferrer" class="term-chip">
-            hex · 0.3.0
+            hex · {spectre_version()}
           </a>
           <a href={spectre_repo_url()} rel="noopener noreferrer" class="term-chip">
             github.com/{spectre_repo()}
@@ -236,7 +251,8 @@ defmodule ExBlogWeb.Showcase do
           </h2>
           <p class="mt-4 max-w-4xl text-[0.8rem] leading-7 t-dim">
             {gettext(
-              "Spectre 0.3.0 can record explicitly enabled, redacted experience, inspect the active agent definition, and propose bounded changes to skills or configuration. The proposal is inert data: it cannot publish, approve, or activate itself."
+              "Spectre %{version} can record explicitly enabled, redacted experience, inspect the active agent definition, and propose bounded changes to skills or configuration. The proposal is inert data: it cannot publish, approve, or activate itself.",
+              version: spectre_version()
             )}
           </p>
 
@@ -317,6 +333,128 @@ defmodule ExBlogWeb.Showcase do
         </a>
       </div>
 
+      <div
+        :if={@ecosystem}
+        id="spectre-compatibility"
+        class="term-window overflow-hidden"
+      >
+        <div class="term-bar">
+          <span class="term-dots" aria-hidden="true">
+            <span class="term-dot"></span>
+            <span class="term-dot"></span>
+            <span class="term-dot"></span>
+          </span>
+          <span class="term-title">$ spectre status --ecosystem</span>
+          <span class="ml-auto hidden flex-none t-faint sm:block">
+            {gettext("checked %{timestamp}", timestamp: checked_at(@ecosystem))}
+          </span>
+        </div>
+        <div class="term-body p-5 sm:p-7">
+          <p class="term-prompt text-[0.72rem] t-faint">curl -s spectre_ecosystem/status.json</p>
+          <h2 class="mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl">
+            {gettext("Compatibility with the current core")}
+          </h2>
+          <p class="mt-4 max-w-4xl text-[0.8rem] leading-7 t-dim">
+            {gettext(
+              "Every satellite library is rebuilt and tested against the commit that Spectre core is on today. The table is the published result of that run, not a promise: this page reads it once a day and shows exactly what came back."
+            )}
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span class="term-chip">
+              {ngettext(
+                "%{count} library checked",
+                "%{count} libraries checked",
+                @ecosystem.summary.total
+              )}
+            </span>
+            <span class="term-chip">
+              <span class="t-ok" aria-hidden="true">●</span>
+              {gettext("%{count} passing", count: @ecosystem.summary.passing)}
+            </span>
+            <span :if={@ecosystem.summary.failing > 0} class="term-chip">
+              <span class="t-fail" aria-hidden="true">✕</span>
+              {gettext("%{count} failing", count: @ecosystem.summary.failing)}
+            </span>
+          </div>
+
+          <div class="mt-6 w-full overflow-x-auto">
+            <table class="term-table">
+              <caption class="sr-only">
+                {gettext("Compatibility of each Spectre library with the current core")}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">{gettext("library")}</th>
+                  <th scope="col">{gettext("check")}</th>
+                  <th scope="col">{gettext("version")}</th>
+                  <th scope="col">{gettext("source")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={library <- @ecosystem.libraries} id={"compat-#{library.name}"}>
+                  <th scope="row" class="font-normal">
+                    <a
+                      :if={library.repository_url}
+                      href={library.repository_url}
+                      rel="noopener noreferrer"
+                      class="t-strong underline decoration-dashed underline-offset-4 transition hover:t-invert"
+                    >
+                      {library.name}
+                    </a>
+                    <span :if={is_nil(library.repository_url)} class="t-strong">
+                      {library.name}
+                    </span>
+                  </th>
+                  <td>
+                    <a
+                      :if={library.run_url}
+                      href={library.run_url}
+                      rel="noopener noreferrer"
+                      class={["transition hover:t-invert", status_tone(library.status)]}
+                    >
+                      <span aria-hidden="true">{status_glyph(library.status)}</span>
+                      {status_label(library.status)}
+                    </a>
+                    <span :if={is_nil(library.run_url)} class={status_tone(library.status)}>
+                      <span aria-hidden="true">{status_glyph(library.status)}</span>
+                      {status_label(library.status)}
+                    </span>
+                  </td>
+                  <td>
+                    <a
+                      :if={library.version && library.version_url}
+                      href={library.version_url}
+                      rel="noopener noreferrer"
+                      class="transition hover:t-invert"
+                    >
+                      {library.version}
+                    </a>
+                    <span :if={library.version && is_nil(library.version_url)}>
+                      {library.version}
+                    </span>
+                    <span :if={is_nil(library.version)} class="t-faint" aria-hidden="true">—</span>
+                  </td>
+                  <td class="t-dim">{source_label(library.source)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="mt-5 border-t border-dashed border-[color:var(--line)] pt-4 text-[0.7rem] leading-6 t-faint">
+            <span aria-hidden="true">// </span>
+            <a
+              href={ecosystem_status_url()}
+              rel="noopener noreferrer"
+              class="t-dim transition hover:t-strong"
+            >
+              elchemista.github.io/spectre_ecosystem
+            </a>
+            <span> — {gettext("the full report, refreshed by its own scheduled run")}</span>
+          </p>
+        </div>
+      </div>
+
       <p class="pt-2 text-[0.72rem] leading-6 t-faint">
         <span aria-hidden="true">// </span>{gettext("Also running under this site:")}
         <span :for={{tool, index} <- Enum.with_index(companion_tools())}>{if(index > 0, do: ", ")}<a
@@ -328,6 +466,37 @@ defmodule ExBlogWeb.Showcase do
     </section>
     """
   end
+
+  # When the report was produced upstream. The fetch time is the fallback, so
+  # the row never claims a publication moment the document did not carry.
+  defp checked_at(%{generated_at: %DateTime{} = generated_at}), do: format_timestamp(generated_at)
+  defp checked_at(%{fetched_at: %DateTime{} = fetched_at}), do: format_timestamp(fetched_at)
+
+  # Both timestamps are already UTC: the parser only accepts what
+  # `DateTime.from_iso8601/1` normalizes, and the fetch time is `utc_now/0`.
+  defp format_timestamp(datetime), do: Calendar.strftime(datetime, "%Y-%m-%d %H:%M UTC")
+
+  # Status is never carried by colour alone: each cell also states the outcome
+  # in words and marks it with a glyph.
+  defp status_tone(:passing), do: "t-ok"
+  defp status_tone(:failing), do: "t-fail"
+  defp status_tone(_status), do: "t-dim"
+
+  defp status_glyph(:passing), do: "● "
+  defp status_glyph(:failing), do: "✕ "
+  defp status_glyph(_status), do: "○ "
+
+  defp status_label(:passing), do: gettext("passing")
+  defp status_label(:failing), do: gettext("failing")
+  defp status_label(:pending), do: gettext("pending")
+  defp status_label(:stale), do: gettext("stale")
+  defp status_label(:not_configured), do: gettext("not configured")
+  defp status_label(:not_run), do: gettext("not run")
+  defp status_label(_status), do: gettext("unknown")
+
+  defp source_label(:hex), do: "hex"
+  defp source_label(:github), do: "github"
+  defp source_label(_source), do: gettext("unknown")
 
   # Verbatim from the "safety boundary" section of deps/spectre/README.md.
   defp safety_boundary do
@@ -437,6 +606,16 @@ defmodule ExBlogWeb.Showcase do
           )
       },
       %{
+        name: "spectre_ledger",
+        repo: "elchemista/spectre_ledger",
+        role: "checkpoints",
+        core?: false,
+        tagline:
+          gettext(
+            "Append-only durable checkpoints for Spectre agents, so state survives a crash."
+          )
+      },
+      %{
         name: "spectre_kinetic",
         repo: "elchemista/spectre_kinetic",
         role: "planning",
@@ -488,6 +667,16 @@ defmodule ExBlogWeb.Showcase do
         tagline:
           gettext(
             "The external-channel boundary: it normalizes provider events and delivers messages idempotently."
+          )
+      },
+      %{
+        name: "spectre_lab",
+        repo: "elchemista/spectre_lab",
+        role: "debugging",
+        core?: false,
+        tagline:
+          gettext(
+            "Debug Spectre agents with checkpoint playback and isolated testing tools, away from production."
           )
       }
     ]

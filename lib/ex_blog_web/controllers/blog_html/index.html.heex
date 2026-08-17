@@ -102,7 +102,7 @@
       </div>
     </div>
 
-    <.spectre_showcase :if={is_nil(@filter)} />
+    <.spectre_showcase :if={is_nil(@filter)} ecosystem={@ecosystem} />
 
     <div
       :if={@filter}

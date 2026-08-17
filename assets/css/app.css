@@ -42,6 +42,10 @@ html[data-theme="dark"] {
   --fg-dim: #7d7d89;
   --fg-faint: #4b4b55;
   --grid: rgba(255, 255, 255, 0.028);
+  /* Check outcomes. Muted enough to sit inside a monochrome page, contrasted
+     enough to read on --surface. */
+  --state-ok: #8fcf9a;
+  --state-fail: #e08a8a;
   --invert-bg: #f5f5f7;
   --invert-fg: #050506;
   --selection-bg: #f5f5f7;
@@ -78,6 +82,8 @@ html[data-theme="light"] {
   --fg-dim: #6f6f69;
   --fg-faint: #9a9a94;
   --grid: rgba(0, 0, 0, 0.035);
+  --state-ok: #2f6b3c;
+  --state-fail: #9c3a3a;
   --invert-bg: #0a0a09;
   --invert-fg: #f7f7f5;
   --selection-bg: #0a0a09;
@@ -242,6 +248,18 @@ body {
 @utility t-invert {
   background-color: var(--invert-bg);
   color: var(--invert-fg);
+}
+
+/* The only two hued text tones outside code. They report an upstream check
+   result, and are always paired with a word and a glyph so the meaning survives
+   without colour. */
+
+@utility t-ok {
+  color: var(--state-ok);
+}
+
+@utility t-fail {
+  color: var(--state-fail);
 }
 
 /* --- Terminal window ------------------------------------------------------ */

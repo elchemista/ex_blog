@@ -31,7 +31,8 @@ defmodule ExBlog.Application do
           # Owns Subject-scoped Agent Instances so route handlers can start
           # durable Work loops such as the sync-and-verify procedure.
           {Spectre.Supervisor, name: ExBlog.SpectreSupervisor}
-        ] ++ content_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
+        ] ++
+        content_children() ++ ecosystem_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
 
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
@@ -50,6 +51,14 @@ defmodule ExBlog.Application do
   defp content_children do
     if Application.get_env(:ex_blog, :start_content?, true) do
       [ExBlog.Content.Bootstrap, ExBlog.Content.Index, ExBlog.Content.Sync]
+    else
+      []
+    end
+  end
+
+  defp ecosystem_children do
+    if Application.get_env(:ex_blog, :start_ecosystem?, true) do
+      [ExBlog.Ecosystem]
     else
       []
     end

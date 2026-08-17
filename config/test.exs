@@ -3,6 +3,9 @@ import Config
 config :ex_blog,
   validate_runtime_config?: false,
   start_content?: false,
+  # Tests that need the compatibility matrix start the process themselves with a
+  # stubbed transport. Nothing else may reach GitHub Pages during a test run.
+  start_ecosystem?: false,
   start_telegram?: false,
   spectre_embedding_adapter: Spectre.Classifier.Embeddings.ExFastembed
 

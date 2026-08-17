@@ -14,6 +14,7 @@ config :gettext, :default_locale, "en"
 config :ex_blog,
   validate_runtime_config?: true,
   start_content?: true,
+  start_ecosystem?: true,
   start_telegram?: true,
   secure_session_cookie?: config_env() == :prod,
   public_origins: ["http://localhost:4000", "http://127.0.0.1:4000"],
@@ -23,6 +24,15 @@ config :ex_blog,
     auto_verify_threshold: 0.985,
     auto_verify_margin: 0.05
   ]
+
+# The compatibility matrix rendered on the home page. The upstream job
+# republishes status.json once a day after its scheduled compatibility run, so
+# matching that cadence is enough; a failed refresh retries sooner and keeps the
+# previous snapshot on screen.
+config :ex_blog, :ecosystem,
+  status_url: "https://elchemista.github.io/spectre_ecosystem/status.json",
+  refresh_interval_ms: 86_400_000,
+  retry_interval_ms: 1_800_000
 
 # Kinetic remains deterministic-first. Only a failed deterministic action plan
 # reaches this constrained LLM boundary, which is intentionally independent

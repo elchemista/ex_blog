@@ -4,6 +4,7 @@ defmodule ExBlogWeb.BlogController do
   alias ExBlog.Config
   alias ExBlog.Content
   alias ExBlog.Content.Article
+  alias ExBlog.Ecosystem
   alias ExBlogWeb.Layouts
   alias ExBlogWeb.PublicCache
 
@@ -87,6 +88,8 @@ defmodule ExBlogWeb.BlogController do
       featured: featured,
       remaining: remaining,
       filter: filter,
+      # An ETS read of the last daily refresh; nil until the first one lands.
+      ecosystem: Ecosystem.snapshot(),
       current_language: language,
       supported_languages: Config.get().supported_languages,
       page_language: language,
