@@ -13,6 +13,7 @@ defmodule ExBlogWeb.SitemapController do
   alias ExBlog.Content
   alias ExBlog.Content.Article
   alias ExBlog.Content.TranslationGroups
+  alias ExBlogWeb.Canonical
   alias ExBlogWeb.PublicCache
 
   @legal_paths ["cookies-policy", "privacy-policy"]
@@ -41,22 +42,27 @@ defmodule ExBlogWeb.SitemapController do
     end)
   end
 
+  # One entry per page, never one per URL that happens to render it. `/` and
+  # `/<default language>` are the same page, so only the canonical one is listed:
+  # advertising both told crawlers to index two copies of the home page while the
+  # `canonical` tag told them to index one, and the two documents disagreeing is
+  # worse than either choice alone.
   defp public_pages do
-    index_alternates = localized_alternates(fn language -> "/#{language}" end)
+    languages = Config.get().supported_languages
+    index_alternates = Canonical.index_alternates()
 
     index_entries =
-      [
-        %{
-          url: absolute("/"),
-          lastmod: nil,
-          alternates: [%{language: "x-default", url: absolute("/")} | index_alternates]
-        }
-      ] ++ localized_entries(index_alternates, absolute("/"))
+      Enum.map(languages, fn language ->
+        %{url: Canonical.index_url(language), lastmod: nil, alternates: index_alternates}
+      end)
 
     legal_entries =
       Enum.flat_map(@legal_paths, fn path ->
-        localized_alternates(fn language -> "/#{language}/#{path}" end)
-        |> localized_entries()
+        alternates = Canonical.localized_alternates(&"/#{&1}/#{path}")
+
+        Enum.map(languages, fn language ->
+          %{url: absolute("/#{language}/#{path}"), lastmod: nil, alternates: alternates}
+        end)
       end)
 
     index_entries ++ legal_entries
@@ -93,21 +99,6 @@ defmodule ExBlogWeb.SitemapController do
     end)
   end
 
-  defp localized_alternates(path_builder) do
-    Enum.map(Config.get().supported_languages, fn language ->
-      %{language: language, url: absolute(path_builder.(language))}
-    end)
-  end
-
-  defp localized_entries(alternates, x_default_url \\ nil) do
-    default_url = x_default_url || default_alternate(alternates).url
-    complete_alternates = [%{language: "x-default", url: default_url} | alternates]
-
-    Enum.map(alternates, fn alternate ->
-      %{url: alternate.url, lastmod: nil, alternates: complete_alternates}
-    end)
-  end
-
   defp article_alternates(articles) do
     language_order =
       Config.get().supported_languages
@@ -120,15 +111,15 @@ defmodule ExBlogWeb.SitemapController do
         {Map.get(language_order, article.lang, map_size(language_order)), article.lang,
          article.slug}
       end)
-      |> Enum.map(fn article -> %{language: article.lang, url: article_url(article)} end)
+      |> Enum.map(fn article -> %{hreflang: article.lang, url: article_url(article)} end)
 
     default = default_alternate(alternates)
-    [%{language: "x-default", url: default.url} | alternates]
+    [%{hreflang: "x-default", url: default.url} | alternates]
   end
 
   defp default_alternate(alternates) do
     default_language = Config.get().default_language
-    Enum.find(alternates, List.first(alternates), &(&1.language == default_language))
+    Enum.find(alternates, List.first(alternates), &(&1.hreflang == default_language))
   end
 
   defp article_url(%Article{} = article), do: absolute("/#{article.lang}/#{article.slug}")
@@ -144,7 +135,7 @@ defmodule ExBlogWeb.SitemapController do
       Enum.map_join(alternates, "", fn alternate ->
         """
 
-            <xhtml:link rel="alternate" hreflang="#{xml(alternate.language)}" href="#{xml(alternate.url)}" />\
+            <xhtml:link rel="alternate" hreflang="#{xml(alternate.hreflang)}" href="#{xml(alternate.url)}" />\
         """
       end)
 

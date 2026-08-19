@@ -17,9 +17,26 @@ defmodule ExBlogWeb.LegalControllerTest do
     assert one?(document, ~s(#cookie-preferences-button[data-cc="show-preferencesModal"]))
     assert has?(document, ~s(a[href="/it/privacy-policy"]))
 
+    # The canonical follows the host the response was rendered from. It used to be
+    # a hard-coded production URL, which made every non-production render point at
+    # the live site.
+    base = ExBlog.Config.canonical_url()
+
+    assert one?(document, ~s(link[rel="canonical"][href="#{base}/it/cookies-policy"]))
+
     assert one?(
              document,
-             ~s(link[rel="canonical"][href="https://spectre.elchemista.com/it/cookies-policy"])
+             ~s(link[rel="alternate"][hreflang="it"][href="#{base}/it/cookies-policy"])
+           )
+
+    assert one?(
+             document,
+             ~s(link[rel="alternate"][hreflang="en"][href="#{base}/en/cookies-policy"])
+           )
+
+    assert one?(
+             document,
+             ~s(link[rel="alternate"][hreflang="x-default"][href="#{base}/it/cookies-policy"])
            )
   end
 
@@ -44,9 +61,11 @@ defmodule ExBlogWeb.LegalControllerTest do
 
     assert one?(gdpr_document, "#privacy-policy")
 
+    # /gdpr-policy renders the privacy policy, so it canonicalises to it instead of
+    # standing up a second indexable copy of the same text.
     assert one?(
              gdpr_document,
-             ~s(link[rel="canonical"][href="https://spectre.elchemista.com/en/privacy-policy"])
+             ~s(link[rel="canonical"][href="#{ExBlog.Config.canonical_url()}/en/privacy-policy"])
            )
   end
 

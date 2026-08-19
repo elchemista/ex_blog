@@ -17,6 +17,14 @@ defmodule ExBlogWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # robots.txt and the sitemap are crawler documents, not browser pages: a bot
+  # that asks for `text/plain` or `application/xml` must not get a 406 from an
+  # HTML-only negotiation.
+  pipeline :crawler do
+    plug :accepts, ["txt", "xml", "html"]
+    plug :put_secure_browser_headers
+  end
+
   pipeline :mcp do
     plug ExBlogWeb.Plugs.MCPSecurity
   end
@@ -41,12 +49,18 @@ defmodule ExBlogWeb.Router do
     get "/health", HealthController, :show
     get "/tag/:tag", BlogController, :tag
     get "/category/:category", BlogController, :category
-    get "/sitemap.xml", SitemapController, :show
     get "/feed.xml", FeedController, :rss
     get "/atom.xml", FeedController, :atom
     get "/cookies-policy", LegalController, :cookie_policy
     get "/privacy-policy", LegalController, :privacy_policy
     get "/gdpr-policy", LegalController, :gdpr_policy
+  end
+
+  scope "/", ExBlogWeb do
+    pipe_through :crawler
+
+    get "/robots.txt", RobotsController, :show
+    get "/sitemap.xml", SitemapController, :show
   end
 
   scope "/admin", ExBlogWeb.Admin do

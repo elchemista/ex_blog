@@ -60,11 +60,6 @@ msgstr "Sessione amministratore terminata."
 msgid "Alternatively, enter the international number linked to the account."
 msgstr "In alternativa inserisci il numero internazionale associato all'account."
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:137
-#, elixir-autogen, elixir-format
-msgid "Archive · %{language}"
-msgstr "Archivio · %{language}"
-
 #: lib/ex_blog_web/live/admin/login_live.ex:77
 #, elixir-autogen, elixir-format
 msgid "Authenticate"
@@ -95,7 +90,7 @@ msgstr "Torna agli articoli"
 msgid "Category"
 msgstr "Categoria"
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:149
+#: lib/ex_blog_web/controllers/blog_controller.ex:173
 #, elixir-autogen, elixir-format
 msgid "Category: %{category}"
 msgstr "Categoria: %{category}"
@@ -135,7 +130,7 @@ msgstr "Connessione…"
 msgid "Connection details"
 msgstr "Dettagli connessione"
 
-#: lib/ex_blog_web/components/layouts.ex:192
+#: lib/ex_blog_web/components/layouts.ex:219
 #, elixir-autogen, elixir-format
 msgid "Connection lost"
 msgstr "Connessione interrotta"
@@ -159,11 +154,6 @@ msgstr "Crea e modifica contenuti solamente attraverso gli strumenti autorizzati
 #, elixir-autogen, elixir-format
 msgid "Deny"
 msgstr "Nega"
-
-#: lib/ex_blog_web/controllers/blog_controller.ex:138
-#, elixir-autogen, elixir-format
-msgid "Development notes, technical write-ups and stories published in %{language}."
-msgstr "Appunti di sviluppo, note tecniche e storie pubblicate in %{language}."
 
 #: lib/ex_blog_web/live/admin/telegram_live.ex:74
 #, elixir-autogen, elixir-format
@@ -195,12 +185,12 @@ msgstr "Inserisci il codice numerico ricevuto da Telegram."
 msgid "Enter the two-step verification password."
 msgstr "Inserisci la password di verifica in due passaggi."
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:150
+#: lib/ex_blog_web/controllers/blog_controller.ex:174
 #, elixir-autogen, elixir-format
 msgid "Every article in the %{category} category."
 msgstr "Tutti gli articoli della categoria %{category}."
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:145
+#: lib/ex_blog_web/controllers/blog_controller.ex:169
 #, elixir-autogen, elixir-format
 msgid "Every article tagged %{tag}."
 msgstr "Tutti gli articoli associati al tag %{tag}."
@@ -260,7 +250,7 @@ msgstr "Ultime pubblicazioni"
 msgid "Login choice"
 msgstr "Scelta accesso"
 
-#: lib/ex_blog_web/components/layouts.ex:67
+#: lib/ex_blog_web/components/layouts.ex:94
 #, elixir-autogen, elixir-format
 msgid "Main navigation"
 msgstr "Navigazione principale"
@@ -285,12 +275,12 @@ msgstr "Apri Telegram su un dispositivo già autenticato e scansiona il codice."
 msgid "Open Telegram on the already authenticated phone."
 msgstr "Apri Telegram sul telefono già autenticato."
 
-#: lib/ex_blog_web/components/layouts.ex:157
+#: lib/ex_blog_web/components/layouts.ex:184
 #, elixir-autogen, elixir-format
 msgid "Open cookie preferences"
 msgstr "Apri le preferenze cookie"
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:114
+#: lib/ex_blog_web/controllers/blog_controller.ex:135
 #, elixir-autogen, elixir-format
 msgid "Page not found"
 msgstr "Pagina non trovata"
@@ -340,7 +330,7 @@ msgstr "Leggi articoli, configurazione sicura e stato operativo"
 msgid "Reading time"
 msgstr "Lettura"
 
-#: lib/ex_blog_web/components/layouts.ex:200
+#: lib/ex_blog_web/components/layouts.ex:227
 #, elixir-autogen, elixir-format
 msgid "Reconnecting"
 msgstr "Riconnessione in corso"
@@ -350,7 +340,7 @@ msgstr "Riconnessione in corso"
 msgid "Requesting…"
 msgstr "Richiesta in corso…"
 
-#: lib/ex_blog_web/components/layouts.ex:215
+#: lib/ex_blog_web/components/layouts.ex:242
 #, elixir-autogen, elixir-format
 msgid "Retrying in a moment"
 msgstr "Riprovo tra un istante"
@@ -381,12 +371,12 @@ msgstr "Accedi come amministratore per continuare."
 msgid "Signed in."
 msgstr "Accesso effettuato."
 
-#: lib/ex_blog_web/components/layouts.ex:41
+#: lib/ex_blog_web/components/layouts.ex:68
 #, elixir-autogen, elixir-format
 msgid "Skip to content"
 msgstr "Vai al contenuto"
 
-#: lib/ex_blog_web/components/layouts.ex:207
+#: lib/ex_blog_web/components/layouts.ex:234
 #, elixir-autogen, elixir-format
 msgid "Something went wrong"
 msgstr "Qualcosa non ha funzionato"
@@ -406,7 +396,7 @@ msgstr "Avvio"
 msgid "TDLib session not started"
 msgstr "Sessione TDLib da avviare"
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:145
+#: lib/ex_blog_web/controllers/blog_controller.ex:169
 #, elixir-autogen, elixir-format
 msgid "Tag: %{tag}"
 msgstr "Tag: %{tag}"
@@ -498,7 +488,7 @@ msgstr "Il prossimo pezzo è già in lavorazione. Torna presto, oppure iscriviti
 msgid "The password is verified against the Argon2 hash configured on the server."
 msgstr "La password viene verificata contro l'hash Argon2 configurato sul server."
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:115
+#: lib/ex_blog_web/controllers/blog_controller.ex:136
 #, elixir-autogen, elixir-format
 msgid "The requested page does not exist."
 msgstr "La pagina richiesta non esiste."
@@ -508,8 +498,8 @@ msgstr "La pagina richiesta non esiste."
 msgid "The session is authorized and running."
 msgstr "La sessione è autorizzata e operativa."
 
-#: lib/ex_blog_web/components/layouts.ex:229
-#: lib/ex_blog_web/components/layouts.ex:230
+#: lib/ex_blog_web/components/layouts.ex:256
+#: lib/ex_blog_web/components/layouts.ex:257
 #, elixir-autogen, elixir-format
 msgid "Toggle colour theme"
 msgstr "Cambia tema colore"
@@ -571,7 +561,7 @@ msgstr "Attendo il link temporaneo da Telegram…"
 msgid "Words"
 msgstr "Parole"
 
-#: lib/ex_blog_web/components/layouts.ex:74
+#: lib/ex_blog_web/components/layouts.ex:101
 #, elixir-autogen, elixir-format
 msgid "archive"
 msgstr "archivio"
@@ -692,7 +682,7 @@ msgstr "codice telegram"
 msgid "telegram password"
 msgstr "password telegram"
 
-#: lib/ex_blog_web/components/layouts.ex:115
+#: lib/ex_blog_web/components/layouts.ex:142
 #, elixir-autogen, elixir-format
 msgid "written in Markdown, published from Git"
 msgstr "scritto in Markdown, pubblicato da Git"
@@ -709,17 +699,12 @@ msgstr[1] "%{count} librerie"
 msgid "A Spectre agent should read like a map, not a magic trick."
 msgstr "Un agente Spectre deve leggersi come una mappa, non come un trucco di magia."
 
-#: lib/ex_blog_web/components/layouts.ex:14
-#, elixir-autogen, elixir-format
-msgid "A live showcase of the Spectre agent ecosystem for Elixir, plus notes from building it."
-msgstr "Una vetrina viva dell'ecosistema di agenti Spectre per Elixir, più gli appunti scritti costruendolo."
-
 #: lib/ex_blog_web/controllers/blog_html/index.html.heex:131
 #, elixir-autogen, elixir-format
 msgid "Notes written while building all of the above."
 msgstr "Appunti scritti costruendo tutto quello che sta qui sopra."
 
-#: lib/ex_blog_web/components/layouts.ex:52
+#: lib/ex_blog_web/components/layouts.ex:79
 #, elixir-autogen, elixir-format
 msgid "Spectre home"
 msgstr "Home di Spectre"
@@ -789,7 +774,7 @@ msgstr "Gestione riservata della sessione Telegram di Spectre."
 msgid "You are connecting the Spectre administrator to the MCP client. Review the permissions before continuing."
 msgstr "Stai collegando l'amministratore di Spectre al client MCP. Controlla i permessi prima di continuare."
 
-#: lib/ex_blog_web/components/showcase.ex:646
+#: lib/ex_blog_web/components/showcase.ex:648
 #, elixir-autogen, elixir-format
 msgid "Agent-first browser lens for Lightpanda, so an agent can read what it shipped."
 msgstr "Lente browser pensata per gli agenti, su Lightpanda: l'agente può leggere quello che ha pubblicato."
@@ -799,7 +784,7 @@ msgstr "Lente browser pensata per gli agenti, su Lightpanda: l'agente può legge
 msgid "Also running under this site:"
 msgstr "Sotto questo sito girano anche:"
 
-#: lib/ex_blog_web/components/showcase.ex:638
+#: lib/ex_blog_web/components/showcase.ex:640
 #, elixir-autogen, elixir-format
 msgid "An embeddable mission loop for Elixir agents."
 msgstr "Un mission loop incorporabile per agenti Elixir."
@@ -814,7 +799,7 @@ msgstr "Tutto ciò che è protetto passa da un solo confine:"
 msgid "Borrowed from Phoenix routers, Ecto schemas, Oban workers and OTP supervision trees. Not a framework you disappear into."
 msgstr "Preso in prestito dai router di Phoenix, dagli schema Ecto, dai worker Oban e dagli alberi di supervisione OTP. Non un framework in cui sparire."
 
-#: lib/ex_blog_web/components/showcase.ex:622
+#: lib/ex_blog_web/components/showcase.ex:624
 #, elixir-autogen, elixir-format
 msgid "Elixir-first planning toolkit: Action Language in, validated tool calls out. No JSON schema in the prompt."
 msgstr "Toolkit di pianificazione Elixir-first: entra Action Language, escono chiamate validate. Nessuno schema JSON nel prompt."
@@ -829,7 +814,7 @@ msgstr "Ogni articolo qui sotto è passato da questo percorso."
 msgid "No SQL here. GitHub keeps the content, Phoenix serves an ETS projection, and the agent asks before it writes."
 msgstr "Niente SQL. I contenuti stanno su GitHub, Phoenix serve una proiezione ETS e l'agente chiede prima di scrivere."
 
-#: lib/ex_blog_web/components/showcase.ex:656
+#: lib/ex_blog_web/components/showcase.ex:658
 #, elixir-autogen, elixir-format
 msgid "Picks the model per request across OpenAI, OpenRouter, Ollama and Gemini, enforcing privacy, context, cost and latency limits before the call."
 msgstr "Sceglie il modello per ogni richiesta tra OpenAI, OpenRouter, Ollama e Gemini, applicando i limiti di privacy, contesto, costo e latenza prima della chiamata."
@@ -844,7 +829,7 @@ msgstr "Il routing è una manopola, non un dogma: regex, un dataset o un classif
 msgid "Semantic memory engine: ETS working memory, durable recall, typed observations and mental models."
 msgstr "Motore di memoria semantica: memoria di lavoro in ETS, richiamo durevole, osservazioni tipizzate e modelli mentali."
 
-#: lib/ex_blog_web/components/showcase.ex:666
+#: lib/ex_blog_web/components/showcase.ex:668
 #, elixir-autogen, elixir-format
 msgid "The external-channel boundary: it normalizes provider events and delivers messages idempotently."
 msgstr "Il confine con i canali esterni: normalizza gli eventi dei provider e consegna i messaggi in modo idempotente."
@@ -854,7 +839,7 @@ msgstr "Il confine con i canali esterni: normalizza gli eventi dei provider e co
 msgid "The whole agent is one module: the model, the router, a protected action, and the policy guarding it."
 msgstr "L'agente sta tutto in un modulo: il modello, il router, un'azione protetta e la policy che la sorveglia."
 
-#: lib/ex_blog_web/components/showcase.ex:631
+#: lib/ex_blog_web/components/showcase.ex:633
 #, elixir-autogen, elixir-format
 msgid "Transport-independent protocol for agents talking to other agents."
 msgstr "Protocollo indipendente dal trasporto per agenti che parlano con altri agenti."
@@ -909,12 +894,12 @@ msgstr "Per usare un altro numero, disconnetti questa sessione Telegram e avvia 
 msgid "Use another phone number"
 msgstr "Usa un altro numero di telefono"
 
-#: lib/ex_blog_web/components/layouts.ex:136
+#: lib/ex_blog_web/components/layouts.ex:163
 #, elixir-autogen, elixir-format
 msgid "Contact me by email"
 msgstr "Contattami via email"
 
-#: lib/ex_blog_web/components/layouts.ex:118
+#: lib/ex_blog_web/components/layouts.ex:145
 #, elixir-autogen, elixir-format
 msgid "built with love by"
 msgstr "costruito con amore da"
@@ -1124,7 +1109,6 @@ msgstr "routing · stato · policy · effetti"
 msgid "%{count} failing"
 msgstr "%{count} fallite"
 
-
 #: lib/ex_blog_web/components/showcase.ex:365
 #, elixir-autogen, elixir-format
 msgid "%{count} library checked"
@@ -1137,108 +1121,90 @@ msgstr[1] "%{count} librerie verificate"
 msgid "%{count} passing"
 msgstr "%{count} passate"
 
-
 #: lib/ex_blog_web/components/showcase.ex:614
 #, elixir-autogen, elixir-format
 msgid "Append-only durable checkpoints for Spectre agents, so state survives a crash."
 msgstr "Checkpoint durevoli in sola aggiunta per gli agenti Spectre: lo stato sopravvive a un crash."
-
 
 #: lib/ex_blog_web/components/showcase.ex:384
 #, elixir-autogen, elixir-format
 msgid "Compatibility of each Spectre library with the current core"
 msgstr "Compatibilità di ogni libreria Spectre con il core attuale"
 
-
 #: lib/ex_blog_web/components/showcase.ex:355
 #, elixir-autogen, elixir-format
 msgid "Compatibility with the current core"
 msgstr "Compatibilità con il core attuale"
 
-
-#: lib/ex_blog_web/components/showcase.ex:676
+#: lib/ex_blog_web/components/showcase.ex:678
 #, elixir-autogen, elixir-format
 msgid "Debug Spectre agents with checkpoint playback and isolated testing tools, away from production."
 msgstr "Esegui il debug degli agenti Spectre con il replay dei checkpoint e strumenti di test isolati, lontano dalla produzione."
-
 
 #: lib/ex_blog_web/components/showcase.ex:358
 #, elixir-autogen, elixir-format
 msgid "Every satellite library is rebuilt and tested against the commit that Spectre core is on today. The table is the published result of that run, not a promise: this page reads it once a day and shows exactly what came back."
 msgstr "Ogni libreria satellite viene ricompilata e testata contro il commit su cui è oggi il core di Spectre. La tabella è il risultato pubblicato di quella esecuzione, non una promessa: questa pagina la rilegge una volta al giorno e mostra esattamente ciò che è tornato."
 
-
 #: lib/ex_blog_web/components/showcase.ex:253
 #, elixir-autogen, elixir-format
 msgid "Spectre %{version} can record explicitly enabled, redacted experience, inspect the active agent definition, and propose bounded changes to skills or configuration. The proposal is inert data: it cannot publish, approve, or activate itself."
 msgstr "Spectre %{version} può registrare esperienza esplicitamente abilitata e ripulita dai dati sensibili, ispezionare la definizione attiva dell'agente e proporre modifiche circoscritte a skill o configurazione. La proposta è un dato inerte: non può pubblicare, approvare né attivare sé stessa."
-
 
 #: lib/ex_blog_web/components/showcase.ex:389
 #, elixir-autogen, elixir-format
 msgid "check"
 msgstr "esito"
 
-
 #: lib/ex_blog_web/components/showcase.ex:349
 #, elixir-autogen, elixir-format
 msgid "checked %{timestamp}"
 msgstr "verificato %{timestamp}"
-
 
 #: lib/ex_blog_web/components/showcase.ex:490
 #, elixir-autogen, elixir-format
 msgid "failing"
 msgstr "fallita"
 
-
 #: lib/ex_blog_web/components/showcase.ex:388
 #, elixir-autogen, elixir-format
 msgid "library"
 msgstr "libreria"
-
 
 #: lib/ex_blog_web/components/showcase.ex:493
 #, elixir-autogen, elixir-format
 msgid "not configured"
 msgstr "non configurata"
 
-
 #: lib/ex_blog_web/components/showcase.ex:494
 #, elixir-autogen, elixir-format
 msgid "not run"
 msgstr "non eseguita"
-
 
 #: lib/ex_blog_web/components/showcase.ex:489
 #, elixir-autogen, elixir-format
 msgid "passing"
 msgstr "passata"
 
-
 #: lib/ex_blog_web/components/showcase.ex:491
 #, elixir-autogen, elixir-format
 msgid "pending"
 msgstr "in corso"
-
 
 #: lib/ex_blog_web/components/showcase.ex:391
 #, elixir-autogen, elixir-format
 msgid "source"
 msgstr "origine"
 
-
 #: lib/ex_blog_web/components/showcase.ex:492
 #, elixir-autogen, elixir-format
 msgid "stale"
 msgstr "obsoleta"
 
-
 #: lib/ex_blog_web/components/showcase.ex:453
 #, elixir-autogen, elixir-format
 msgid "the full report, refreshed by its own scheduled run"
 msgstr "il report completo, aggiornato dalla sua esecuzione pianificata"
-
 
 #: lib/ex_blog_web/components/showcase.ex:495
 #: lib/ex_blog_web/components/showcase.ex:499
@@ -1246,8 +1212,27 @@ msgstr "il report completo, aggiornato dalla sua esecuzione pianificata"
 msgid "unknown"
 msgstr "sconosciuta"
 
-
 #: lib/ex_blog_web/components/showcase.ex:390
 #, elixir-autogen, elixir-format
 msgid "version"
 msgstr "versione"
+
+#: lib/ex_blog_web/components/layouts.ex:14
+#, elixir-autogen, elixir-format
+msgid "Spectre is an OTP-native runtime for secure, governed AI agents in Elixir: one supervised agent, explicit policies, and optional spectre_* capabilities."
+msgstr "Spectre è il runtime OTP-native per agenti AI sicuri e governati in Elixir: un solo agente supervisionato, policy esplicite e capacità spectre_* opzionali."
+
+#: lib/ex_blog_web/controllers/blog_controller.ex:162
+#, elixir-autogen, elixir-format
+msgid "Spectre is the OTP-native Elixir runtime for secure, enterprise-grade AI agents: one supervised agent, deterministic policies, and governed self-improvement."
+msgstr "Spectre è il runtime OTP-native in Elixir per agenti AI sicuri e enterprise: un solo agente supervisionato, policy deterministiche, evoluzione governata."
+
+#: lib/ex_blog_web/controllers/blog_controller.ex:161
+#, elixir-autogen, elixir-format
+msgid "Spectre — Secure AI Agent Runtime for Elixir and OTP"
+msgstr "Spectre — Runtime sicuro per agenti AI in Elixir e OTP"
+
+#: lib/ex_blog_web/controllers/blog_controller.ex:113
+#, elixir-autogen, elixir-format
+msgid "Spectre — an OTP-native AI agent runtime for Elixir"
+msgstr "Spectre — un runtime OTP-native per agenti AI in Elixir"

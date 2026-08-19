@@ -17,7 +17,10 @@ defmodule ExBlogWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico favicon.svg robots.txt)
+  # robots.txt is not here on purpose: it embeds the runtime canonical host, so
+  # `ExBlogWeb.RobotsController` renders it instead of Plug.Static serving a file
+  # with a baked-in domain.
+  def static_paths, do: ~w(assets fonts images favicon.ico favicon.svg)
 
   def router do
     quote do

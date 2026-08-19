@@ -12,8 +12,35 @@ defmodule ExBlogWeb.Layouts do
   def default_description,
     do:
       gettext(
-        "A live showcase of the Spectre agent ecosystem for Elixir, plus notes from building it."
+        "Spectre is an OTP-native runtime for secure, governed AI agents in Elixir: one supervised agent, explicit policies, and optional spectre_* capabilities."
       )
+
+  @doc """
+  Absolute URL of the social preview image.
+
+  Facebook, LinkedIn, X and Google all reject SVG here, so this is a raster
+  asset even though the rest of the site's artwork is vector.
+  """
+  def default_og_image, do: ExBlog.Config.canonical_url() <> "/images/og-default.png"
+
+  # Open Graph wants a territory, not a bare language code.
+  @og_locales %{"en" => "en_US", "it" => "it_IT"}
+
+  @doc "Open Graph locale for one language code."
+  def og_locale(language) do
+    language = language || ExBlog.Config.get().default_language
+
+    Map.get_lazy(@og_locales, language, fn -> "#{language}_#{String.upcase(language)}" end)
+  end
+
+  @doc "Open Graph locales of every supported language except the current one."
+  def og_alternate_locales(language) do
+    current = language || ExBlog.Config.get().default_language
+
+    ExBlog.Config.get().supported_languages
+    |> Enum.reject(&(&1 == current))
+    |> Enum.map(&og_locale/1)
+  end
 
   attr :flash, :map, required: true
   attr :current_scope, :map, default: nil
@@ -237,7 +264,16 @@ defmodule ExBlogWeb.Layouts do
 
   def document_title(nil), do: @site_name
   def document_title(@site_name), do: @site_name
-  def document_title(title), do: "#{title} · #{@site_name}"
+
+  # Search engines cut the title around 60 characters, so the brand is appended
+  # only when it is not already in it. The home page leads with "Spectre — ...",
+  # and many article titles name it too; spending that budget on a second copy
+  # would push the words people actually search for out of the snippet.
+  def document_title(title) do
+    if String.contains?(title, @site_name),
+      do: title,
+      else: "#{title} · #{@site_name}"
+  end
 
   def encoded_json_ld(data) do
     data

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <meta name="description" content={assigns[:meta_description] || default_description()} />
+    <meta :if={assigns[:keywords]} name="keywords" content={assigns[:keywords]} />
     <meta name="robots" content={assigns[:robots] || "index,follow,max-image-preview:large"} />
     <meta name="theme-color" content="#050506" />
     <link rel="icon" type="image/svg+xml" href={~p"/favicon.svg"} />
@@ -14,20 +15,23 @@
     <link
       rel="alternate"
       type="application/rss+xml"
-      title="ExBlog RSS"
+      title={Layouts.site_name() <> " RSS"}
       href={ExBlog.Config.canonical_url() <> "/feed.xml"}
     />
     <link
       rel="alternate"
       type="application/atom+xml"
-      title="ExBlog Atom"
+      title={Layouts.site_name() <> " Atom"}
       href={ExBlog.Config.canonical_url() <> "/atom.xml"}
     />
+    <%!-- Each page states its own translation set, including itself and an
+    x-default. The controller builds the URLs, because the index, the articles and
+    the legal pages do not share one path shape. --%>
     <link
-      :for={translation <- assigns[:translations] || []}
+      :for={alternate <- assigns[:alternates] || []}
       rel="alternate"
-      hreflang={translation.lang}
-      href={ExBlog.Config.canonical_url() <> "/#{translation.lang}/#{translation.slug}"}
+      hreflang={alternate.hreflang}
+      href={alternate.url}
     />
 
     <meta property="og:site_name" content={Layouts.site_name()} />
@@ -35,9 +39,18 @@
     <meta property="og:title" content={document_title(assigns[:page_title])} />
     <meta property="og:description" content={assigns[:meta_description] || default_description()} />
     <meta property="og:url" content={assigns[:canonical_url] || ExBlog.Config.canonical_url()} />
-    <meta :if={assigns[:og_image]} property="og:image" content={assigns[:og_image]} />
+    <meta property="og:locale" content={og_locale(assigns[:page_language])} />
     <meta
-      :if={assigns[:og_image]}
+      :for={locale <- og_alternate_locales(assigns[:page_language])}
+      property="og:locale:alternate"
+      content={locale}
+    />
+    <meta property="og:image" content={assigns[:og_image] || Layouts.default_og_image()} />
+    <%!-- Declared only for the bundled image, whose size is known here. An article
+    cover is arbitrary, and a wrong width makes the preview worse than none. --%>
+    <meta :if={is_nil(assigns[:og_image])} property="og:image:width" content="1200" />
+    <meta :if={is_nil(assigns[:og_image])} property="og:image:height" content="630" />
+    <meta
       property="og:image:alt"
       content={assigns[:og_image_alt] || assigns[:page_title] || Layouts.site_name()}
     />
@@ -52,16 +65,17 @@
       content={Date.to_iso8601(assigns[:article].updated)}
     />
 
-    <meta
-      name="twitter:card"
-      content={if(assigns[:og_image], do: "summary_large_image", else: "summary")}
-    />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={document_title(assigns[:page_title])} />
     <meta
       name="twitter:description"
       content={assigns[:meta_description] || default_description()}
     />
-    <meta :if={assigns[:og_image]} name="twitter:image" content={assigns[:og_image]} />
+    <meta name="twitter:image" content={assigns[:og_image] || Layouts.default_og_image()} />
+    <meta
+      name="twitter:image:alt"
+      content={assigns[:og_image_alt] || assigns[:page_title] || Layouts.site_name()}
+    />
 
     <script :if={assigns[:json_ld]} type="application/ld+json">
       <%= encoded_json_ld(assigns[:json_ld]) %>

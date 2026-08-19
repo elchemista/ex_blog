@@ -21,6 +21,7 @@ defmodule ExBlogWeb.PublicCache do
   # browser cache.
   @render_modules [
     __MODULE__,
+    ExBlogWeb.Canonical,
     ExBlogWeb.Layouts,
     ExBlogWeb.CoreComponents,
     ExBlogWeb.Showcase,
@@ -28,6 +29,7 @@ defmodule ExBlogWeb.PublicCache do
     ExBlogWeb.BlogHTML,
     ExBlogWeb.FeedController,
     ExBlogWeb.LegalHTML,
+    ExBlogWeb.RobotsController,
     ExBlogWeb.SitemapController,
     ExBlogWeb.Gettext
   ]

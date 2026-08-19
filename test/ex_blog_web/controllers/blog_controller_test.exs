@@ -112,6 +112,91 @@ defmodule ExBlogWeb.BlogControllerTest do
              "they are powers of that same agent, not different agents"
   end
 
+  test "the index head names Spectre, Elixir, and AI agents", %{conn: conn} do
+    document = conn |> get("/") |> html_document(200)
+    base = ExBlog.Config.canonical_url()
+
+    # The title used to read "Archivio · IT · Spectre", which contains none of the
+    # words anyone searches for. It has to lead with the project and name what it is.
+    title = document |> LazyHTML.query("title") |> LazyHTML.text()
+    assert title =~ "Spectre"
+    assert title =~ "Elixir"
+    assert String.length(title) <= 60
+
+    assert one?(document, ~s(meta[name="description"][content*="Spectre"]))
+    assert one?(document, ~s(meta[name="description"][content*="AI"]))
+    assert one?(document, ~s(meta[name="robots"][content="index,follow,max-image-preview:large"]))
+
+    # `/` is the canonical home page; `/it` renders the same content and points here
+    # rather than competing with it.
+    assert one?(document, ~s(link[rel="canonical"][href="#{base}/"]))
+
+    localized = build_conn() |> get("/it") |> html_document(200)
+    assert one?(localized, ~s(link[rel="canonical"][href="#{base}/"]))
+
+    english = build_conn() |> get("/en") |> html_document(200)
+    assert one?(english, ~s(link[rel="canonical"][href="#{base}/en"]))
+
+    # hreflang has to be in the document, not only in the sitemap, and must include
+    # the page itself.
+    assert one?(document, ~s(link[rel="alternate"][hreflang="it"][href="#{base}/"]))
+    assert one?(document, ~s(link[rel="alternate"][hreflang="en"][href="#{base}/en"]))
+    assert one?(document, ~s(link[rel="alternate"][hreflang="x-default"][href="#{base}/"]))
+
+    assert one?(document, ~s(meta[property="og:image"][content="#{base}/images/og-default.png"]))
+    assert one?(document, ~s(meta[property="og:locale"][content="it_IT"]))
+    assert one?(document, ~s(meta[property="og:locale:alternate"][content="en_US"]))
+  end
+
+  test "the index publishes a Spectre entity graph", %{conn: conn} do
+    document = conn |> get("/") |> html_document(200)
+
+    graph =
+      document
+      |> LazyHTML.query(~s(script[type="application/ld+json"]))
+      |> LazyHTML.text()
+      |> Jason.decode!()
+      |> Map.fetch!("@graph")
+
+    types = Enum.map(graph, & &1["@type"])
+    assert "Organization" in types
+    assert "WebSite" in types
+    assert "Blog" in types
+
+    # The node a search engine reads to decide that "Spectre" is a specific piece of
+    # Elixir software and that this domain is where it lives.
+    software = Enum.find(graph, &(&1["@type"] == ["SoftwareApplication", "SoftwareSourceCode"]))
+
+    assert software["name"] == "Spectre"
+    assert software["programmingLanguage"] == "Elixir"
+    assert software["codeRepository"] == "https://github.com/elchemista/spectre"
+    assert "https://hex.pm/packages/spectre" in software["sameAs"]
+  end
+
+  test "an article links itself back to the Spectre entity", %{conn: conn} do
+    document = conn |> get("/it/primo-articolo") |> html_document(200)
+    base = ExBlog.Config.canonical_url()
+
+    graph =
+      document
+      |> LazyHTML.query(~s(script[type="application/ld+json"]))
+      |> LazyHTML.text()
+      |> Jason.decode!()
+      |> Map.fetch!("@graph")
+
+    posting = Enum.find(graph, &(&1["@type"] == "BlogPosting"))
+
+    assert posting["headline"] == "Primo articolo"
+    assert posting["about"] == %{"@id" => "#{base}/#spectre"}
+    assert posting["keywords"] == "Tecnologia, elixir, phoenix"
+    assert posting["wordCount"] > 0
+
+    assert one?(
+             document,
+             ~s(link[rel="alternate"][hreflang="en"][href="#{base}/en/first-article"])
+           )
+  end
+
   test "explains philosophy, capabilities, and governed evolution", %{conn: conn} do
     document = conn |> get("/en") |> html_document(200)
 
@@ -182,12 +267,21 @@ defmodule ExBlogWeb.BlogControllerTest do
 
     assert body =~ ~s(xmlns:xhtml="http://www.w3.org/1999/xhtml")
     assert body =~ "<loc>#{base}/</loc>"
-    assert body =~ "<loc>#{base}/it</loc>"
     assert body =~ "<loc>#{base}/en</loc>"
     assert body =~ "<loc>#{base}/fr</loc>"
     assert body =~ "<loc>#{base}/it/privacy-policy</loc>"
     assert body =~ "<loc>#{base}/fr/cookies-policy</loc>"
     refute body =~ "bozza-segreta"
+
+    # `/` and `/<default language>` render the same page, so the sitemap advertises
+    # only the canonical one. Listing both asked crawlers to index two copies of the
+    # home page while the canonical tag named a single URL.
+    refute body =~ "<loc>#{base}/it</loc>"
+
+    index_entry = sitemap_entry(body, "#{base}/")
+    assert index_entry =~ ~s(<xhtml:link rel="alternate" hreflang="it" href="#{base}/" />)
+    assert index_entry =~ ~s(<xhtml:link rel="alternate" hreflang="en" href="#{base}/en" />)
+    assert index_entry =~ ~s(<xhtml:link rel="alternate" hreflang="x-default" href="#{base}/" />)
 
     article_urls = %{
       "it" => "#{base}/it/primo-articolo",
@@ -235,10 +329,30 @@ defmodule ExBlogWeb.BlogControllerTest do
     assert response(atom, 200) =~ "http://www.w3.org/2005/Atom"
 
     robots = get(build_conn(), "/robots.txt")
-    assert response(robots, 200) =~ "Disallow: /admin"
-    assert response(robots, 200) =~ "Disallow: /mcp"
-    assert response(robots, 200) =~ "Disallow: /oauth"
-    assert response(robots, 200) =~ "Sitemap: https://ex-blog.fly.dev/sitemap.xml"
+    robots_body = response(robots, 200)
+    assert robots_body =~ "Disallow: /admin"
+    assert robots_body =~ "Disallow: /mcp"
+    assert robots_body =~ "Disallow: /oauth"
+    assert robots_body =~ "Disallow: /health"
+
+    # This assertion used to name a hard-coded host that the deployment had already
+    # moved away from, so crawlers were sent to a domain that no longer serves the
+    # site and the sitemap was never fetched. It has to follow the runtime host.
+    assert robots_body =~ "Sitemap: #{base}/sitemap.xml"
+
+    # A crawler asking specifically for text/plain must not get a 406.
+    plain_robots =
+      build_conn()
+      |> put_req_header("accept", "text/plain")
+      |> get("/robots.txt")
+
+    assert response(plain_robots, 200) =~ "Sitemap: #{base}/sitemap.xml"
+
+    # /tag and /category stay crawlable, so their links still count, but they must
+    # not compete with the articles they list.
+    tag_document = build_conn() |> get("/tag/spectre?lang=it") |> html_document(200)
+
+    assert one?(tag_document, ~s(meta[name="robots"][content="noindex,follow"]))
 
     first = get(build_conn(), "/it")
     [etag] = get_resp_header(first, "etag")

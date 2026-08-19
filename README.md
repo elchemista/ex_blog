@@ -1021,8 +1021,11 @@ Agent-selected URLs use `network_policy: :public`, which rejects loopback and
 private targets. Lightpanda has no graphical renderer, so the report always
 states that pixel appearance and responsive breakpoints were not verified.
 
-The sitemap itself is generated separately at `/sitemap.xml`; `robots.txt` is a
-plain static file.
+The sitemap is generated at `/sitemap.xml` and `robots.txt` at `/robots.txt`.
+Both are rendered at runtime rather than served from `priv/static`, because both
+embed the canonical host, which is deployment configuration. A static
+`robots.txt` kept advertising a host the deployment had already left, so the
+`Sitemap:` line pointed at a domain that no longer served the site.
 
 ## Public blog and SEO surfaces
 
@@ -1035,7 +1038,7 @@ plain static file.
 | `/feed.xml` | RSS |
 | `/atom.xml` | Atom |
 | `/sitemap.xml` | dynamic sitemap generated from published articles |
-| `/robots.txt` | static crawler policy |
+| `/robots.txt` | crawler policy, rendered with the runtime canonical host |
 | `/health` | secret-free health check |
 | `/mcp` | Streamable HTTP MCP endpoint |
 | `/.well-known/*` and `/oauth/*` | OAuth discovery, registration, consent, token, and revocation |
@@ -1043,6 +1046,18 @@ plain static file.
 Drafts are absent from public pages, feeds, and sitemap output. Article pages
 include canonical metadata, Open Graph data, JSON-LD, translation alternates,
 and ETags derived from the indexed Git commit.
+
+`ExBlogWeb.Canonical` owns one decision: `/` and `/<default language>` render the
+same page, so `/` is the canonical URL and the other points at it. The canonical
+tag, the `hreflang` set, and the sitemap all read it from there, because a
+canonical tag that disagrees with the sitemap can leave neither URL indexed.
+
+`/tag/*` and `/category/*` answer `noindex,follow`. They are filtered views of
+articles that are already indexed on their own URLs, and `?lang=` produces a
+second near-duplicate of each; they stay crawlable so their outbound links still
+count. The index page also publishes a `SoftwareApplication` /
+`SoftwareSourceCode` node for Spectre itself, and every article points `about`
+back at it.
 
 ## MCP and ChatGPT
 

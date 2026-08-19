@@ -4,8 +4,6 @@ defmodule ExBlogWeb.LegalController do
   alias ExBlog.Config
   alias ExBlogWeb.LegalCopy
 
-  @site_url "https://spectre.elchemista.com"
-
   def cookie_policy(conn, params), do: render_policy(conn, params, :cookie)
   def privacy_policy(conn, params), do: render_policy(conn, params, :privacy)
   def gdpr_policy(conn, params), do: render_policy(conn, params, :privacy)
@@ -27,8 +25,11 @@ defmodule ExBlogWeb.LegalController do
         page_language: language,
         page_title: policy.title,
         meta_description: policy.summary,
-        canonical_url: @site_url <> canonical_path,
-        og_type: "website"
+        # Was a hard-coded production URL, so every canonical rendered from a
+        # development or staging host pointed at the live site.
+        canonical_url: Config.canonical_url() <> canonical_path,
+        og_type: "website",
+        alternates: legal_alternates(kind)
       )
     else
       send_resp(conn, :not_found, "Not found")
@@ -43,4 +44,17 @@ defmodule ExBlogWeb.LegalController do
 
   defp canonical_path(:cookie, language), do: "/#{language}/cookies-policy"
   defp canonical_path(:privacy, language), do: "/#{language}/privacy-policy"
+
+  defp legal_alternates(kind) do
+    config = Config.get()
+    site_url = Config.canonical_url(config)
+
+    alternates =
+      Enum.map(config.supported_languages, fn language ->
+        %{hreflang: language, url: site_url <> canonical_path(kind, language)}
+      end)
+
+    alternates ++
+      [%{hreflang: "x-default", url: site_url <> canonical_path(kind, config.default_language)}]
+  end
 end
