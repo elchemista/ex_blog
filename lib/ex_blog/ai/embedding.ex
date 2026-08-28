@@ -14,8 +14,8 @@ defmodule ExBlog.AI.Embedding do
 
   @behaviour Spectre.Classifier.Embedding
 
+  alias ExBlog.AI.OpenRouter
   alias ExBlog.Config
-  alias Spectre.Prism.Adapters.OpenRouter
 
   @default_dimensions 1024
 

@@ -11,6 +11,9 @@ defmodule ExBlog.Agent.Plugs.RedactSecrets do
   @behaviour Spectre.Input.Plug
 
   @impl Spectre.Input.Plug
+  def rehearsable?, do: true
+
+  @impl Spectre.Input.Plug
   def init(opts), do: opts
 
   @impl Spectre.Input.Plug

@@ -58,8 +58,13 @@ defmodule ExBlog.Agent.SemanticCache do
       :ok ->
         :ok
 
+      {:error, :missing_snapshot} ->
+        Logger.info("semantic_cache restore_empty reason=missing_snapshot")
+
       {:error, reason} ->
-        Logger.warning("semantic_cache restore_failed reason=#{inspect(reason)}")
+        Logger.warning(
+          "semantic_cache restore_failed reason=#{inspect(Config.redact(inspect(reason)))}"
+        )
     end
 
     case warm() do
@@ -67,7 +72,9 @@ defmodule ExBlog.Agent.SemanticCache do
         Logger.info("semantic_cache warm_ready vectors=#{vectors}")
 
       {:error, reason} ->
-        Logger.warning("semantic_cache warm_failed reason=#{inspect(reason)}")
+        Logger.warning(
+          "semantic_cache warm_failed reason=#{inspect(Config.redact(inspect(reason)))}"
+        )
     end
 
     {:ok, %{}}
@@ -101,7 +108,14 @@ defmodule ExBlog.Agent.SemanticCache do
   end
 
   @impl Cache
-  def examples(agent, opts), do: Learned.examples(agent, runtime_opts(agent, opts))
+  def examples(agent, opts) do
+    # Studio should be useful before the first online learning event. Include
+    # the trusted, read-only dataset and compiled route examples alongside
+    # mutable online rows; the row's `editable?` flag keeps promotion limited
+    # to online examples.
+    opts = agent |> runtime_opts(opts) |> Keyword.put_new(:source, :all)
+    Learned.examples(agent, opts)
+  end
 
   @impl Cache
   def get_example(agent, id, opts),

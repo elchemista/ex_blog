@@ -18,6 +18,15 @@ defmodule ExBlogWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+  # Spectre Studio connects here. The browser session is deliberately not part
+  # of `connect_info`: this socket authenticates its own operator credential
+  # through `ExBlog.Pulse.Access`, and an administrator cookie must not become a
+  # second, implicit way into the Agent runtime. Long polling is disabled
+  # because Pulse pushes monitoring frames on a live connection.
+  socket "/pulse", ExBlogWeb.PulseSocket,
+    websocket: [connect_info: [:peer_data, :uri]],
+    longpoll: false
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # When code reloading is disabled (e.g., in production),
@@ -30,6 +39,29 @@ defmodule ExBlogWeb.Endpoint do
     only: ExBlogWeb.static_paths(),
     only_matching: ["favicon-"],
     raise_on_missing_only: code_reloading?
+
+  # First-party traffic tracking, kept in memory by Phoenix Analytics. It sits
+  # right after Plug.Static so asset requests never reach it, and skips
+  # everything that is not a reader on a page: the administrator area (the
+  # analytics dashboard included), the machine endpoints and the health probe
+  # would only add noise to the numbers.
+  #
+  # The consent plug runs first and drops the request unless the reader accepted
+  # the analytics category, which also stops the tracker from writing its
+  # session cookies. Without it the cookie banner would be telling the truth
+  # about third parties and the wrong thing about this site.
+  plug PhoenixAnalytics.Plugs.RequestTracker,
+    before: [ExBlogWeb.Plugs.AnalyticsConsent],
+    ignore_paths: [
+      "/admin",
+      "/oauth",
+      "/mcp",
+      "/.well-known",
+      "/health",
+      "/live",
+      "/pulse"
+    ],
+    session: [secure: Application.compile_env(:ex_blog, :secure_session_cookie?, true)]
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.

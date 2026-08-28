@@ -12,6 +12,8 @@ defmodule ExBlog.Agent.Skills.Assistance do
     version: 1,
     prompt_root: "lib/ex_blog_web/prompts/skills/assistance"
 
+  alias Spectre.{Context, Input, Result, Runner}
+
   flow :assistance do
     on :SHOW_CAPABILITIES,
       embedding: [
@@ -21,7 +23,7 @@ defmodule ExBlog.Agent.Skills.Assistance do
       ],
       learn: true,
       via: [:embedding, :classifier, :semantic_cache, :llm_classifier] do
-      reply(:capabilities)
+      run(:show_capabilities)
     end
 
     on :ASK_AI,
@@ -38,5 +40,11 @@ defmodule ExBlog.Agent.Skills.Assistance do
         temperature: 0.6
       )
     end
+  end
+
+  @doc "Renders the deterministic capability menu from the Skill-owned prompt."
+  @spec show_capabilities(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
+  def show_capabilities(%Input{} = input, %Context{} = context) do
+    Runner.reply(:capabilities, input, context)
   end
 end

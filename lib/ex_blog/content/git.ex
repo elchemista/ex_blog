@@ -7,6 +7,8 @@ defmodule ExBlog.Content.Git do
   Git configuration, returned error, or log record.
   """
 
+  require Logger
+
   alias ExBlog.Config
   alias ExBlog.Storage
 
@@ -14,6 +16,7 @@ defmodule ExBlog.Content.Git do
 
   @spec ensure_checkout(keyword()) :: {:ok, String.t()} | {:error, term()}
   def ensure_checkout(opts \\ []) do
+    started_at = System.monotonic_time()
     path = option(opts, :path, &Config.repository_path/1)
 
     result =
@@ -23,11 +26,12 @@ defmodule ExBlog.Content.Git do
         true -> clone(opts)
       end
 
-    record(:ensure_checkout, result, [])
+    record(:ensure_checkout, result, [], started_at)
   end
 
   @spec clone(keyword()) :: {:ok, String.t()} | {:error, term()}
   def clone(opts \\ []) do
+    started_at = System.monotonic_time()
     config = Keyword.get(opts, :config, Config.get())
     path = Keyword.get(opts, :path, Config.repository_path(config))
     url = Keyword.get(opts, :url, Config.repository_url(config))
@@ -42,11 +46,12 @@ defmodule ExBlog.Content.Git do
         end
       end)
 
-    record(:clone, result, [])
+    record(:clone, result, [], started_at)
   end
 
   @spec sync(keyword()) :: {:ok, String.t()} | {:error, term()}
   def sync(opts \\ []) do
+    started_at = System.monotonic_time()
     config = Keyword.get(opts, :config, Config.get())
     path = Keyword.get(opts, :path, Config.repository_path(config))
     branch = Keyword.get(opts, :branch, config.github_branch)
@@ -57,12 +62,13 @@ defmodule ExBlog.Content.Git do
         {:error, _reason} = error -> error
       end
 
-    record(:sync, result, [])
+    record(:sync, result, [], started_at)
   end
 
   @spec commit([String.t()], String.t(), keyword()) ::
           {:ok, String.t() | :noop} | {:error, term()}
   def commit(paths, message, opts \\ []) when is_list(paths) and is_binary(message) do
+    started_at = System.monotonic_time()
     config = Keyword.get(opts, :config, Config.get())
     checkout = Keyword.get(opts, :path, Config.repository_path(config))
 
@@ -74,11 +80,12 @@ defmodule ExBlog.Content.Git do
         maybe_commit(changed?, message, checkout, config)
       end
 
-    record(:commit, result, paths)
+    record(:commit, result, paths, started_at)
   end
 
   @spec push(keyword()) :: {:ok, String.t()} | {:error, term()}
   def push(opts \\ []) do
+    started_at = System.monotonic_time()
     config = Keyword.get(opts, :config, Config.get())
     path = Keyword.get(opts, :path, Config.repository_path(config))
     branch = Keyword.get(opts, :branch, config.github_branch)
@@ -94,7 +101,7 @@ defmodule ExBlog.Content.Git do
           error
       end
 
-    record(:push, result, [])
+    record(:push, result, [], started_at)
   end
 
   @spec current_commit(keyword()) :: {:ok, String.t()} | {:error, term()}
@@ -396,7 +403,9 @@ defmodule ExBlog.Content.Git do
     Keyword.get(opts, key, fallback.(config))
   end
 
-  defp record(operation, result, files) do
+  defp record(operation, result, files, started_at) do
+    log_operation(operation, result, elapsed_ms(started_at))
+
     if Process.whereis(Storage) do
       {ok?, sha, error} = record_values(result)
 
@@ -409,12 +418,69 @@ defmodule ExBlog.Content.Git do
         occurred_at: DateTime.utc_now()
       }
 
-      Storage.update(:git_operations, [], &prepend_operation(&1, entry))
+      case Storage.update(:git_operations, [], &prepend_operation(&1, entry)) do
+        {:error, reason} ->
+          Logger.warning(
+            "git_operation history_write_failed operation=#{operation} " <>
+              "code=#{error_code(reason)} reason=#{inspect(safe_reason(reason))}"
+          )
+
+        _stored ->
+          :ok
+      end
     end
 
     result
   rescue
-    _error -> result
+    exception ->
+      Logger.warning(
+        "git_operation history_write_failed operation=#{operation} " <>
+          "code=storage_exception reason=#{inspect(safe_reason(Exception.message(exception)))}"
+      )
+
+      result
+  catch
+    :exit, reason ->
+      Logger.warning(
+        "git_operation history_write_failed operation=#{operation} " <>
+          "code=storage_exit reason=#{inspect(safe_reason(reason))}"
+      )
+
+      result
+  end
+
+  defp log_operation(operation, {:ok, commit}, duration_ms) do
+    Logger.info(
+      "git_operation completed operation=#{operation} commit=#{inspect(commit)} " <>
+        "duration_ms=#{duration_ms}"
+    )
+  end
+
+  defp log_operation(operation, {:error, reason}, duration_ms) do
+    Logger.warning(
+      "git_operation failed operation=#{operation} code=#{error_code(reason)} " <>
+        "reason=#{inspect(safe_reason(reason))} duration_ms=#{duration_ms}"
+    )
+  end
+
+  defp safe_reason(reason) do
+    reason
+    |> inspect(limit: 20, printable_limit: 4_000)
+    |> Config.redact()
+  end
+
+  defp error_code(reason) when is_atom(reason), do: Atom.to_string(reason)
+
+  defp error_code(reason) when is_tuple(reason) and tuple_size(reason) > 0,
+    do: reason |> elem(0) |> error_code()
+
+  defp error_code(%{reason: reason}), do: error_code(reason)
+  defp error_code(_reason), do: "unknown"
+
+  defp elapsed_ms(started_at) do
+    started_at
+    |> then(&(System.monotonic_time() - &1))
+    |> System.convert_time_unit(:native, :millisecond)
   end
 
   defp record_values({:ok, sha}) when is_binary(sha), do: {true, sha, nil}

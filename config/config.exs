@@ -16,6 +16,10 @@ config :ex_blog,
   start_content?: true,
   start_ecosystem?: true,
   start_telegram?: true,
+  # The Spectre Studio connection also needs EX_BLOG_PULSE_TOKEN; this flag only
+  # keeps the runtime out of the supervision tree when a deployment or a test
+  # never wants it, even with a token present.
+  start_pulse?: true,
   secure_session_cookie?: config_env() == :prod,
   public_origins: ["http://localhost:4000", "http://127.0.0.1:4000"],
   cors_origins: ["http://localhost:4000", "http://127.0.0.1:4000"],
@@ -74,6 +78,35 @@ config :spectre, :classifier,
 config :spectre, :semantic_cache,
   index_capacity: 4,
   mirror_training_dataset?: true
+
+# Phoenix Analytics is first-party and stays in memory while it is being
+# evaluated: the ETS store needs no database and no third-party request, and in
+# exchange the request logs live on the node and are lost on restart. One
+# request measures around 1 KB, so the cap below is roughly 100 MB on the 1 GB
+# machine; `PhoenixAnalytics.Store.info/0` reports the real usage.
+# `cache_ttl: 0` because in-memory folds are cheap enough that a stale
+# dashboard buys nothing.
+config :phoenix_analytics,
+  store: {PhoenixAnalytics.Store.ETS, retention_days: 30, max_entries: 100_000},
+  app_domain: "localhost",
+  cache_ttl: 0
+
+# Durability is deliberately not configured yet. Snapshots to S3 need
+# `{:ex_aws, "~> 2.5"}` and `{:ex_aws_s3, "~> 2.5"}` in mix.exs plus:
+#
+#     config :phoenix_analytics,
+#       snapshot: [
+#         sink: {PhoenixAnalytics.Snapshot.Sink.S3, bucket: "...", region: "..."},
+#         every: :day,
+#         at: ~T[03:00:00],
+#         window: :previous_day,
+#         format: :etf,
+#         gzip: true,
+#         restore: [days: 7]
+#       ]
+#
+# `PhoenixAnalytics.Snapshot.Sink.Local` writes to a path instead, which the
+# mounted volume would already back up.
 
 # Configure the endpoint
 config :ex_blog, ExBlogWeb.Endpoint,

@@ -133,6 +133,60 @@ defmodule ExBlog.ConfigTest do
     assert message =~ "EX_BLOG_CONTENT_ROOT"
   end
 
+  test "the Spectre Studio connection is optional and off by default" do
+    assert {:ok, config} = Config.load(full_env())
+
+    assert config.pulse_token == nil
+    assert config.pulse_scopes == ExBlog.Pulse.supported_scopes()
+    assert Config.pulse_token(config) == nil
+    assert Config.public(config).pulse == %{status: :disabled, scopes: [], url: nil}
+  end
+
+  test "accepts a Studio connection token and reports it without revealing it" do
+    token = String.duplicate("t", 43)
+    env = Map.put(full_env(), "EX_BLOG_PULSE_TOKEN", token)
+
+    assert {:ok, config} = Config.load(env)
+    assert Config.pulse_token(config) == token
+
+    assert Config.public(config).pulse == %{
+             status: :configured,
+             scopes: ExBlog.Pulse.supported_scopes(),
+             url: "wss://blog.example.com/pulse/websocket"
+           }
+
+    refute inspect(config) =~ token
+    assert Config.redact("token=#{token}", config) == "token=[REDACTED]"
+  end
+
+  test "rejects a Studio connection token short enough to brute force" do
+    env = Map.put(full_env(), "EX_BLOG_PULSE_TOKEN", "too-short")
+
+    assert {:error, message} = Config.load(env)
+    assert message =~ "EX_BLOG_PULSE_TOKEN: must be at least 32 URL-safe characters"
+  end
+
+  test "rejects a Studio connection token that cannot survive a query string" do
+    env = Map.put(full_env(), "EX_BLOG_PULSE_TOKEN", String.duplicate("a b", 16))
+
+    assert {:error, message} = Config.load(env)
+    assert message =~ "EX_BLOG_PULSE_TOKEN"
+  end
+
+  test "narrows the granted Studio scopes to the configured subset" do
+    env = Map.put(full_env(), "EX_BLOG_PULSE_SCOPES", "agent.runtime.read, agent.runtime.stream")
+
+    assert {:ok, config} = Config.load(env)
+    assert config.pulse_scopes == ["agent.runtime.read", "agent.runtime.stream"]
+  end
+
+  test "rejects a Studio scope this deployment cannot serve" do
+    env = Map.put(full_env(), "EX_BLOG_PULSE_SCOPES", "agent.runtime.read,ledger.read")
+
+    assert {:error, message} = Config.load(env)
+    assert message =~ "EX_BLOG_PULSE_SCOPES: must be a comma-separated subset of"
+  end
+
   defp full_env do
     %{
       "EX_BLOG_ADMIN_PASSWORD_HASH" => "$argon2id$admin-password-hash",

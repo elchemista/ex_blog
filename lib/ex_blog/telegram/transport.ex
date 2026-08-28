@@ -95,6 +95,7 @@ defmodule ExBlog.Telegram.Transport do
 
   @impl GenServer
   def init(opts) do
+    started_at = System.monotonic_time()
     config = Config.get()
     client = Keyword.get(opts, :client, ExGram)
     handler = Keyword.get(opts, :handler, &Gateway.handle_update/1)
@@ -117,6 +118,11 @@ defmodule ExBlog.Telegram.Transport do
          {:ok, session_pid} <- ensure_session(client, session_opts),
          :ok <- client.subscribe(session_id),
          :ok <- client.connect(session_id) do
+      Logger.info(
+        "telegram_transport ready session_id=#{inspect(session_id)} " <>
+          "duration_ms=#{elapsed_ms(started_at)}"
+      )
+
       {:ok,
        %{
          auth_state: :starting,
@@ -133,7 +139,21 @@ defmodule ExBlog.Telegram.Transport do
          outbound_message_ids: []
        }}
     else
-      {:error, _reason} -> {:stop, :telegram_session_start_failed}
+      {:error, reason} ->
+        Logger.error(
+          "telegram_transport start_failed code=#{error_code(reason)} " <>
+            "reason=#{inspect(safe_reason(reason))} duration_ms=#{elapsed_ms(started_at)}"
+        )
+
+        {:stop, :telegram_session_start_failed}
+
+      other ->
+        Logger.error(
+          "telegram_transport start_failed code=invalid_start_result " <>
+            "reason=#{inspect(safe_reason(other))} duration_ms=#{elapsed_ms(started_at)}"
+        )
+
+        {:stop, :telegram_session_start_failed}
     end
   end
 
@@ -166,9 +186,14 @@ defmodule ExBlog.Telegram.Transport do
 
         {:reply, :ok, state}
 
-      {:error, :telegram_unavailable} = error ->
+      {:error, reason} ->
+        Logger.warning(
+          "telegram_action failed action=switch_account code=#{error_code(reason)} " <>
+            "reason=#{inspect(safe_reason(reason))}"
+        )
+
         state = state |> Map.put(:last_error?, true) |> broadcast_snapshot()
-        {:reply, error, state}
+        {:reply, {:error, :telegram_unavailable}, state}
     end
   end
 
@@ -209,9 +234,14 @@ defmodule ExBlog.Telegram.Transport do
   end
 
   def handle_info(
-        {:DOWN, ref, :process, pid, _reason},
+        {:DOWN, ref, :process, pid, reason},
         %{monitor_ref: ref, session_pid: pid} = state
       ) do
+    Logger.error(
+      "telegram_session process_stopped code=#{error_code(reason)} " <>
+        "reason=#{inspect(safe_reason(reason))}"
+    )
+
     {:stop, :telegram_session_stopped, state}
   end
 
@@ -226,22 +256,36 @@ defmodule ExBlog.Telegram.Transport do
   end
 
   def handle_info(
-        {:ex_gram_session, :disconnected, _reason},
+        {:ex_gram_session, :disconnected, reason},
         %{auth_state: :switching_account} = state
       ) do
+    Logger.info("telegram_session account_switch_disconnected code=#{error_code(reason)}")
+
     {:noreply, state |> Map.put(:connection_status, :authenticating) |> broadcast_snapshot()}
   end
 
-  def handle_info({:ex_gram_session, :disconnected, _reason}, state) do
+  def handle_info({:ex_gram_session, :disconnected, reason}, state) do
+    Logger.warning(
+      "telegram_session disconnected code=#{error_code(reason)} " <>
+        "reason=#{inspect(safe_reason(reason))}"
+    )
+
     {:noreply, state |> disconnected_state() |> broadcast_snapshot()}
   end
 
-  def handle_info({:ex_gram_session, :terminated, _reason}, state) do
+  def handle_info({:ex_gram_session, :terminated, reason}, state) do
+    Logger.warning(
+      "telegram_session terminated code=#{error_code(reason)} " <>
+        "reason=#{inspect(safe_reason(reason))}"
+    )
+
     {:noreply, state |> disconnected_state() |> broadcast_snapshot()}
   end
 
-  def handle_info({:ex_gram_session, :error, _reason}, state) do
-    Logger.warning("Telegram session reported an error")
+  def handle_info({:ex_gram_session, :error, reason}, state) do
+    Logger.warning(
+      "telegram_session error code=#{error_code(reason)} reason=#{inspect(safe_reason(reason))}"
+    )
 
     state =
       state
@@ -256,6 +300,14 @@ defmodule ExBlog.Telegram.Transport do
         %{auth_state: :switching_account} = state
       ) do
     {:noreply, restart_for_new_account(state) |> broadcast_snapshot()}
+  end
+
+  def handle_info({:ex_gram_session, :auth, {:error, reason} = event}, state) do
+    Logger.warning(
+      "telegram_auth failed code=#{error_code(reason)} reason=#{inspect(safe_reason(reason))}"
+    )
+
+    {:noreply, event |> apply_auth_event(state) |> broadcast_snapshot()}
   end
 
   def handle_info({:ex_gram_session, :auth, event}, state) do
@@ -274,17 +326,58 @@ defmodule ExBlog.Telegram.Transport do
   end
 
   defp dispatch_message(event, jid, state) do
-    case state.handler.(event) do
+    started_at = System.monotonic_time()
+
+    case safe_handle(state.handler, event) do
       :ignore ->
+        Logger.info("telegram_message ignored duration_ms=#{elapsed_ms(started_at)}")
         {:noreply, state}
 
       {:reply, chunks} when is_list(chunks) ->
-        {:noreply, deliver(chunks, jid, state)}
+        case deliver(chunks, jid, state) do
+          {:ok, state} ->
+            Logger.info(
+              "telegram_message completed outcome=reply chunks=#{length(chunks)} " <>
+                "duration_ms=#{elapsed_ms(started_at)}"
+            )
 
-      {:error, _reason} ->
-        Logger.warning("Telegram message processing failed")
+            {:noreply, state}
+
+          {:error, reason, state} ->
+            Logger.warning(
+              "telegram_delivery failed code=#{error_code(reason)} " <>
+                "reason=#{inspect(safe_reason(reason))} chunks=#{length(chunks)} " <>
+                "duration_ms=#{elapsed_ms(started_at)}"
+            )
+
+            {:noreply, state}
+        end
+
+      {:error, reason} ->
+        Logger.warning(
+          "telegram_message failed code=#{error_code(reason)} " <>
+            "reason=#{inspect(safe_reason(reason))} duration_ms=#{elapsed_ms(started_at)}"
+        )
+
+        {:noreply, state}
+
+      invalid ->
+        Logger.warning(
+          "telegram_message failed code=invalid_handler_response " <>
+            "reason=#{inspect(safe_reason(invalid))} duration_ms=#{elapsed_ms(started_at)}"
+        )
+
         {:noreply, state}
     end
+  end
+
+  defp safe_handle(handler, event) do
+    handler.(event)
+  rescue
+    exception -> {:error, {:handler_exception, Exception.message(exception)}}
+  catch
+    :exit, reason -> {:error, {:handler_exit, reason}}
+    kind, reason -> {:error, {:handler_failure, kind, reason}}
   end
 
   defp run_client_action(state, pending_state, operation) do
@@ -299,22 +392,28 @@ defmodule ExBlog.Telegram.Transport do
 
         {:reply, :ok, state}
 
-      {:error, :telegram_unavailable} = error ->
+      {:error, reason} ->
+        Logger.warning(
+          "telegram_action failed action=#{pending_state} code=#{error_code(reason)} " <>
+            "reason=#{inspect(safe_reason(reason))}"
+        )
+
         state = state |> Map.put(:last_error?, true) |> broadcast_snapshot()
-        {:reply, error, state}
+        {:reply, {:error, :telegram_unavailable}, state}
     end
   end
 
   defp safe_client_call(operation) do
     case operation.() do
       :ok -> :ok
-      {:error, _reason} -> {:error, :telegram_unavailable}
-      _other -> {:error, :telegram_unavailable}
+      {:error, reason} -> {:error, reason}
+      other -> {:error, {:unexpected_client_response, other}}
     end
   rescue
-    _exception -> {:error, :telegram_unavailable}
+    exception -> {:error, {:client_exception, Exception.message(exception)}}
   catch
-    :exit, _reason -> {:error, :telegram_unavailable}
+    :exit, reason -> {:error, {:client_exit, reason}}
+    kind, reason -> {:error, {:client_failure, kind, reason}}
   end
 
   defp log_out(client, session_id) do
@@ -334,7 +433,12 @@ defmodule ExBlog.Telegram.Transport do
       |> Map.put(:connection_status, :connecting)
       |> Map.put(:last_error?, false)
     else
-      {:error, :telegram_unavailable} ->
+      {:error, reason} ->
+        Logger.warning(
+          "telegram_action failed action=restart_account code=#{error_code(reason)} " <>
+            "reason=#{inspect(safe_reason(reason))}"
+        )
+
         state
         |> disconnected_state()
         |> Map.put(:last_error?, true)
@@ -457,30 +561,20 @@ defmodule ExBlog.Telegram.Transport do
   end
 
   defp deliver(chunks, jid, state) do
-    result =
-      chunks
-      |> Enum.with_index()
-      |> Enum.reduce_while({:ok, state}, fn {chunk, index}, {:ok, current_state} ->
-        case deliver_chunk(chunk, jid, index, current_state) do
-          {:ok, message_id} when is_integer(message_id) or is_binary(message_id) ->
-            {:cont, {:ok, remember_outbound_message(current_state, message_id)}}
+    chunks
+    |> Enum.with_index()
+    |> Enum.reduce_while({:ok, state}, fn {chunk, index}, {:ok, current_state} ->
+      case deliver_chunk(chunk, jid, index, current_state) do
+        {:ok, message_id} when is_integer(message_id) or is_binary(message_id) ->
+          {:cont, {:ok, remember_outbound_message(current_state, message_id)}}
 
-          {:ok, _missing_message_id} ->
-            {:cont, {:ok, current_state}}
+        {:ok, _missing_message_id} ->
+          {:cont, {:ok, current_state}}
 
-          {:error, _reason} ->
-            {:halt, {:error, current_state}}
-        end
-      end)
-
-    case result do
-      {:ok, new_state} ->
-        new_state
-
-      {:error, new_state} ->
-        Logger.warning("Telegram reply delivery failed")
-        new_state
-    end
+        {:error, reason} ->
+          {:halt, {:error, reason, current_state}}
+      end
+    end)
   end
 
   defp deliver_chunk(chunk, jid, index, state) do
@@ -527,4 +621,24 @@ defmodule ExBlog.Telegram.Transport do
   end
 
   defp field(map, key), do: Map.get(map, key, Map.get(map, Atom.to_string(key)))
+
+  defp safe_reason(reason) do
+    reason
+    |> inspect(limit: 20, printable_limit: 1_000)
+    |> Config.redact()
+  end
+
+  defp error_code(reason) when is_atom(reason), do: Atom.to_string(reason)
+
+  defp error_code(reason) when is_tuple(reason) and tuple_size(reason) > 0,
+    do: reason |> elem(0) |> error_code()
+
+  defp error_code(%{reason: reason}), do: error_code(reason)
+  defp error_code(_reason), do: "unknown"
+
+  defp elapsed_ms(started_at) do
+    started_at
+    |> then(&(System.monotonic_time() - &1))
+    |> System.convert_time_unit(:native, :millisecond)
+  end
 end

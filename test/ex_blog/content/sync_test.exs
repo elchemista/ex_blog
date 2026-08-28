@@ -1,6 +1,8 @@
 defmodule ExBlog.Content.SyncTest do
   use ExBlog.DataCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias ExBlog.Config
   alias ExBlog.Content
   alias ExBlog.Content.Git
@@ -77,6 +79,8 @@ defmodule ExBlog.Content.SyncTest do
     git!(["push", "origin", "main"], publisher)
 
     assert {:ok, %{total: 1, invalid: 0, commit: draft_commit}} = Sync.sync_now()
+    assert %{status: :ok, commit: ^draft_commit, total: 1, invalid: 0} = Sync.status()
+    assert is_integer(Sync.status().duration_ms)
     assert {:ok, draft} = Content.get("en", "synchronized", published_only?: false)
     assert draft.status == :draft
     assert draft.cover == cover_path
@@ -93,6 +97,27 @@ defmodule ExBlog.Content.SyncTest do
     assert published_commit != draft_commit
     assert {:ok, published} = Content.get("en", "synchronized")
     assert published.status == :published
+  end
+
+  test "records and logs a secret-redacted synchronization failure" do
+    checkout = Config.repository_path()
+    assert String.starts_with?(checkout, System.tmp_dir!())
+    File.rm_rf!(checkout)
+
+    log =
+      capture_log([level: :warning], fn ->
+        assert {:error, :git_repository_not_found} = Sync.sync_now()
+      end)
+
+    assert log =~ "content_sync failed"
+    assert log =~ "code=git_repository_not_found"
+    refute log =~ Config.fetch_secret!(:github_token)
+
+    assert %{
+             status: :error,
+             error: "git_repository_not_found",
+             last_finished_at: %DateTime{}
+           } = Sync.status()
   end
 
   defp article(status, cover) do

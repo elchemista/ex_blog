@@ -120,7 +120,19 @@ defmodule ExBlog.Agent.Actions do
        content: %{
          status: :ready,
          indexed_articles: indexed_articles,
-         languages: config.supported_languages
+         languages: config.supported_languages,
+         sync:
+           Sync.status()
+           |> Map.take([
+             :status,
+             :trigger,
+             :last_finished_at,
+             :duration_ms,
+             :commit,
+             :total,
+             :invalid,
+             :error
+           ])
        },
        telegram: telegram_status(ctx),
        openrouter: openrouter_health(ctx),

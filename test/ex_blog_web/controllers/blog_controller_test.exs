@@ -366,8 +366,16 @@ defmodule ExBlogWeb.BlogControllerTest do
   end
 
   test "serves a secret-free health response", %{conn: conn} do
-    assert %{"status" => "ok", "commit" => nil} =
-             conn |> get("/health") |> json_response(200)
+    assert %{
+             "status" => "ok",
+             "commit" => nil,
+             "content_sync" => %{
+               "status" => "not_started",
+               "last_finished_at" => nil,
+               "duration_ms" => nil,
+               "error" => nil
+             }
+           } = conn |> get("/health") |> json_response(200)
   end
 
   defp html_document(conn, status) do

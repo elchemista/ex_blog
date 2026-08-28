@@ -46,6 +46,7 @@ defmodule ExBlog.Agent.Presenter do
 
     GitHub token: #{configured(config.github_token)}
     OpenRouter token: #{configured(config.openrouter_token)}
+    #{pulse_line(Map.get(config, :pulse))}
     """
     |> String.trim()
   end
@@ -105,6 +106,7 @@ defmodule ExBlog.Agent.Presenter do
     Application: #{application.status}
     Public URL: #{public_url}
     Content index: #{content.status}; #{content.indexed_articles} articles in #{Enum.join(content.languages, ", ")}
+    Git content sync: #{content_sync_status(content.sync)}
     Telegram: #{telegram_status}
     OpenRouter: #{openrouter_status}
     AI spent this month: €#{budget.spent_month_eur}
@@ -300,8 +302,25 @@ defmodule ExBlog.Agent.Presenter do
 
   def present(value), do: inspect(value, limit: 50, printable_limit: 8_000)
 
+  defp content_sync_status(%{status: :ok} = sync) do
+    "ok; commit #{short_commit(sync.commit)}; #{sync.duration_ms} ms"
+  end
+
+  defp content_sync_status(%{status: :error} = sync), do: "error (#{sync.error})"
+  defp content_sync_status(%{status: status}), do: to_string(status)
+  defp content_sync_status(_sync), do: "unknown"
+
+  defp short_commit(commit) when is_binary(commit), do: String.slice(commit, 0, 12)
+  defp short_commit(_commit), do: "unknown"
+
   defp configured(:configured), do: "configured"
   defp configured(_other), do: "not configured"
+
+  defp pulse_line(%{status: :configured, url: url, scopes: scopes}) do
+    "Spectre Studio connection: #{url} (#{Enum.join(scopes, ", ")})"
+  end
+
+  defp pulse_line(_pulse), do: "Spectre Studio connection: not configured"
 
   defp display_model(model) when is_binary(model) and model != "", do: model
   defp display_model(_model), do: "not configured"

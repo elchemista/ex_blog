@@ -30,9 +30,14 @@ defmodule ExBlog.Application do
           ExBlog.Admin.LoginThrottle,
           # Owns Subject-scoped Agent Instances so route handlers can start
           # durable Work loops such as the sync-and-verify procedure.
-          {Spectre.Supervisor, name: ExBlog.SpectreSupervisor}
+          {Spectre.Supervisor, name: ExBlog.SpectreSupervisor},
+          # Publishes and activates the immutable source Definition required by
+          # governed Morph proposals, then keeps its Instance visible to Studio.
+          ExBlog.Agent.Governance
         ] ++
-        content_children() ++ ecosystem_children() ++ telegram_children() ++ [ExBlogWeb.Endpoint]
+        content_children() ++
+        ecosystem_children() ++
+        telegram_children() ++ pulse_children(config) ++ [ExBlogWeb.Endpoint]
 
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
@@ -71,6 +76,11 @@ defmodule ExBlog.Application do
       []
     end
   end
+
+  # Pulse discovers and subscribes the Pulse-enabled Agent, so it must be
+  # running before the Endpoint accepts a `/pulse` upgrade. It returns no child
+  # at all when no Studio connection is configured.
+  defp pulse_children(config), do: ExBlog.Pulse.children(config)
 
   defp load_runtime_config! do
     environment = Application.get_env(:ex_blog, :runtime_environment, :dev)

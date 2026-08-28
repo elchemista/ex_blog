@@ -10,8 +10,6 @@ defmodule ExBlog.Agent.Instance do
   """
 
   @supervisor ExBlog.SpectreSupervisor
-  @subject "blog-operations"
-
   @doc "Name of the dynamic supervisor declared in the application tree."
   @spec supervisor() :: module()
   def supervisor, do: @supervisor
@@ -19,7 +17,19 @@ defmodule ExBlog.Agent.Instance do
   @doc "Starts or reuses the blog's Agent Instance."
   @spec ensure() :: {:ok, pid()} | {:error, term()}
   def ensure do
-    Spectre.ensure_instance(@supervisor, ExBlog.Agent, @subject)
+    case Process.whereis(ExBlog.Agent.Governance) do
+      pid when is_pid(pid) ->
+        ExBlog.Agent.Governance.ensure()
+
+      nil ->
+        # Keep isolated callers usable when the application supervision tree is
+        # intentionally absent (for example, compile-time tooling).
+        Spectre.ensure_instance(
+          @supervisor,
+          ExBlog.Agent,
+          ExBlog.Agent.Governance.subject()
+        )
+    end
   end
 
   @doc "Adds `instance_pid` to Spectre call options when the Instance is available."

@@ -38,7 +38,15 @@ defmodule ExBlog.Config do
     :mcp_token
   ]
 
-  @derive {Inspect, except: @secret_fields}
+  # The Spectre Pulse connection token is optional: without it the Studio
+  # connection is not configured at all and the socket refuses every upgrade.
+  # It is therefore not part of the credential set reachable through
+  # `fetch_secret!/1`, but it is redacted and hidden from inspection like any
+  # other credential.
+  @optional_secret_fields [:pulse_token]
+  @redacted_fields @secret_fields ++ @optional_secret_fields
+
+  @derive {Inspect, except: @redacted_fields}
   @enforce_keys [
     :admin_password_hash,
     :admin_telegram_username,
@@ -68,7 +76,7 @@ defmodule ExBlog.Config do
     :mcp_token
   ]
 
-  defstruct @enforce_keys ++ [:phx_host]
+  defstruct @enforce_keys ++ [:phx_host, :pulse_token, pulse_scopes: []]
 
   @type t :: %__MODULE__{
           admin_password_hash: String.t(),
@@ -94,6 +102,8 @@ defmodule ExBlog.Config do
           telegram_api_id: pos_integer(),
           telegram_session_id: String.t(),
           phx_host: String.t() | nil,
+          pulse_token: String.t() | nil,
+          pulse_scopes: [String.t()],
           github_token: String.t(),
           openrouter_api_key: String.t(),
           telegram_api_hash: String.t(),
@@ -160,10 +170,21 @@ defmodule ExBlog.Config do
     |> Map.fetch!(name)
   end
 
+  @doc """
+  Returns the optional Spectre Pulse connection token.
+
+  `nil` means no Studio connection was configured, which is the boot default:
+  `ExBlog.Pulse` then starts no connection and every WebSocket upgrade on
+  `/pulse` is refused.
+  """
+  @spec pulse_token(t()) :: String.t() | nil
+  def pulse_token(config \\ get())
+  def pulse_token(%__MODULE__{pulse_token: token}), do: token
+
   @doc "Redacts every configured credential from a string."
   @spec redact(String.t(), t()) :: String.t()
   def redact(value, config \\ get()) when is_binary(value) and is_struct(config, __MODULE__) do
-    Enum.reduce(@secret_fields, value, fn field, redacted ->
+    Enum.reduce(@redacted_fields, value, fn field, redacted ->
       case Map.fetch!(config, field) do
         secret when is_binary(secret) and secret != "" ->
           String.replace(redacted, secret, "[REDACTED]")
@@ -206,6 +227,7 @@ defmodule ExBlog.Config do
       openrouter_token: :configured,
       telegram_api: :configured,
       mcp_token: :configured,
+      pulse: pulse_projection(config),
       monthly_budget_eur: Decimal.to_string(config.monthly_budget_eur),
       max_article_cost_eur: Decimal.to_string(config.max_article_cost_eur)
     }
@@ -313,7 +335,9 @@ defmodule ExBlog.Config do
       embedding_dimensions: positive_integer(env, "EX_BLOG_EMBEDDING_DIMENSIONS", "1024"),
       git_sync_interval_ms: positive_integer(env, "EX_BLOG_GIT_SYNC_INTERVAL_MS", "900000"),
       data_dir: absolute_path(env),
-      content_root: content_root(env)
+      content_root: content_root(env),
+      pulse_token: pulse_token_value(env),
+      pulse_scopes: pulse_scopes(env)
     ]
 
     errors =
@@ -353,6 +377,8 @@ defmodule ExBlog.Config do
          telegram_api_id: values.telegram_api_id,
          telegram_session_id: values.telegram_session_id,
          phx_host: optional(env, "PHX_HOST"),
+         pulse_token: values.pulse_token,
+         pulse_scopes: values.pulse_scopes,
          github_token: value(env, "EX_BLOG_GITHUB_TOKEN"),
          openrouter_api_key: value(env, "OPENROUTER_API_KEY"),
          telegram_api_hash: telegram_api_hash(env),
@@ -362,6 +388,65 @@ defmodule ExBlog.Config do
       {:error, format_errors([], errors)}
     end
   end
+
+  # A Pulse connection token is a bearer credential carried in a WebSocket URL
+  # query string. A short one would be brute-forceable against an endpoint that
+  # is, by design, reachable from wherever Studio runs.
+  @pulse_token_min_bytes 32
+
+  defp pulse_token_value(env) do
+    case optional(env, "EX_BLOG_PULSE_TOKEN") do
+      nil ->
+        {:ok, nil}
+
+      token ->
+        if byte_size(token) >= @pulse_token_min_bytes and
+             Regex.match?(~r/^[A-Za-z0-9._~-]+$/u, token) do
+          {:ok, token}
+        else
+          {:error,
+           {"EX_BLOG_PULSE_TOKEN",
+            "must be at least #{@pulse_token_min_bytes} URL-safe characters " <>
+              "(generate one with `mix ex_blog.pulse.token`)"}}
+        end
+    end
+  end
+
+  defp pulse_scopes(env) do
+    supported = ExBlog.Pulse.supported_scopes()
+
+    scopes =
+      env
+      |> optional("EX_BLOG_PULSE_SCOPES")
+      |> Kernel.||(Enum.join(supported, ","))
+      |> String.split(",", trim: true)
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.uniq()
+
+    cond do
+      scopes == [] ->
+        {:error, {"EX_BLOG_PULSE_SCOPES", "must grant at least one scope"}}
+
+      Enum.all?(scopes, &(&1 in supported)) ->
+        {:ok, scopes}
+
+      true ->
+        {:error,
+         {"EX_BLOG_PULSE_SCOPES",
+          "must be a comma-separated subset of: #{Enum.join(supported, ", ")}"}}
+    end
+  end
+
+  defp pulse_projection(%__MODULE__{pulse_token: nil}),
+    do: %{status: :disabled, scopes: [], url: nil}
+
+  defp pulse_projection(%__MODULE__{} = config),
+    do: %{
+      status: :configured,
+      scopes: config.pulse_scopes,
+      url: ExBlog.Pulse.studio_url(config)
+    }
 
   defp positive_integer(env, name, default) do
     raw = optional(env, name) || default

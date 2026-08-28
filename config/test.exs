@@ -7,6 +7,9 @@ config :ex_blog,
   # stubbed transport. Nothing else may reach GitHub Pages during a test run.
   start_ecosystem?: false,
   start_telegram?: false,
+  # Pulse tests build their own connection specification and start the runtime
+  # themselves; no test may open a listening Studio socket by accident.
+  start_pulse?: false,
   spectre_embedding_adapter: Spectre.Classifier.Embeddings.ExFastembed
 
 # Tests opt into planner doubles explicitly. An unexpected deterministic

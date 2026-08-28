@@ -1,5 +1,6 @@
 defmodule ExBlogWeb.Router do
   use ExBlogWeb, :router
+  use PhoenixAnalytics.Web, :router
 
   import ExBlogWeb.AdminAuth
 
@@ -87,6 +88,16 @@ defmodule ExBlogWeb.Router do
       on_mount: [{ExBlogWeb.AdminAuth, :require_authenticated}, ExBlogWeb.LocaleLive] do
       live "/telegram", TelegramLive, :show
     end
+
+    # The traffic dashboard ships its own LiveView, React bundle and document,
+    # so it gets its own live session rather than a panel inside an existing
+    # administrator page. Authentication is the same one: the pipeline above
+    # guards the first request and the mount hook guards the socket.
+    phoenix_analytics_dashboard("/analytics",
+      as: :admin_analytics,
+      on_mount: [{ExBlogWeb.AdminAuth, :require_authenticated}],
+      root_layout: {ExBlogWeb.AnalyticsLayouts, :root}
+    )
   end
 
   # ChatGPT discovers these documents before it starts the OAuth flow.

@@ -147,7 +147,7 @@ defmodule ExBlog.Agent.Skills.Operations do
         ],
         cache: false,
         via: [:embedding, :classifier, :llm_classifier] do
-        work(SyncAndVerify, input: %{}, reply: :verification_started)
+        run(:start_verification)
       end
 
       on :SHOW_VERIFICATION,
@@ -161,6 +161,12 @@ defmodule ExBlog.Agent.Skills.Operations do
         run(:verification_status)
       end
     end
+  end
+
+  @doc "Starts the sync-and-verify Work from the governed compiled callback boundary."
+  @spec start_verification(Input.t(), Context.t()) :: {:ok, Result.t()} | {:error, term()}
+  def start_verification(%Input{} = input, %Context{} = ctx) do
+    Runner.start_work(SyncAndVerify, input, ctx, input: %{}, reply: :verification_started)
   end
 
   @doc "Renders the newest sync-and-verify loop view for the administrator."

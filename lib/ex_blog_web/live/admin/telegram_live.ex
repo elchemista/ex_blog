@@ -151,6 +151,14 @@ defmodule ExBlogWeb.Admin.TelegramLive do
               {gettext("refresh")}
             </button>
             <.link
+              id="admin-analytics-link"
+              href={~p"/admin/analytics"}
+              class="term-btn"
+            >
+              <.icon name="hero-chart-bar" class="size-4" />
+              {gettext("traffic")}
+            </.link>
+            <.link
               id="admin-logout-link"
               href={~p"/admin/logout"}
               method="delete"

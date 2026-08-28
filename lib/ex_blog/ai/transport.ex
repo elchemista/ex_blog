@@ -15,6 +15,8 @@ defmodule ExBlog.AI.Transport do
 
   @behaviour Spectre.Prism.Adapter.Transport
 
+  require Logger
+
   alias ExBlog.Budget
   alias ExBlog.Config
 
@@ -25,7 +27,30 @@ defmodule ExBlog.AI.Transport do
       when method in [:get, :post, :put, :patch, :delete] and is_binary(url) and
              is_list(headers) and is_list(opts) do
     level = Keyword.get(opts, :ex_blog_level, level_for(body, opts))
+    model = request_model(body)
+    purpose = Keyword.get(opts, :purpose, :completion)
+    started_at = System.monotonic_time()
 
+    Logger.info(
+      "openrouter_request started model=#{inspect(model)} purpose=#{inspect(purpose)} " <>
+        "level=#{level}"
+    )
+
+    result = safe_perform_request(method, url, headers, body, opts, level)
+    log_result(result, model, purpose, level, elapsed_ms(started_at))
+    result
+  end
+
+  defp safe_perform_request(method, url, headers, body, opts, level) do
+    perform_request(method, url, headers, body, opts, level)
+  rescue
+    exception -> {:error, {:transport_exception, Exception.message(exception)}}
+  catch
+    :exit, reason -> {:error, {:transport_exit, reason}}
+    kind, reason -> {:error, {:transport_failure, kind, reason}}
+  end
+
+  defp perform_request(method, url, headers, body, opts, level) do
     with :ok <- Budget.authorize(level, budget_opts(opts)),
          {:ok, response} <- Req.request(request_options(method, url, headers, body, opts)),
          {:ok, decoded_body} <- decode_body(response.body, opts),
@@ -113,6 +138,53 @@ defmodule ExBlog.AI.Transport do
       is_map(request) and is_binary(Map.get(request, "model")) -> Map.get(request, "model")
       true -> "unknown"
     end
+  end
+
+  defp request_model(%{"model" => model}) when is_binary(model), do: String.slice(model, 0, 160)
+  defp request_model(_body), do: "unknown"
+
+  defp log_result({:ok, status, _headers, _body}, model, purpose, level, duration_ms)
+       when status in 200..299 do
+    Logger.info(
+      "openrouter_request completed model=#{inspect(model)} purpose=#{inspect(purpose)} " <>
+        "level=#{level} status=#{status} duration_ms=#{duration_ms}"
+    )
+  end
+
+  defp log_result({:ok, status, _headers, _body}, model, purpose, level, duration_ms) do
+    Logger.warning(
+      "openrouter_request failed model=#{inspect(model)} purpose=#{inspect(purpose)} " <>
+        "level=#{level} code=provider_http_status status=#{status} duration_ms=#{duration_ms}"
+    )
+  end
+
+  defp log_result({:error, reason}, model, purpose, level, duration_ms) do
+    Logger.warning(
+      "openrouter_request failed model=#{inspect(model)} purpose=#{inspect(purpose)} " <>
+        "level=#{level} code=#{error_code(reason)} reason=#{inspect(safe_reason(reason))} " <>
+        "duration_ms=#{duration_ms}"
+    )
+  end
+
+  defp safe_reason(reason) do
+    reason
+    |> inspect(limit: 20, printable_limit: 1_000)
+    |> Config.redact()
+  end
+
+  defp error_code(reason) when is_atom(reason), do: Atom.to_string(reason)
+
+  defp error_code(reason) when is_tuple(reason) and tuple_size(reason) > 0,
+    do: reason |> elem(0) |> error_code()
+
+  defp error_code(%{reason: reason}), do: error_code(reason)
+  defp error_code(%{__struct__: module}) when is_atom(module), do: inspect(module)
+  defp error_code(_reason), do: "unknown"
+
+  defp elapsed_ms(started_at) do
+    started_at
+    |> then(&(System.monotonic_time() - &1))
+    |> System.convert_time_unit(:native, :millisecond)
   end
 
   defp usage_value(usage, key) do

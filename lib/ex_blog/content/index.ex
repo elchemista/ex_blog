@@ -9,12 +9,15 @@ defmodule ExBlog.Content.Index do
 
   use GenServer
 
+  require Logger
+
   alias ExBlog.Config
   alias ExBlog.Content.Article
   alias ExBlog.Content.Git
   alias ExBlog.Content.Parser
 
   @table_key {__MODULE__, :table}
+  @invalid_log_limit 50
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: Keyword.get(opts, :name, __MODULE__))
@@ -58,9 +61,24 @@ defmodule ExBlog.Content.Index do
     state = %{table: table, root: root, content_root: content_root, commit: nil, rebuilt_at: nil}
 
     if Keyword.get(opts, :rebuild?, true) do
+      started_at = System.monotonic_time()
+
       case build_and_swap(state) do
-        {:ok, next_state, _summary} -> {:ok, next_state}
-        {:error, reason} -> {:stop, reason}
+        {:ok, next_state, summary} ->
+          Logger.info(
+            "content_index ready commit=#{summary.commit} total=#{summary.total} " <>
+              "invalid=#{summary.invalid} duration_ms=#{elapsed_ms(started_at)}"
+          )
+
+          {:ok, next_state}
+
+        {:error, reason} ->
+          Logger.error(
+            "content_index boot_failed reason=#{inspect(safe_reason(reason))} " <>
+              "duration_ms=#{elapsed_ms(started_at)}"
+          )
+
+          {:stop, reason}
       end
     else
       {:ok, state}
@@ -69,9 +87,24 @@ defmodule ExBlog.Content.Index do
 
   @impl true
   def handle_call(:rebuild, _from, state) do
+    started_at = System.monotonic_time()
+
     case build_and_swap(state) do
-      {:ok, next_state, summary} -> {:reply, {:ok, summary}, next_state}
-      {:error, reason} -> {:reply, {:error, reason}, state}
+      {:ok, next_state, summary} ->
+        Logger.info(
+          "content_index rebuilt commit=#{summary.commit} total=#{summary.total} " <>
+            "invalid=#{summary.invalid} duration_ms=#{elapsed_ms(started_at)}"
+        )
+
+        {:reply, {:ok, summary}, next_state}
+
+      {:error, reason} ->
+        Logger.warning(
+          "content_index rebuild_failed reason=#{inspect(safe_reason(reason))} " <>
+            "duration_ms=#{elapsed_ms(started_at)}"
+        )
+
+        {:reply, {:error, reason}, state}
     end
   end
 
@@ -105,6 +138,9 @@ defmodule ExBlog.Content.Index do
         {:ok, {:error, reason, path}} -> Article.invalid(path, reason)
         {:exit, reason} -> Article.invalid("parser-task", {:task_exit, reason})
       end)
+      |> invalidate_duplicate_keys()
+
+    log_invalid_articles(articles)
 
     true = :ets.insert(table, Enum.map(articles, &{Article.key(&1), &1}))
 
@@ -152,5 +188,56 @@ defmodule ExBlog.Content.Index do
 
   defp new_table do
     :ets.new(__MODULE__, [:set, :protected, read_concurrency: true])
+  end
+
+  defp invalidate_duplicate_keys(articles) do
+    duplicate_keys =
+      articles
+      |> Enum.filter(& &1.valid?)
+      |> Enum.group_by(&Article.key/1)
+      |> Enum.flat_map(fn
+        {_key, [_article]} -> []
+        {key, _articles} -> [key]
+      end)
+      |> MapSet.new()
+
+    Enum.map(articles, fn article ->
+      if article.valid? and MapSet.member?(duplicate_keys, Article.key(article)) do
+        Article.invalid(article.path, {:duplicate_article, article.lang, article.slug})
+      else
+        article
+      end
+    end)
+  end
+
+  defp log_invalid_articles(articles) do
+    invalid = Enum.reject(articles, & &1.valid?)
+
+    invalid
+    |> Enum.take(@invalid_log_limit)
+    |> Enum.each(fn article ->
+      Logger.warning(
+        "content_index article_invalid path=#{inspect(Config.redact(article.path))} " <>
+          "errors=#{inspect(safe_reason(article.errors))}"
+      )
+    end)
+
+    if length(invalid) > @invalid_log_limit do
+      Logger.warning(
+        "content_index invalid_log_truncated omitted=#{length(invalid) - @invalid_log_limit}"
+      )
+    end
+  end
+
+  defp safe_reason(reason) do
+    reason
+    |> inspect(limit: 20, printable_limit: 1_000)
+    |> Config.redact()
+  end
+
+  defp elapsed_ms(started_at) do
+    started_at
+    |> then(&(System.monotonic_time() - &1))
+    |> System.convert_time_unit(:native, :millisecond)
   end
 end

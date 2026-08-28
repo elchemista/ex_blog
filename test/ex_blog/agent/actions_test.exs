@@ -176,6 +176,7 @@ defmodule ExBlog.Agent.ActionsTest do
 
     rendered = Presenter.present(status)
     assert rendered =~ "System status"
+    assert rendered =~ "Git content sync:"
     assert rendered =~ "Telegram: connected"
     assert rendered =~ "OpenRouter: reachable; all models available"
     assert rendered =~ "AI budget remaining: €"

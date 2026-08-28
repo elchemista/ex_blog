@@ -21,6 +21,8 @@ workflow:
   pages from inside the agent;
 - **Spectre Work** runs the durable sync-and-verify maintenance procedure on
   the operational runtime;
+- **Spectre Pulse** exposes the agent to Spectre Studio over one authenticated
+  WebSocket for monitoring and governed cache/Morph review;
 - **HEEx prompt templates** keep prompts reviewable and next to their skill;
 - **dataset-driven semantic routing** uses an ExBlog-specific English corpus,
   optional local classification in development, OpenRouter embeddings in
@@ -39,6 +41,7 @@ route that performs the pairing.
 | --- | --- | --- | --- |
 | Administrator login | `http://localhost:4000/admin/login` | `https://<PHX_HOST>/admin/login` | Public form, protected by password verification and rate limiting |
 | Telegram connection | `http://localhost:4000/admin/telegram` | `https://<PHX_HOST>/admin/telegram` | Requires an authenticated administrator session |
+| Traffic dashboard | `http://localhost:4000/admin/analytics` | `https://<PHX_HOST>/admin/analytics` | Requires an authenticated administrator session |
 
 You may go directly to `/admin/telegram`: when no valid administrator session
 exists, Phoenix redirects to `/admin/login` and returns to the Telegram page
@@ -726,6 +729,8 @@ legacy aliases, but new deployments should use ExGram's conventional
 | `EX_BLOG_SUPPORTED_LANGUAGES` | no | `it,en` | comma-separated language codes such as `it,en` or `en,pt-BR` |
 | `EX_BLOG_DATA_DIR` | no | `/data` | absolute writable path for checkout, DETS, TDLib, and durable images |
 | `EX_BLOG_MCP_TOKEN` | yes | — | separate bearer for direct operator MCP clients; ChatGPT OAuth does not use it |
+| `EX_BLOG_PULSE_TOKEN` | no | unset | operator credential for the Spectre Studio connection; unset disables `/pulse` entirely |
+| `EX_BLOG_PULSE_SCOPES` | no | all seven | comma-separated subset of runtime/operations monitoring, semantic-cache review, and governed Morph proposal scopes granted to Studio |
 | `EX_BLOG_CHATGPT_PUBLIC_BASE_URL` | no | `https://<PHX_HOST>` | public HTTPS origin for OAuth behind a tunnel or proxy; no path, query, or credentials |
 | `EX_BLOG_CORS_ORIGINS` | no | `https://<PHX_HOST>` | comma-separated browser origins allowed by CORS; use exact origins, never `*` with credentials |
 | `LIGHTPANDA_PATH` | no | searched in `PATH` and `~/.local/bin` | explicit Lightpanda executable used by Spectre Lens |
@@ -1059,6 +1064,44 @@ count. The index page also publishes a `SoftwareApplication` /
 `SoftwareSourceCode` node for Spectre itself, and every article points `about`
 back at it.
 
+## Traffic analytics
+
+Visit measurement is [Phoenix Analytics](https://github.com/elchemista/PhoenixAnalytics),
+pulled from the Git fork rather than from Hex so changes to the fork reach the
+blog without waiting for a release. The dashboard lives at `/admin/analytics`,
+inside the same `require_admin_authenticated` scope as the Telegram page: the
+pipeline guards the first request and the mount hook guards the socket.
+
+The store is ETS, so there is no database and no migration. Request logs stay in
+the memory of the node that served them, capped at 30 days and 100k entries —
+roughly 100 MB on the 1 GB Fly machine, and `PhoenixAnalytics.Store.info/0`
+reports the real figure. The trade is durability: a restart empties the store,
+and with one active machine that is the whole data set. Configuring `:snapshot`
+in `config/config.exs` buys that back, either to S3 (needs `ex_aws` and
+`ex_aws_s3`) or to a path on the mounted volume; the commented block in that
+file has the shape.
+
+Tracking is gated on consent. `ExBlogWeb.Plugs.AnalyticsConsent` runs as a
+`:before` plug of the request tracker and reads the `analytics` category out of
+the same `spectre_cookie_consent` cookie the banner writes, so a reader who has
+not answered the banner, or who kept only necessary cookies, is neither counted
+nor given the `pa_session_id` and `pa_page_views` cookies — the tracker only
+opens its session once the before plugs have had their say. The cookie is
+client-controlled, so anything that is not a consent record naming the category
+reads as "no consent".
+
+On top of consent, the tracker ignores `/admin`, `/oauth`, `/mcp`,
+`/.well-known`, `/health` and `/live`: administrator work, machine endpoints and
+health probes are not readers and would only add noise. In production
+`app_domain` is set to `PHX_HOST` in `config/runtime.exs` so the site's own
+pages count as internal navigation rather than acquisition.
+
+The dashboard renders its own React bundle through the LiveSocket the library
+ships, which is why it gets its own root layout in
+`ExBlogWeb.AnalyticsLayouts`: two LiveSocket instances on one document fight
+over the same LiveView, so the analytics assets replace the site's rather than
+joining them.
+
 ## MCP and ChatGPT
 
 The same action surface is available through Streamable HTTP MCP. Direct
@@ -1086,6 +1129,83 @@ Use `EX_BLOG_CHATGPT_PUBLIC_BASE_URL` only when the externally visible HTTPS
 origin differs from `https://<PHX_HOST>`, such as a development tunnel. Do not
 append `/mcp`.
 
+## Spectre Studio through Spectre Pulse
+
+[Spectre Studio](https://github.com/elchemista/spectre_studio) is a LiveView
+control centre that observes running Spectre systems. It reaches this blog
+through [Spectre Pulse](https://github.com/elchemista/spectre_pulse): one
+authenticated WebSocket that carries a connection manifest and scoped runtime
+monitoring. Phoenix owns the upgrade, TLS, and origin policy; Pulse owns
+protocol validation, the live connection, and the lifetime of every monitoring
+subscription.
+
+```text
+Spectre Studio
+      │  wss://<PHX_HOST>/pulse/websocket?token=<EX_BLOG_PULSE_TOKEN>
+      ▼
+ExBlogWeb.PulseSocket ── ExBlog.Pulse.Access ── ExBlog.Pulse (:studio connection)
+      │
+      └── spectre://ex-blog/editorial   (monitoring + governed review)
+```
+
+### Enable it
+
+1. generate a credential with `mix ex_blog.pulse.token`;
+2. set it as `EX_BLOG_PULSE_TOKEN` and restart;
+3. in Studio, add a connection whose endpoint is
+   `wss://<PHX_HOST>/pulse/websocket` — `ws://localhost:4000/pulse/websocket` in
+   development — and paste the same token, which Studio seals with its own vault
+   key;
+4. open the Agent panel and enter the Subject `blog-operations`, the
+   Subject-scoped Instance that owns this blog's operational loops.
+
+Without a token no connection definition is registered, so the Pulse runtime
+does not start and every `/pulse` upgrade is refused before a credential is
+read. `mix ex_blog.pulse.token` is the only supported way to mint one:
+`EX_BLOG_PULSE_TOKEN` must be at least 32 URL-safe characters, because it
+travels in a WebSocket query string.
+
+### What Studio can see, and what it cannot
+
+The connection grants seven explicit scopes. Four are read/stream monitoring;
+three expose ExBlog's reviewable semantic cache and governed Morph proposal
+boundary:
+
+| Scope | What it unlocks |
+| --- | --- |
+| `agent.runtime.read` | one bounded `Process.info/2` snapshot of the Agent Instance |
+| `agent.runtime.stream` | a repeating snapshot subscription while a panel is open |
+| `agent.operations.read` | a publication-safe view of active Work and Vigil loops |
+| `agent.operations.stream` | a repeating subscription for the same view |
+| `agent.semantic_cache.read` | mutable learned rows plus trusted read-only dataset and route examples |
+| `agent.semantic_cache.promote` | promote only an editable online learned row after operator review |
+| `spectre.morph.propose` | compose and evaluate a reply-only runtime Skill Candidate against ExBlog's sealed replay corpus |
+
+Monitoring is never on by default: it starts when an operator opens a panel and
+stops when the panel closes, the duration expires, or the socket dies. It never
+exposes mailbox contents, the process dictionary, GenServer state, memory
+records, prompts, model calls, or token totals.
+
+The normal Agent boundary remains deliberately **inbound-disabled**:
+
+- the agent accepts no inbound Pulse payload type, so an authenticated operator
+  cannot turn an envelope into an editorial turn, a model call, or a repository
+  write — those enter through Telegram and MCP, which carry their own policy;
+- semantic-cache promotion changes routing evidence only; it cannot execute an
+  action, and unverified online rows are excluded from normal vector routing;
+- Morph can persist an evaluated reply-only Candidate, but the declared Surface
+  requires human approval and the Studio operation neither approves nor
+  activates it. Direct runtime Skill mount, Ledger, and Lab scopes remain
+  unadvertised.
+
+Pulse discards the token after the handshake. The manifest carries the principal
+and its grants but never the credential, and rotating `EX_BLOG_PULSE_TOKEN`
+changes the principal id, so a stale credential cannot quietly keep a scope.
+
+Studio itself has no sign-in — its listening address is its access control — so
+run it on loopback or behind a proxy that authenticates, exactly as its own
+README requires.
+
 ## Boot sequence and operating model
 
 ```text
@@ -1100,6 +1220,7 @@ validate every ENV
 → parse Markdown and build ETS
 → start Spectre, Prism, Kinetic, and Beam boundaries
 → start the ExGram session
+→ start Spectre Pulse when a Studio connection is configured
 → expose Phoenix and MCP
 ```
 
@@ -1205,6 +1326,10 @@ fly secrets set \
   EX_BLOG_MCP_TOKEN="$(openssl rand -hex 32)"
 ```
 
+Add `EX_BLOG_PULSE_TOKEN="$(mix ex_blog.pulse.token)"` to the same command only
+when Spectre Studio should reach the deployment. Leaving it unset keeps `/pulse`
+closed.
+
 Set non-secret deployment values such as branch, languages, budgets, host,
 embedding model, and port in `fly.toml` or the platform environment.
 
@@ -1223,6 +1348,8 @@ must be opened by the machine that owns the mounted volume.
 - [Markdown content contract](docs/content-contract.md)
 - [Architecture decisions](docs/architecture.md)
 - [Spectre editorial walkthrough](docs/spectre-editorial-showcase.md)
+- [Spectre Pulse](https://github.com/elchemista/spectre_pulse)
+- [Spectre Studio](https://github.com/elchemista/spectre_studio)
 - [ExGram](https://github.com/elchemista/ex_gram)
 - [Telegram API application credentials](https://core.telegram.org/api/obtaining_api_id)
 - [GitHub fine-grained personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)

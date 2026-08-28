@@ -189,7 +189,7 @@ CookieConsent.run({
             {
               title: "Cookie analitici",
               description:
-                "Aiutano a capire come viene utilizzato il sito. Il bundle pubblico attuale non carica servizi analitici di terze parti.",
+                "Aiutano a capire come viene utilizzato il sito. La misurazione resta sull'infrastruttura del sito, senza servizi di terze parti: i cookie pa_session_id e pa_page_views vengono scritti solo dopo il tuo consenso e scadono dopo cinque minuti.",
               linkedCategory: "analytics",
             },
             {
@@ -234,7 +234,7 @@ CookieConsent.run({
             {
               title: "Analytics cookies",
               description:
-                "They help understand how the site is used. The current public bundle does not load third-party analytics services.",
+                "They help understand how the site is used. Measurement stays on the site's own infrastructure, with no third-party service: the pa_session_id and pa_page_views cookies are written only after you consent and expire after five minutes.",
               linkedCategory: "analytics",
             },
             {

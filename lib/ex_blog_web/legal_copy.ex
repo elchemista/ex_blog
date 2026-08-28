@@ -60,7 +60,7 @@ defmodule ExBlogWeb.LegalCopy do
             %{
               title: "Analisi facoltativa",
               body:
-                "La categoria analytics resta disattivata finché non acconsenti. Al momento il bundle pubblico non carica servizi analitici o pubblicitari di terze parti."
+                "La categoria analytics resta disattivata finché non acconsenti. Con il consenso la misurazione delle visite avviene con Phoenix Analytics, ospitato sulla stessa infrastruttura del sito: i cookie pa_session_id e pa_page_views distinguono una visita dalla successiva, scadono dopo cinque minuti e non vengono inviati a terze parti."
             }
           ],
           links: []
@@ -70,7 +70,7 @@ defmodule ExBlogWeb.LegalCopy do
           title: "3. Cookie di terze parti",
           paragraphs: [
             "Il sito non installa intenzionalmente cookie pubblicitari di terze parti. I siti esterni raggiunti tramite link applicano informative e preferenze proprie, sulle quali spectre.elchemista.com non ha controllo.",
-            "Se in futuro venissero aggiunti strumenti analitici non essenziali, saranno bloccati fino al consenso e questa informativa verrà aggiornata prima dell'attivazione."
+            "La misurazione delle visite non è affidata a terze parti: resta sull'infrastruttura del sito. Se in futuro venissero aggiunti altri strumenti non essenziali, saranno bloccati fino al consenso e questa informativa verrà aggiornata prima dell'attivazione."
           ],
           items: [],
           links: []
@@ -113,7 +113,8 @@ defmodule ExBlogWeb.LegalCopy do
           id: "durata",
           title: "6. Durata",
           paragraphs: [
-            "La preferenza spectre_cookie_consent dura fino a 182 giorni, salvo cancellazione anticipata dal browser. I cookie tecnici di sessione scadono al termine della sessione o secondo il periodo strettamente necessario alla funzione richiesta."
+            "La preferenza spectre_cookie_consent dura fino a 182 giorni, salvo cancellazione anticipata dal browser. I cookie tecnici di sessione scadono al termine della sessione o secondo il periodo strettamente necessario alla funzione richiesta.",
+            "I cookie di analisi pa_session_id e pa_page_views scadono dopo cinque minuti. Le misurazioni corrispondenti restano in memoria sul server per un massimo di 30 giorni e vengono poi eliminate."
           ],
           items: [],
           links: []
@@ -176,7 +177,7 @@ defmodule ExBlogWeb.LegalCopy do
             %{
               title: "Optional analytics",
               body:
-                "The analytics category stays disabled until you consent. The current public bundle does not load third-party analytics or advertising services."
+                "The analytics category stays disabled until you consent. With consent, visits are measured with Phoenix Analytics, hosted on the same infrastructure as the site: the pa_session_id and pa_page_views cookies tell one visit from the next, expire after five minutes, and are never sent to third parties."
             }
           ],
           links: []
@@ -186,7 +187,7 @@ defmodule ExBlogWeb.LegalCopy do
           title: "3. Third-party cookies",
           paragraphs: [
             "The site does not intentionally install third-party advertising cookies. External websites reached through links apply their own notices and preferences, which spectre.elchemista.com does not control.",
-            "If non-essential analytics tools are added in the future, they will remain blocked until consent and this notice will be updated before activation."
+            "Visit measurement is not delegated to a third party: it stays on the site's own infrastructure. If other non-essential tools are added in the future, they will remain blocked until consent and this notice will be updated before activation."
           ],
           items: [],
           links: []
@@ -229,7 +230,8 @@ defmodule ExBlogWeb.LegalCopy do
           id: "duration",
           title: "6. Duration",
           paragraphs: [
-            "The spectre_cookie_consent preference lasts up to 182 days unless you remove it earlier. Technical session cookies expire with the session or after the period strictly required by the requested feature."
+            "The spectre_cookie_consent preference lasts up to 182 days unless you remove it earlier. Technical session cookies expire with the session or after the period strictly required by the requested feature.",
+            "The pa_session_id and pa_page_views analytics cookies expire after five minutes. The matching measurements stay in server memory for at most 30 days and are then discarded."
           ],
           items: [],
           links: []

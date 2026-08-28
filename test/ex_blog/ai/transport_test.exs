@@ -1,6 +1,8 @@
 defmodule ExBlog.AI.TransportTest do
   use ExBlog.DataCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias ExBlog.AI.Transport
   alias ExBlog.Budget
 
@@ -54,15 +56,22 @@ defmodule ExBlog.AI.TransportTest do
       Req.Test.json(conn, %{})
     end)
 
-    assert {:error, :monthly_budget_exceeded} =
-             Transport.request(
-               :post,
-               "https://openrouter.test/api/v1/chat/completions",
-               [],
-               %{"model" => "provider/deep"},
-               ex_blog_level: :deep,
-               req_options: [plug: {Req.Test, __MODULE__}]
-             )
+    log =
+      capture_log([level: :warning], fn ->
+        assert {:error, :monthly_budget_exceeded} =
+                 Transport.request(
+                   :post,
+                   "https://openrouter.test/api/v1/chat/completions",
+                   [],
+                   %{"model" => "provider/deep"},
+                   ex_blog_level: :deep,
+                   req_options: [plug: {Req.Test, __MODULE__}]
+                 )
+      end)
+
+    assert log =~ "openrouter_request failed"
+    assert log =~ "code=monthly_budget_exceeded"
+    assert log =~ "duration_ms="
 
     refute_received :unexpected_http_request
   end

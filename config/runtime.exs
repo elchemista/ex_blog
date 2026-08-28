@@ -180,6 +180,10 @@ if config_env() == :prod do
     cors_origins: cors_origins,
     public_origins: public_origins
 
+  # Referrers from the site itself are internal navigation, not acquisition, so
+  # the analytics dashboard filters them out by the canonical host.
+  config :phoenix_analytics, app_domain: host
+
   config :ex_blog, ExBlogWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     check_origin: check_origins,

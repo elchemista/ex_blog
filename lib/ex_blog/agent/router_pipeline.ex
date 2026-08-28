@@ -35,8 +35,20 @@ defmodule ExBlog.Agent.RouterPipeline do
     classifier: [Spectre.Router.Plugs.LocalClassifier]
   }
 
+  @doc "Whether the pipeline exposes its closed model-free evaluation mode."
+  @spec rehearsable?() :: boolean()
+  def rehearsable?, do: true
+
   @spec call(Context.t()) :: {:ok, Context.t()} | {:error, term()}
   def call(%Context{} = context) do
+    if Keyword.get(context.opts, :evaluation?, false) do
+      evaluation_call(context)
+    else
+      live_call(context)
+    end
+  end
+
+  defp live_call(context) do
     via = effective_via(context)
 
     # Ordering is part of the safety and cost model. Hard regex evidence stops
@@ -57,6 +69,26 @@ defmodule ExBlog.Agent.RouterPipeline do
       ])
 
     Spectre.Pipeline.run(context, specs)
+  end
+
+  # Governance replay must never sample a model, learned cache, hosted
+  # embedding, or stateful continuation. `Spectre.Router.evaluate/3` marks the
+  # context with `evaluation?: true`; under that explicit boundary this branch
+  # retains only hard regex evidence and a disabled-LLM clarification fallback.
+  defp evaluation_call(context) do
+    opts =
+      context.opts
+      |> Keyword.put(:via, [:regex])
+      |> Keyword.put(:semantic_cache?, false)
+      |> Keyword.put(:llm_classifier?, false)
+
+    context = %{context | opts: opts}
+
+    Spectre.Pipeline.run(context, [
+      Spectre.Router.Plugs.Regex,
+      Spectre.Router.Plugs.Arbitrate,
+      Spectre.Router.Plugs.Terminalize
+    ])
   end
 
   @spec effective_via(Context.t()) :: [atom()]

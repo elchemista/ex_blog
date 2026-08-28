@@ -1,6 +1,8 @@
 defmodule ExBlog.Telegram.TransportTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   alias ExBlog.Telegram.{BeamAdapter, ClientFake, Transport}
   alias Spectre.Beam.Config, as: BeamConfig
 
@@ -107,6 +109,22 @@ defmodule ExBlog.Telegram.TransportTest do
 
     assert_receive {:handled, ^matching}
     refute_receive {:handled, ^other}
+  end
+
+  test "logs a redacted processing failure with its duration" do
+    secret = ExBlog.Config.fetch_secret!(:openrouter_api_key)
+    transport = start_transport(fn _event -> {:error, {:provider_failed, secret}} end)
+
+    log =
+      capture_log([level: :warning], fn ->
+        send(transport, {:ex_gram_message, "42", %{id: 7, sender_id: 42, text: "hello"}})
+        _state = :sys.get_state(transport)
+      end)
+
+    assert log =~ "telegram_message failed"
+    assert log =~ "code=provider_failed"
+    assert log =~ "duration_ms="
+    refute log =~ secret
   end
 
   test "projects ExGram authorization events without persisting login inputs" do

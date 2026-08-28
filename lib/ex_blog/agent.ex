@@ -20,11 +20,33 @@ defmodule ExBlog.Agent do
   """
 
   use Spectre.Agent,
+    version: 2,
     prompt_root: "lib/ex_blog_web/prompts",
     input_timeout: 30_000
 
   use Spectre.Prism, max_attempts: 2
   use Spectre.Beam, delivery: :caller_owned
+  use Spectre.Pulse
+
+  # Pulse gives this Agent a canonical logical identity and a transport-neutral
+  # boundary. `ExBlog.Pulse` decides which connection may see it; the Agent
+  # itself owns no socket, credential, or route.
+  pulsing do
+    identity("spectre://ex-blog/editorial")
+
+    advertise(
+      display_name: "ExBlog editorial agent",
+      capabilities: [:editorial, :reader, :operations, :assistance],
+      metadata: %{"application" => "ex_blog", "language" => "en"}
+    )
+
+    # Spectre Studio observes this Agent; it does not drive it. Accepting no
+    # inbound payload type keeps an authenticated operator connection from
+    # turning a Pulse envelope into an editorial turn, a model call, or a
+    # repository write — those enter through Telegram and MCP, which carry their
+    # own policy. Add a type here only together with the flow that answers it.
+    pulse_inbound(allowed_types: [])
+  end
 
   Code.ensure_compiled!(ExBlog.Agent.KineticExtension)
 
@@ -122,6 +144,15 @@ defmodule ExBlog.Agent do
   # test or a deployment backed by a local/cached encoder.
   embedding(ExBlog.Agent.Embedding)
 
+  # Studio may compose reply-only runtime Skill candidates, but the immutable
+  # Surface is only a proposal ceiling. Human approval and generation-fenced
+  # activation remain separate host commits, and Pulse performs neither one.
+  morph(
+    may_propose: [:mount_skill, :replace_skill],
+    within: [scopes: [:agent], prompt_tokens: 4_096],
+    approval: :human
+  )
+
   # State owns workflow cursors and pending policy confirmations. Memory is a
   # separate, deliberately small store for redaction-safe routing recollection.
   state(ExBlog.Agent.StateStore)
@@ -190,10 +221,11 @@ defmodule ExBlog.Agent do
     semantic_cache?: true,
     semantic_cache: ExBlog.Agent.SemanticCache,
     embedding: {ExBlog.Agent.Embedding, []},
-    # A single mistaken LLM classification must never become durable routing
-    # evidence. The checked-in dataset still powers trusted exact matches, and
-    # manually reviewed semantic rows can still be searched.
-    semantic_learn?: false,
+    # Only rules explicitly marked `learn: true` are eligible. New LLM-routed
+    # examples remain unverified until Studio promotes them (or the adapter's
+    # stricter repeat-match gate verifies them), so one classification cannot
+    # immediately become trusted vector-routing evidence.
+    semantic_learn?: true,
     classification_log?: false
   )
 
