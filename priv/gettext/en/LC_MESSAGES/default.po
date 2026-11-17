@@ -11,7 +11,7 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:139
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:137
 #, elixir-autogen, elixir-format
 msgid "%{count} file"
 msgid_plural "%{count} files"
@@ -29,12 +29,12 @@ msgstr ""
 msgid "%{count} words"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:671
+#: lib/ex_blog_web/live/admin/telegram_live.ex:705
 #, elixir-autogen, elixir-format
 msgid "2FA password"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:200
+#: lib/ex_blog_web/live/admin/telegram_live.ex:234
 #, elixir-autogen, elixir-format
 msgid "Account pairing"
 msgstr ""
@@ -55,7 +55,7 @@ msgstr ""
 msgid "Administrator session closed."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:317
+#: lib/ex_blog_web/live/admin/telegram_live.ex:351
 #, elixir-autogen, elixir-format
 msgid "Alternatively, enter the international number linked to the account."
 msgstr ""
@@ -75,7 +75,7 @@ msgstr ""
 msgid "Authorize %{client}"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:673
+#: lib/ex_blog_web/live/admin/telegram_live.ex:707
 #, elixir-autogen, elixir-format
 msgid "Authorized"
 msgstr ""
@@ -95,37 +95,37 @@ msgstr ""
 msgid "Category: %{category}"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:698
+#: lib/ex_blog_web/live/admin/telegram_live.ex:732
 #, elixir-autogen, elixir-format
 msgid "Checking the ExGram session status."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:84
+#: lib/ex_blog_web/live/admin/telegram_live.ex:93
 #, elixir-autogen, elixir-format
 msgid "Code sent."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:495
+#: lib/ex_blog_web/live/admin/telegram_live.ex:529
 #, elixir-autogen, elixir-format
 msgid "Complete the verification"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:522
+#: lib/ex_blog_web/live/admin/telegram_live.ex:556
 #, elixir-autogen, elixir-format
 msgid "Connect Telegram"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:676
+#: lib/ex_blog_web/live/admin/telegram_live.ex:710
 #, elixir-autogen, elixir-format
 msgid "Connecting"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:519
+#: lib/ex_blog_web/live/admin/telegram_live.ex:553
 #, elixir-autogen, elixir-format
 msgid "Connecting…"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:529
+#: lib/ex_blog_web/live/admin/telegram_live.ex:563
 #, elixir-autogen, elixir-format
 msgid "Connection details"
 msgstr ""
@@ -135,7 +135,7 @@ msgstr ""
 msgid "Connection lost"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:340
+#: lib/ex_blog_web/live/admin/telegram_live.ex:374
 #, elixir-autogen, elixir-format
 msgid "Continue with the number"
 msgstr ""
@@ -155,17 +155,17 @@ msgstr ""
 msgid "Deny"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:74
+#: lib/ex_blog_web/live/admin/telegram_live.ex:83
 #, elixir-autogen, elixir-format
 msgid "Enter a valid international number, for example +393331234567."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:466
+#: lib/ex_blog_web/live/admin/telegram_live.ex:500
 #, elixir-autogen, elixir-format
 msgid "Enter the Telegram 2FA password. It is forwarded straight to TDLib and never stored."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:425
+#: lib/ex_blog_web/live/admin/telegram_live.ex:459
 #, elixir-autogen, elixir-format
 msgid "Enter the code"
 msgstr ""
@@ -175,12 +175,12 @@ msgstr ""
 msgid "Enter the configured password to manage the Telegram connection."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:89
+#: lib/ex_blog_web/live/admin/telegram_live.ex:98
 #, elixir-autogen, elixir-format
 msgid "Enter the numeric code received from Telegram."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:108
+#: lib/ex_blog_web/live/admin/telegram_live.ex:117
 #, elixir-autogen, elixir-format
 msgid "Enter the two-step verification password."
 msgstr ""
@@ -195,27 +195,27 @@ msgstr ""
 msgid "Every article tagged %{tag}."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:404
+#: lib/ex_blog_web/live/admin/telegram_live.ex:438
 #, elixir-autogen, elixir-format
 msgid "Frame the code and wait for the confirmation on this page."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:413
+#: lib/ex_blog_web/live/admin/telegram_live.ex:447
 #, elixir-autogen, elixir-format
 msgid "Generate a new QR"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:303
+#: lib/ex_blog_web/live/admin/telegram_live.ex:337
 #, elixir-autogen, elixir-format
 msgid "Generate the QR"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:355
+#: lib/ex_blog_web/live/admin/telegram_live.ex:389
 #, elixir-autogen, elixir-format
 msgid "Generating the QR"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:400
+#: lib/ex_blog_web/live/admin/telegram_live.ex:434
 #, elixir-autogen, elixir-format
 msgid "Go to Settings, Devices, Link desktop device."
 msgstr ""
@@ -240,12 +240,12 @@ msgstr ""
 msgid "Language"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:130
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:128
 #, elixir-autogen, elixir-format
 msgid "Latest posts"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:665
+#: lib/ex_blog_web/live/admin/telegram_live.ex:699
 #, elixir-autogen, elixir-format
 msgid "Login choice"
 msgstr ""
@@ -255,22 +255,22 @@ msgstr ""
 msgid "Main navigation"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:67
+#: lib/ex_blog_web/live/admin/telegram_live.ex:76
 #, elixir-autogen, elixir-format
 msgid "Number sent."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:228
+#: lib/ex_blog_web/live/admin/telegram_live.ex:262
 #, elixir-autogen, elixir-format
 msgid "OK — session authorized"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:292
+#: lib/ex_blog_web/live/admin/telegram_live.ex:326
 #, elixir-autogen, elixir-format
 msgid "Open Telegram on an already authenticated device and scan the code."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:396
+#: lib/ex_blog_web/live/admin/telegram_live.ex:430
 #, elixir-autogen, elixir-format
 msgid "Open Telegram on the already authenticated phone."
 msgstr ""
@@ -286,12 +286,12 @@ msgstr ""
 msgid "Page not found"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:289
+#: lib/ex_blog_web/live/admin/telegram_live.ex:323
 #, elixir-autogen, elixir-format
 msgid "Pair with a QR code"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:680
+#: lib/ex_blog_web/live/admin/telegram_live.ex:714
 #, elixir-autogen, elixir-format
 msgid "Pick the QR code or continue with the phone number."
 msgstr ""
@@ -301,22 +301,22 @@ msgstr ""
 msgid "Published"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:374
+#: lib/ex_blog_web/live/admin/telegram_live.ex:408
 #, elixir-autogen, elixir-format
 msgid "QR code to pair Telegram"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:666
+#: lib/ex_blog_web/live/admin/telegram_live.ex:700
 #, elixir-autogen, elixir-format
 msgid "QR request"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:51
+#: lib/ex_blog_web/live/admin/telegram_live.ex:60
 #, elixir-autogen, elixir-format
 msgid "QR requested from Telegram."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:667
+#: lib/ex_blog_web/live/admin/telegram_live.ex:701
 #, elixir-autogen, elixir-format
 msgid "QR scan"
 msgstr ""
@@ -336,7 +336,7 @@ msgstr ""
 msgid "Reconnecting"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:300
+#: lib/ex_blog_web/live/admin/telegram_live.ex:334
 #, elixir-autogen, elixir-format
 msgid "Requesting…"
 msgstr ""
@@ -346,17 +346,17 @@ msgstr ""
 msgid "Retrying in a moment"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:391
+#: lib/ex_blog_web/live/admin/telegram_live.ex:425
 #, elixir-autogen, elixir-format
 msgid "Scan with Telegram"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:669
+#: lib/ex_blog_web/live/admin/telegram_live.ex:703
 #, elixir-autogen, elixir-format
 msgid "Sending number"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:559
+#: lib/ex_blog_web/live/admin/telegram_live.ex:593
 #, elixir-autogen, elixir-format
 msgid "Sensitive data"
 msgstr ""
@@ -382,17 +382,17 @@ msgstr ""
 msgid "Something went wrong"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:511
+#: lib/ex_blog_web/live/admin/telegram_live.ex:545
 #, elixir-autogen, elixir-format
 msgid "Start or retry the session to receive the next authentication state."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:675
+#: lib/ex_blog_web/live/admin/telegram_live.ex:709
 #, elixir-autogen, elixir-format
 msgid "Starting"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:508
+#: lib/ex_blog_web/live/admin/telegram_live.ex:542
 #, elixir-autogen, elixir-format
 msgid "TDLib session not started"
 msgstr ""
@@ -402,69 +402,69 @@ msgstr ""
 msgid "Tag: %{tag}"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:561
+#: lib/ex_blog_web/live/admin/telegram_live.ex:595
 #, elixir-autogen, elixir-format
 msgid "Telegram QR codes, codes and passwords stay transient and are never written to the database or the logs."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:668
+#: lib/ex_blog_web/live/admin/telegram_live.ex:702
 #, elixir-autogen, elixir-format
 msgid "Telegram code"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:26
-#: lib/ex_blog_web/live/admin/telegram_live.ex:139
+#: lib/ex_blog_web/live/admin/telegram_live.ex:27
+#: lib/ex_blog_web/live/admin/telegram_live.ex:166
 #, elixir-autogen, elixir-format
 msgid "Telegram connection"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:231
+#: lib/ex_blog_web/live/admin/telegram_live.ex:265
 #, elixir-autogen, elixir-format
 msgid "Telegram is connected"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:683
+#: lib/ex_blog_web/live/admin/telegram_live.ex:717
 #, elixir-autogen, elixir-format
 msgid "Telegram is preparing a temporary QR code."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:583
-#: lib/ex_blog_web/live/admin/telegram_live.ex:586
+#: lib/ex_blog_web/live/admin/telegram_live.ex:617
+#: lib/ex_blog_web/live/admin/telegram_live.ex:620
 #, elixir-autogen, elixir-format
 msgid "Telegram is unavailable. Try again soon."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:47
+#: lib/ex_blog_web/live/admin/telegram_live.ex:56
 #, elixir-autogen, elixir-format
 msgid "Telegram reconnection started."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:215
+#: lib/ex_blog_web/live/admin/telegram_live.ex:249
 #, elixir-autogen, elixir-format
 msgid "Telegram reported a problem. You can refresh the status or retry the connection."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:428
+#: lib/ex_blog_web/live/admin/telegram_live.ex:462
 #, elixir-autogen, elixir-format
 msgid "Telegram sent a code to the account. ExBlog will not store it."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:686
+#: lib/ex_blog_web/live/admin/telegram_live.ex:720
 #, elixir-autogen, elixir-format
 msgid "The QR code is ready to be scanned."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:384
+#: lib/ex_blog_web/live/admin/telegram_live.ex:418
 #, elixir-autogen, elixir-format
 msgid "The QR could not be rendered. Request a new one."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:234
+#: lib/ex_blog_web/live/admin/telegram_live.ex:268
 #, elixir-autogen, elixir-format
 msgid "The TDLib session is authorized and ready to receive messages from the configured administrator."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:691
+#: lib/ex_blog_web/live/admin/telegram_live.ex:725
 #, elixir-autogen, elixir-format
 msgid "The Telegram 2FA password is required."
 msgstr ""
@@ -479,7 +479,7 @@ msgstr ""
 msgid "The content you were looking for does not exist, is not published yet or has moved."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:159
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:157
 #, elixir-autogen, elixir-format
 msgid "The next piece is already in the works. Come back soon, or subscribe to the feed."
 msgstr ""
@@ -495,7 +495,7 @@ msgstr ""
 msgid "The requested page does not exist."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:693
+#: lib/ex_blog_web/live/admin/telegram_live.ex:727
 #, elixir-autogen, elixir-format
 msgid "The session is authorized and running."
 msgstr ""
@@ -513,47 +513,47 @@ msgid_plural "Too many attempts. Try again in %{count} seconds."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:463
+#: lib/ex_blog_web/live/admin/telegram_live.ex:497
 #, elixir-autogen, elixir-format
 msgid "Two-step verification"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:677
+#: lib/ex_blog_web/live/admin/telegram_live.ex:711
 #, elixir-autogen, elixir-format
 msgid "Unavailable"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:314
+#: lib/ex_blog_web/live/admin/telegram_live.ex:348
 #, elixir-autogen, elixir-format
 msgid "Use the phone number"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:102
+#: lib/ex_blog_web/live/admin/telegram_live.ex:111
 #, elixir-autogen, elixir-format
 msgid "Verification password sent."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:451
+#: lib/ex_blog_web/live/admin/telegram_live.ex:485
 #, elixir-autogen, elixir-format
 msgid "Verify code"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:672
+#: lib/ex_blog_web/live/admin/telegram_live.ex:706
 #, elixir-autogen, elixir-format
 msgid "Verifying 2FA"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:670
+#: lib/ex_blog_web/live/admin/telegram_live.ex:704
 #, elixir-autogen, elixir-format
 msgid "Verifying code"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:688
+#: lib/ex_blog_web/live/admin/telegram_live.ex:722
 #, elixir-autogen, elixir-format
 msgid "Waiting for the code sent by Telegram."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:358
+#: lib/ex_blog_web/live/admin/telegram_live.ex:392
 #, elixir-autogen, elixir-format
 msgid "Waiting for the temporary link from Telegram…"
 msgstr ""
@@ -568,52 +568,52 @@ msgstr ""
 msgid "archive"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:648
+#: lib/ex_blog_web/live/admin/telegram_live.ex:682
 #, elixir-autogen, elixir-format
 msgid "auth"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:115
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:113
 #, elixir-autogen, elixir-format
 msgid "category"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:122
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:120
 #, elixir-autogen, elixir-format
 msgid "clear filter"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:647
+#: lib/ex_blog_web/live/admin/telegram_live.ex:681
 #, elixir-autogen, elixir-format
 msgid "connected"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:649
+#: lib/ex_blog_web/live/admin/telegram_live.ex:683
 #, elixir-autogen, elixir-format
 msgid "connecting"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:506
+#: lib/ex_blog_web/live/admin/telegram_live.ex:540
 #, elixir-autogen, elixir-format
 msgid "connection not ready"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:651
+#: lib/ex_blog_web/live/admin/telegram_live.ex:685
 #, elixir-autogen, elixir-format
 msgid "disconnected"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:475
+#: lib/ex_blog_web/live/admin/telegram_live.ex:509
 #, elixir-autogen, elixir-format
 msgid "hint"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:650
+#: lib/ex_blog_web/live/admin/telegram_live.ex:684
 #, elixir-autogen, elixir-format
 msgid "idle"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:156
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:154
 #, elixir-autogen, elixir-format
 msgid "ls: no matching file for this selection"
 msgstr ""
@@ -639,7 +639,7 @@ msgstr ""
 msgid "password"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:330
+#: lib/ex_blog_web/live/admin/telegram_live.ex:364
 #, elixir-autogen, elixir-format
 msgid "phone number"
 msgstr ""
@@ -654,12 +654,12 @@ msgstr ""
 msgid "published"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:285
+#: lib/ex_blog_web/live/admin/telegram_live.ex:319
 #, elixir-autogen, elixir-format
 msgid "recommended"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:151
+#: lib/ex_blog_web/live/admin/telegram_live.ex:185
 #, elixir-autogen, elixir-format
 msgid "refresh"
 msgstr ""
@@ -669,17 +669,17 @@ msgstr ""
 msgid "requested scopes"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:115
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:113
 #, elixir-autogen, elixir-format
 msgid "tag"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:441
+#: lib/ex_blog_web/live/admin/telegram_live.ex:475
 #, elixir-autogen, elixir-format
 msgid "telegram code"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:486
+#: lib/ex_blog_web/live/admin/telegram_live.ex:520
 #, elixir-autogen, elixir-format
 msgid "telegram password"
 msgstr ""
@@ -689,7 +689,7 @@ msgstr ""
 msgid "written in Markdown, published from Git"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:283
+#: lib/ex_blog_web/components/showcase.ex:285
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{count} library"
 msgid_plural "%{count} libraries"
@@ -701,7 +701,7 @@ msgstr[1] ""
 msgid "A Spectre agent should read like a map, not a magic trick."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:133
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:131
 #, elixir-autogen, elixir-format
 msgid "Notes written while building all of the above."
 msgstr ""
@@ -716,7 +716,7 @@ msgstr ""
 msgid "close"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:142
+#: lib/ex_blog_web/live/admin/telegram_live.ex:169
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Connect the account that controls Spectre and follow every TDLib authentication step in real time."
 msgstr ""
@@ -731,7 +731,7 @@ msgstr ""
 msgid "Restricted access for the Spectre administrator."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:29
+#: lib/ex_blog_web/live/admin/telegram_live.ex:30
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Restricted management of the Spectre Telegram session."
 msgstr ""
@@ -741,52 +741,52 @@ msgstr ""
 msgid "You are connecting the Spectre administrator to the MCP client. Review the permissions before continuing."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:227
+#: lib/ex_blog_web/components/showcase.ex:229
 #, elixir-autogen, elixir-format
 msgid "this site, open source"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:674
+#: lib/ex_blog_web/live/admin/telegram_live.ex:708
 #, elixir-autogen, elixir-format
 msgid "Changing account"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:250
+#: lib/ex_blog_web/live/admin/telegram_live.ex:284
 #, elixir-autogen, elixir-format
 msgid "Disconnect the current Telegram account and pair another number?"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:248
+#: lib/ex_blog_web/live/admin/telegram_live.ex:282
 #, elixir-autogen, elixir-format
 msgid "Disconnecting…"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:268
+#: lib/ex_blog_web/live/admin/telegram_live.ex:302
 #, elixir-autogen, elixir-format
 msgid "Preparing a new Telegram login"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:58
+#: lib/ex_blog_web/live/admin/telegram_live.ex:67
 #, elixir-autogen, elixir-format
 msgid "Telegram logout started. You can enter the new number as soon as requested."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:696
+#: lib/ex_blog_web/live/admin/telegram_live.ex:730
 #, elixir-autogen, elixir-format
 msgid "The current account is being disconnected before a new login."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:271
+#: lib/ex_blog_web/live/admin/telegram_live.ex:305
 #, elixir-autogen, elixir-format
 msgid "The phone-number form will appear when TDLib is ready."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:240
+#: lib/ex_blog_web/live/admin/telegram_live.ex:274
 #, elixir-autogen, elixir-format
 msgid "To use another number, log out this Telegram session and start a new pairing."
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:255
+#: lib/ex_blog_web/live/admin/telegram_live.ex:289
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Use another phone number"
 msgstr ""
@@ -801,7 +801,7 @@ msgstr ""
 msgid "built with love by"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:279
+#: lib/ex_blog_web/components/showcase.ex:281
 #, elixir-autogen, elixir-format
 msgid "One core, optional powers"
 msgstr ""
@@ -816,95 +816,95 @@ msgstr ""
 msgid "The model proposes"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:319
+#: lib/ex_blog_web/components/showcase.ex:321
 #, elixir-autogen, elixir-format
 msgid "capability"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:319
+#: lib/ex_blog_web/components/showcase.ex:321
 #, elixir-autogen, elixir-format
 msgid "foundation"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:373
+#: lib/ex_blog_web/components/showcase.ex:375
 #, elixir-autogen, elixir-format
 msgid "%{count} failing"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:361
+#: lib/ex_blog_web/components/showcase.ex:363
 #, elixir-autogen, elixir-format
 msgid "%{count} library checked"
 msgid_plural "%{count} libraries checked"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/ex_blog_web/components/showcase.ex:369
+#: lib/ex_blog_web/components/showcase.ex:371
 #, elixir-autogen, elixir-format
 msgid "%{count} passing"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:385
+#: lib/ex_blog_web/components/showcase.ex:387
 #, elixir-autogen, elixir-format
 msgid "check"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:345
+#: lib/ex_blog_web/components/showcase.ex:347
 #, elixir-autogen, elixir-format
 msgid "checked %{timestamp}"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:486
+#: lib/ex_blog_web/components/showcase.ex:488
 #, elixir-autogen, elixir-format
 msgid "failing"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:384
+#: lib/ex_blog_web/components/showcase.ex:386
 #, elixir-autogen, elixir-format
 msgid "library"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:489
+#: lib/ex_blog_web/components/showcase.ex:491
 #, elixir-autogen, elixir-format
 msgid "not configured"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:490
+#: lib/ex_blog_web/components/showcase.ex:492
 #, elixir-autogen, elixir-format
 msgid "not run"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:485
+#: lib/ex_blog_web/components/showcase.ex:487
 #, elixir-autogen, elixir-format
 msgid "passing"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:487
+#: lib/ex_blog_web/components/showcase.ex:489
 #, elixir-autogen, elixir-format
 msgid "pending"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:387
+#: lib/ex_blog_web/components/showcase.ex:389
 #, elixir-autogen, elixir-format
 msgid "source"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:488
+#: lib/ex_blog_web/components/showcase.ex:490
 #, elixir-autogen, elixir-format
 msgid "stale"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:449
+#: lib/ex_blog_web/components/showcase.ex:451
 #, elixir-autogen, elixir-format
 msgid "the full report, refreshed by its own scheduled run"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:491
-#: lib/ex_blog_web/components/showcase.ex:495
+#: lib/ex_blog_web/components/showcase.ex:493
+#: lib/ex_blog_web/components/showcase.ex:497
 #, elixir-autogen, elixir-format
 msgid "unknown"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:386
+#: lib/ex_blog_web/components/showcase.ex:388
 #, elixir-autogen, elixir-format
 msgid "version"
 msgstr ""
@@ -924,7 +924,7 @@ msgstr ""
 msgid "Traffic"
 msgstr ""
 
-#: lib/ex_blog_web/live/admin/telegram_live.ex:159
+#: lib/ex_blog_web/live/admin/telegram_live.ex:193
 #, elixir-autogen, elixir-format
 msgid "traffic"
 msgstr ""
@@ -939,17 +939,17 @@ msgstr ""
 msgid "A model prepares a candidate; configured authority and required human consent determine whether GAM admits it."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:268
+#: lib/ex_blog_web/components/showcase.ex:270
 #, elixir-autogen, elixir-format
 msgid "An approval authorizes the presented operation; only an observed successful Outcome establishes that it completed."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:670
+#: lib/ex_blog_web/components/showcase.ex:703
 #, elixir-autogen, elixir-format
 msgid "Authenticated agent messaging across transports; delivery receipts never stand in for human consent."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:53
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:51
 #, elixir-autogen, elixir-format
 msgid "Authority stays with you"
 msgstr ""
@@ -959,7 +959,7 @@ msgstr ""
 msgid "Build agents around supervised OTP processes, explicit state and application callbacks. Stack installs capabilities, Agent recognizes intent, and Server owns the conversation. GAM (Governed Act Model) checks authority before governed operations execute and records their observed outcomes."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:65
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:63
 #, elixir-autogen, elixir-format
 msgid "Build agents you can operate"
 msgstr ""
@@ -974,17 +974,17 @@ msgstr ""
 msgid "Combine regex, reviewed examples, vector similarity and classifier models; Server callbacks own what happens next."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:612
+#: lib/ex_blog_web/components/showcase.ex:630
 #, elixir-autogen, elixir-format
 msgid "Combine route evidence and select a declared Server handler."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:380
+#: lib/ex_blog_web/components/showcase.ex:382
 #, elixir-autogen, elixir-format
 msgid "Compatibility of each Spectre library with the tested core"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:351
+#: lib/ex_blog_web/components/showcase.ex:353
 #, elixir-autogen, elixir-format
 msgid "Compatibility with the tested core"
 msgstr ""
@@ -994,27 +994,27 @@ msgstr ""
 msgid "Define the typed action catalog before compiling the Stack. This fixture simulates delivery; replace its implementation with your mail transport. The configured consumer renders the exact request and submits the human’s separate choice."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:354
+#: lib/ex_blog_web/components/showcase.ex:356
 #, elixir-autogen, elixir-format
 msgid "Each report records the core and satellite revisions it tested. This page displays the published results and their timestamp; a passing row describes that tested combination."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:215
+#: lib/ex_blog_web/components/showcase.ex:217
 #, elixir-autogen, elixir-format
 msgid "ExBlog keeps its editorial integration on Spectre 0.4's retained compatibility APIs. The example above shows AgentServer for new applications."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:641
+#: lib/ex_blog_web/components/showcase.ex:673
 #, elixir-autogen, elixir-format
 msgid "Explicit memory search, recall and writes in authenticated application partitions."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:68
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:66
 #, elixir-autogen, elixir-format
 msgid "Explicit state, supervised processes and recoverable sessions give your team control over the agent lifecycle."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:614
+#: lib/ex_blog_web/components/showcase.ex:635
 #, elixir-autogen, elixir-format
 msgid "Freeze the concrete arguments and registered execution contract."
 msgstr ""
@@ -1024,47 +1024,47 @@ msgstr ""
 msgid "From a proposed consequence to a recorded outcome:"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:246
+#: lib/ex_blog_web/components/showcase.ex:248
 #, elixir-autogen, elixir-format
 msgid "From intent to authorized execution"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:616
+#: lib/ex_blog_web/components/showcase.ex:641
 #, elixir-autogen, elixir-format
 msgid "GAM checks the mandate and any required human approval before execution."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:178
+#: lib/ex_blog_web/components/showcase.ex:180
 #, elixir-autogen, elixir-format
 msgid "How a governed request moves from recognition to an observed result."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:715
+#: lib/ex_blog_web/components/showcase.ex:753
 #, elixir-autogen, elixir-format
 msgid "Inspect bounded Server diagnostics and checkpoint metadata, with separate offline archive tools."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:298
+#: lib/ex_blog_web/components/showcase.ex:300
 #, elixir-autogen, elixir-format
 msgid "Installing a package exposes tools and resources. The Server queues work; registered effect adapters and configured GAM operations define the governed execution path."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:661
+#: lib/ex_blog_web/components/showcase.ex:693
 #, elixir-autogen, elixir-format
 msgid "Interpret consolidated model output into validated action proposals; admitted operations reach the registered executor."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:618
+#: lib/ex_blog_web/components/showcase.ex:647
 #, elixir-autogen, elixir-format
 msgid "Keep success, refusal and uncertain external results separate; reconcile before retrying."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:77
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:75
 #, elixir-autogen, elixir-format
 msgid "Keep the record. Own the outcome."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:56
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:54
 #, elixir-autogen, elixir-format
 msgid "Models propose work. Your application grants authority. GAM checks every governed operation before execution."
 msgstr ""
@@ -1074,52 +1074,52 @@ msgstr ""
 msgid "Mounted Skills have separate Server processes and checkpoints while sharing their root agent’s GAM Domain and mount restrictions."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:685
+#: lib/ex_blog_web/components/showcase.ex:723
 #, elixir-autogen, elixir-format
 msgid "Navigate, inspect and act through supervised browser resources with explicit governed bindings."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:705
+#: lib/ex_blog_web/components/showcase.ex:743
 #, elixir-autogen, elixir-format
 msgid "Normalize channel input and deliver through configured adapters; bind consequential sends to GAM."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:210
+#: lib/ex_blog_web/components/showcase.ex:212
 #, elixir-autogen, elixir-format
 msgid "Ordinary Elixir callbacks, supervised workers and named continuations keep business behavior readable and testable."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:651
+#: lib/ex_blog_web/components/showcase.ex:683
 #, elixir-autogen, elixir-format
 msgid "Persist Server checkpoints, coordination and canonical GAM history, with file and PostgreSQL backends."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:613
+#: lib/ex_blog_web/components/showcase.ex:634
 #, elixir-autogen, elixir-format
 msgid "Prepare the operation"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:677
+#: lib/ex_blog_web/components/showcase.ex:713
 #, elixir-autogen, elixir-format
 msgid "Pure resumable mission reducers that return requests for the Server to handle."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:41
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:39
 #, elixir-autogen, elixir-format
 msgid "Put AI to work where decisions have consequences. Spectre combines OTP supervision with GAM to govern consequential actions, enforce the permissions you grant, and request human approval where you require it. Your rules. Your state. Your audit trail."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:611
+#: lib/ex_blog_web/components/showcase.ex:629
 #, elixir-autogen, elixir-format
 msgid "Recognize intent"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:617
+#: lib/ex_blog_web/components/showcase.ex:645
 #, elixir-autogen, elixir-format
 msgid "Record the outcome"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:455
+#: lib/ex_blog_web/components/showcase.ex:457
 #, elixir-autogen, elixir-format
 msgid "Related tools:"
 msgstr ""
@@ -1129,7 +1129,7 @@ msgstr ""
 msgid "Routing combines evidence"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:695
+#: lib/ex_blog_web/components/showcase.ex:733
 #, elixir-autogen, elixir-format
 msgid "Select model profiles for generation, classification and embeddings using host-defined providers and constraints."
 msgstr ""
@@ -1139,7 +1139,7 @@ msgstr ""
 msgid "Skills keep independent state"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:249
+#: lib/ex_blog_web/components/showcase.ex:251
 #, elixir-autogen, elixir-format
 msgid "Spectre %{version} routes requests to Server callbacks, runs models and tools in workers, and admits configured operations through GAM. Required human consent binds the exact presentation; the execution outcome remains a separate recorded fact."
 msgstr ""
@@ -1159,97 +1159,112 @@ msgstr ""
 msgid "Stack → Agent → Server: install capabilities, combine regex, embeddings and model classification, then handle the selected intent in ordinary callbacks. MyApp.Embeddings and MyApp.IntentModel are application-supplied providers; the mail example requires optional spectre_kinetic."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:293
+#: lib/ex_blog_web/components/showcase.ex:295
 #, elixir-autogen, elixir-format
 msgid "Start with the core and install only the capabilities your application needs: memory, planning, browser access, model selection, channels, storage or agent messaging. Mounted Skills can run independently while sharing the root agent’s GAM Domain."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:631
+#: lib/ex_blog_web/components/showcase.ex:663
 #, elixir-autogen, elixir-format
 msgid "The OTP core for AgentServer conversations, workers, routing and GAM authority. Runs in RAM without any satellite package."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:32
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:30
 #, elixir-autogen, elixir-format
 msgid "The only right way to build %{highlight}."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:80
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:78
 #, elixir-autogen, elixir-format
 msgid "Track decisions, attempts and observed results. Require human approval for the operations your business protects."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:205
+#: lib/ex_blog_web/components/showcase.ex:207
 #, elixir-autogen, elixir-format
 msgid "Use models where they help: semantic recognition, classification and generation. Keep application state, tool execution and authority explicit."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:615
+#: lib/ex_blog_web/components/showcase.ex:639
 #, elixir-autogen, elixir-format
 msgid "Verify authority and consent"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:605
+#: lib/ex_blog_web/components/showcase.ex:620
 #, elixir-autogen, elixir-format
 msgid "admission and observed execution remain distinct"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:500
+#: lib/ex_blog_web/components/showcase.ex:502
 #, elixir-autogen, elixir-format
 msgid "check the caller’s configured authority"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:603
+#: lib/ex_blog_web/components/showcase.ex:612
 #, elixir-autogen, elixir-format
 msgid "configured authority and required consent"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:601
+#: lib/ex_blog_web/components/showcase.ex:608
 #, elixir-autogen, elixir-format
 msgid "conversation state and continuations"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:499
+#: lib/ex_blog_web/components/showcase.ex:501
 #, elixir-autogen, elixir-format
 msgid "declare and register the concrete operation"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:33
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:31
 #, elixir-autogen, elixir-format
 msgid "enterprise AI agents"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:604
+#: lib/ex_blog_web/components/showcase.ex:616
 #, elixir-autogen, elixir-format
 msgid "exact consequence shown to the human"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:502
+#: lib/ex_blog_web/components/showcase.ex:504
 #, elixir-autogen, elixir-format
 msgid "execute only after GAM admission"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:599
+#: lib/ex_blog_web/components/showcase.ex:606
 #, elixir-autogen, elixir-format
 msgid "installed tools and supervised resources"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:602
+#: lib/ex_blog_web/components/showcase.ex:609
 #, elixir-autogen, elixir-format
 msgid "models and cognitive tools"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:600
+#: lib/ex_blog_web/components/showcase.ex:607
 #, elixir-autogen, elixir-format
 msgid "patterns · vectors · classifier models"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:503
+#: lib/ex_blog_web/components/showcase.ex:505
 #, elixir-autogen, elixir-format
 msgid "record the observed result, including uncertainty"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:501
+#: lib/ex_blog_web/components/showcase.ex:503
 #, elixir-autogen, elixir-format
 msgid "show the exact consequence and collect required human consent"
+msgstr ""
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:133
+#, elixir-autogen, elixir-format
+msgid "Status and articles updated from GitHub."
+msgstr ""
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:142
+#, elixir-autogen, elixir-format
+msgid "Telegram status updated, but articles could not be synchronized. Try again."
+msgstr ""
+
+#: lib/ex_blog_web/live/admin/telegram_live.ex:185
+#, elixir-autogen, elixir-format
+msgid "refreshing…"
 msgstr ""

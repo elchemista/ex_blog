@@ -2,6 +2,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
   use ExBlogWeb, :live_view
 
   alias ExBlog.Config
+  alias ExBlog.Content.Sync
   alias ExBlog.Telegram.{QR, Transport}
 
   @default_snapshot %{
@@ -32,6 +33,7 @@ defmodule ExBlogWeb.Admin.TelegramLive do
      |> assign(:canonical_url, Config.canonical_url(config) <> "/admin/telegram")
      |> assign(:current_language, config.default_language)
      |> assign(:supported_languages, config.supported_languages)
+     |> assign(:refreshing, false)
      |> assign(:phone_form, empty_form(:telegram_phone, "phone"))
      |> assign(:code_form, empty_form(:telegram_code, "code"))
      |> assign(:password_form, empty_form(:telegram_password, "password"))
@@ -39,8 +41,16 @@ defmodule ExBlogWeb.Admin.TelegramLive do
   end
 
   @impl Phoenix.LiveView
+  def handle_event("refresh", _params, %{assigns: %{refreshing: true}} = socket),
+    do: {:noreply, socket}
+
   def handle_event("refresh", _params, socket) do
-    {:noreply, assign_snapshot(socket, fetch_snapshot())}
+    {:noreply,
+     socket
+     |> clear_flash()
+     |> assign_snapshot(fetch_snapshot())
+     |> assign(:refreshing, true)
+     |> start_async(:content_sync, &Sync.sync_now/0)}
   end
 
   def handle_event("connect", _params, socket) do
@@ -117,6 +127,24 @@ defmodule ExBlogWeb.Admin.TelegramLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl Phoenix.LiveView
+  def handle_async(:content_sync, {:ok, {:ok, _summary}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:refreshing, false)
+     |> put_flash(:info, gettext("Status and articles updated from GitHub."))}
+  end
+
+  def handle_async(:content_sync, _failure, socket) do
+    {:noreply,
+     socket
+     |> assign(:refreshing, false)
+     |> put_flash(
+       :error,
+       gettext("Telegram status updated, but articles could not be synchronized. Try again.")
+     )}
+  end
+
+  @impl Phoenix.LiveView
   def render(assigns) do
     ~H"""
     <Layouts.app
@@ -146,9 +174,16 @@ defmodule ExBlogWeb.Admin.TelegramLive do
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <button id="telegram-refresh-button" type="button" phx-click="refresh" class="term-btn">
-              <.icon name="hero-arrow-path" class="size-4 phx-click-loading:animate-spin" />
-              {gettext("refresh")}
+            <button
+              id="telegram-refresh-button"
+              type="button"
+              phx-click="refresh"
+              disabled={@refreshing}
+              aria-busy={to_string(@refreshing)}
+              class="term-btn"
+            >
+              <.icon name="hero-arrow-path" class={["size-4", @refreshing && "animate-spin"]} />
+              {if @refreshing, do: gettext("refreshing…"), else: gettext("refresh")}
             </button>
             <.link
               id="admin-analytics-link"

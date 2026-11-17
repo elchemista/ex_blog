@@ -47,7 +47,7 @@ a separate application migration. Follow the
 when changing runtime ownership or effect execution.
 
 This upgrade advances the editorial Agent's immutable Definition revision to
-`version: 4`, independently of the Spectre package version. When a deployment
+`version: 5`, independently of the Spectre package version. When a deployment
 changes code sealed by its Manifest, advance the version in
 [`ExBlog.Agent`](lib/ex_blog/agent.ex) and retain prior Definition artifacts in
 the durable Store. The new build receives its own Ref without rewriting history.
@@ -104,6 +104,10 @@ from the administrator or the administrator account itself. In both cases the
 allowed username is set in `EX_BLOG_ADMIN_TELEGRAM_USERNAME`. When a session is
 already connected, **Use another phone number** logs it out and makes the phone
 and QR pairing choices available again.
+
+**Refresh** updates the Telegram status and synchronizes articles and images
+from the configured GitHub content repository. The dashboard stays responsive
+while synchronization runs; a failed attempt keeps the last indexed articles.
 
 Access is protected at three separate boundaries:
 

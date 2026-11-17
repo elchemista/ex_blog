@@ -3,6 +3,9 @@ defmodule ExBlogWeb.Admin.TelegramLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias ExBlog.Config
+  alias ExBlog.Content
+  alias ExBlog.Content.{Git, Index, Sync}
   alias ExBlog.Telegram.{ClientFake, Transport}
   alias ExBlogWeb.AdminAuth
 
@@ -103,6 +106,141 @@ defmodule ExBlogWeb.Admin.TelegramLiveTest do
 
     send_snapshot(view, :wait_phone_number, :authenticating)
     assert has_element?(view, "#telegram-phone-form")
+  end
+
+  test "refresh pulls a newly published article without blocking the dashboard", %{conn: conn} do
+    %{publisher: publisher} = content_repository()
+    initial_commit = Index.commit_hash()
+    cached = get(build_conn(), "/en")
+    {:ok, view, _html} = live(conn, ~p"/admin/telegram")
+
+    publish_article(publisher, "from-github")
+    assert {:error, :not_found} = Content.get("en", "from-github")
+
+    :ok = :sys.suspend(Sync)
+
+    try do
+      view |> element("#telegram-refresh-button") |> render_click()
+      assert has_element?(view, ~s(#telegram-refresh-button[disabled][aria-busy="true"]))
+      render_click(view, "refresh", %{})
+    after
+      :ok = :sys.resume(Sync)
+    end
+
+    render_async(view)
+
+    assert {:ok, article} = Content.get("en", "from-github")
+    assert article.status == :published
+    assert Index.commit_hash() != initial_commit
+    assert has_element?(view, "#flash-info", "Status and articles updated from GitHub.")
+    assert has_element?(view, ~s|#telegram-refresh-button[aria-busy="false"]:not([disabled])|)
+
+    refreshed = get(build_conn(), "/en")
+    assert get_resp_header(refreshed, "etag") != get_resp_header(cached, "etag")
+
+    document =
+      build_conn() |> get("/en/from-github") |> html_response(200) |> LazyHTML.from_document()
+
+    assert document |> LazyHTML.query("#article-title") |> LazyHTML.text() =~ "from-github"
+  end
+
+  test "a failed refresh keeps indexed articles and clears the loading state", %{conn: conn} do
+    %{checkout: checkout} = content_repository()
+    initial_commit = Index.commit_hash()
+    {:ok, view, _html} = live(conn, ~p"/admin/telegram")
+
+    view |> element("#telegram-refresh-button") |> render_click()
+    render_async(view)
+    assert has_element?(view, "#flash-info")
+    File.rm_rf!(checkout)
+
+    view |> element("#telegram-refresh-button") |> render_click()
+    render_async(view)
+
+    assert {:ok, _article} = Content.get("en", "existing")
+    assert Index.commit_hash() == initial_commit
+
+    assert has_element?(
+             view,
+             "#flash-error",
+             "Telegram status updated, but articles could not be synchronized. Try again."
+           )
+
+    assert has_element?(view, ~s|#telegram-refresh-button[aria-busy="false"]:not([disabled])|)
+    refute has_element?(view, "#flash-info")
+    refute render(view) =~ Config.fetch_secret!(:github_token)
+    refute render(view) =~ "git_repository_not_found"
+    assert build_conn() |> get("/en/existing") |> html_response(200)
+  end
+
+  defp content_repository do
+    root =
+      Path.join(System.tmp_dir!(), "ex-blog-admin-sync-#{System.unique_integer([:positive])}")
+
+    origin = Path.join(root, "origin.git")
+    publisher = Path.join(root, "publisher")
+    previous_config = Config.get()
+    File.mkdir_p!(publisher)
+    git!(["init", "--bare", origin], root)
+    git!(["init", "--initial-branch=main"], publisher)
+    git!(["remote", "add", "origin", origin], publisher)
+    publish_article(publisher, "existing")
+
+    config =
+      Config.test_config(
+        data_dir: root,
+        default_language: "en",
+        git_sync_interval_ms: 60_000
+      )
+
+    :ok = Config.install(config)
+
+    on_exit(fn ->
+      :ok = Config.install(previous_config)
+      File.rm_rf!(root)
+    end)
+
+    checkout = Config.repository_path(config)
+    assert {:ok, _commit} = Git.clone(config: config, path: checkout, url: origin)
+    start_supervised!({Index, root: checkout, content_root: config.content_root})
+
+    start_supervised!(
+      {Sync, root: Path.join(root, "public"), durable_root: Path.join(root, "durable")}
+    )
+
+    %{publisher: publisher, checkout: checkout}
+  end
+
+  defp publish_article(publisher, slug) do
+    directory = Path.join(publisher, "content/en")
+    File.mkdir_p!(directory)
+
+    File.write!(Path.join(directory, "2026-11-17-#{slug}.md"), """
+    ---
+    title: Article #{slug}
+    slug: #{slug}
+    lang: en
+    status: published
+    date: 2026-11-17
+    tags: []
+    ---
+    Article published in the remote content repository.
+    """)
+
+    git!(["add", "."], publisher)
+    git!(["commit", "-m", "Publish #{slug}"], publisher)
+    git!(["push", "origin", "main"], publisher)
+  end
+
+  defp git!(args, directory) do
+    env = [
+      {"GIT_AUTHOR_NAME", "ExBlog Test"},
+      {"GIT_AUTHOR_EMAIL", "test@example.com"},
+      {"GIT_COMMITTER_NAME", "ExBlog Test"},
+      {"GIT_COMMITTER_EMAIL", "test@example.com"}
+    ]
+
+    assert {_output, 0} = System.cmd("git", args, cd: directory, env: env, stderr_to_stdout: true)
   end
 
   defp send_snapshot(view, auth_state, connection_status, overrides \\ []) do
