@@ -178,6 +178,7 @@ RUN --mount=type=cache,target=/root/.cache \
 
 FROM dependencies AS builder
 
+COPY GOVERNED_ACT_MODEL.md GOVERNED_ACT_MODEL.en.md ./
 COPY priv priv
 COPY lib lib
 COPY assets assets
@@ -185,7 +186,7 @@ COPY rel rel
 
 RUN mix compile --warnings-as-errors
 
-# Validate all 456 versioned routing examples before assembling the release.
+# Validate the versioned routing examples before assembling the release.
 # The assertion after `mix release` also proves that the exact source bytes were
 # copied into the application priv directory rather than relying on cwd paths.
 RUN mix ex_blog.spectre.dataset.build --check

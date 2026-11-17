@@ -6,6 +6,14 @@ decide what can actually happen. The result is a conversational Telegram editor
 that remains deterministic at security-sensitive boundaries and observable in
 tests.
 
+This application runs on Spectre 0.4 through its retained Instance/Run API.
+Its existing Skills, `Spectre.Context`, state adapters and `Spectre.Policy`
+continue to own the editorial workflow. The framework's AgentServer and
+Managed GAM integration are documented in the
+[0.4 migration guide](https://github.com/elchemista/spectre/blob/0.4.0/docs/MIGRATING_TO_0_4.md);
+moving this workflow to that architecture requires an explicit application
+migration and registered effect bindings.
+
 ## Responsibility map
 
 ```text
@@ -151,7 +159,8 @@ Every route declares its own `via:` providers:
 - editorial and repository mutations expose regex, optional static embeddings,
   and both classifiers, but opt out of semantic-cache learning;
 - article-intake leaves expose only the private
-  `:creation_continuation` provider.
+  `:creation_continuation` provider, a `Spectre.Router.Adapter` declared in the
+  Agent router and driven by the pipeline plug that owns cursor precedence.
 
 `regex_strength: :hard` is provider-specific. A real slash-command match is
 decisive, but an embedding candidate attached to the same rule still needs to
@@ -159,8 +168,8 @@ pass score and margin gates.
 
 ## An ExBlog-specific trained dataset
 
-The canonical corpus is `priv/spectre/dataset.json`. It contains 228 original
-English examples: 12 examples for each of 19 classifier-visible ExBlog intents.
+The canonical corpus is `priv/spectre/dataset.json`. It contains 556 original
+English examples across 23 intents, with at least 24 examples per intent.
 It deliberately includes nearby but distinct requests such as:
 
 - list the archive versus search the archive;
@@ -231,19 +240,20 @@ an ambiguous result falls through to later evidence.
 
 ## Semantic cache lifecycle
 
-The eight read-only intents declare `learn: true`. When the LLM fallback first
+Only eligible read-only routes declare `learn: true`. When the LLM fallback first
 classifies a new eligible phrase, Spectre may store it as an unverified online
 example. `ExBlog.Agent.SemanticCache` persists the row and its embedding in DETS
 so a deployment does not erase reviewed routing knowledge.
 
-This showcase has no review UI. An unverified example is not used by normal
-search. A later request may promote it only at `0.985` cosine similarity with at
+Spectre Studio can review and promote rows through the authenticated Pulse
+connection. An unverified example is not used by normal search. A later request
+may also promote it only at `0.985` cosine similarity with at
 least a `0.05` margin over competing labels. Ordinary verified search remains
 at `0.94`.
 
-The local development artifact contains vectors for all 228 classifier
-examples, but route policy filters its runtime index to the 96 examples
-belonging to cacheable read intents. Production does not load that artifact: it
+The local development artifact contains vectors for all 556 classifier
+examples, but route policy filters its runtime index to examples belonging to
+cacheable read intents. Production does not load that artifact: it
 uses the checked-in dataset for exact matches and OpenRouter for new learned
 semantic rows. Writes, deletion, synchronization, unsafe input, and unknown
 input can train local intent evaluation without becoming reusable semantic

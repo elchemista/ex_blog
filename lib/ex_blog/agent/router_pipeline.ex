@@ -20,10 +20,10 @@ defmodule ExBlog.Agent.RouterPipeline do
   language understanding, but never opt into learned semantic-cache routing.
 
   The agent's production `via:` list enables learned semantic search but leaves
-  static embedding similarity off. The learned index needs one query embedding,
-  whereas the stock static matcher embeds every route example during a request.
-  A caller can still opt into `via: [:embedding]` for evaluation or when an
-  additional cache makes that cost appropriate.
+  static embedding similarity off. The learned index needs one query embedding.
+  Spectre 0.4 caches static route-example vectors; their first use and later
+  cache misses can still require encoding. A caller can opt into
+  `via: [:embedding]` when that recognition strategy suits the application.
   """
 
   alias ExBlog.Agent.Router.Plugs.CreationContinuation
@@ -39,13 +39,38 @@ defmodule ExBlog.Agent.RouterPipeline do
   @spec rehearsable?() :: boolean()
   def rehearsable?, do: true
 
+  @doc """
+  Runs a synchronous Morph rehearsal without consulting models or learned routes.
+
+  The scoped marker follows Spectre's protected provider workers through their
+  OTP caller chain and is restored even when the checker raises.
+  """
+  @spec rehearse((-> result)) :: result when result: var
+  def rehearse(fun) when is_function(fun, 0) do
+    previous = Process.put(__MODULE__, :rehearsal)
+
+    try do
+      fun.()
+    after
+      if previous, do: Process.put(__MODULE__, previous), else: Process.delete(__MODULE__)
+    end
+  end
+
   @spec call(Context.t()) :: {:ok, Context.t()} | {:error, term()}
   def call(%Context{} = context) do
-    if Keyword.get(context.opts, :evaluation?, false) do
+    if rehearsal?() do
       evaluation_call(context)
     else
       live_call(context)
     end
+  end
+
+  @spec rehearsal?() :: boolean()
+  defp rehearsal? do
+    Enum.any?([self() | Process.get(:"$callers", [])], fn caller ->
+      node(caller) == node() and
+        Process.info(caller, {:dictionary, __MODULE__}) == {{:dictionary, __MODULE__}, :rehearsal}
+    end)
   end
 
   defp live_call(context) do
@@ -72,9 +97,9 @@ defmodule ExBlog.Agent.RouterPipeline do
   end
 
   # Governance replay must never sample a model, learned cache, hosted
-  # embedding, or stateful continuation. `Spectre.Router.evaluate/3` marks the
-  # context with `evaluation?: true`; under that explicit boundary this branch
-  # retains only hard regex evidence and a disabled-LLM clarification fallback.
+  # embedding, or stateful continuation. Only the scoped Morph checker enters
+  # this branch; ordinary `Spectre.Router.evaluate/3` observes the live routing
+  # providers without executing their selected handler.
   defp evaluation_call(context) do
     opts =
       context.opts

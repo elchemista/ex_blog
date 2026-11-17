@@ -13,6 +13,8 @@ defmodule ExBlogWeb.SitemapController do
   alias ExBlog.Content
   alias ExBlog.Content.Article
   alias ExBlog.Content.TranslationGroups
+  alias ExBlog.Documentation
+  alias ExBlog.GovernedActModel
   alias ExBlogWeb.Canonical
   alias ExBlogWeb.PublicCache
 
@@ -65,7 +67,38 @@ defmodule ExBlogWeb.SitemapController do
         end)
       end)
 
-    index_entries ++ legal_entries
+    manifesto_languages = GovernedActModel.languages()
+
+    manifesto_alternates =
+      Enum.map(manifesto_languages, fn language ->
+        %{hreflang: language, url: absolute("/#{language}/governed-act-model")}
+      end) ++
+        [%{hreflang: "x-default", url: absolute("/it/governed-act-model")}]
+
+    manifesto_entries =
+      Enum.map(manifesto_languages, fn language ->
+        %{
+          url: absolute("/#{language}/governed-act-model"),
+          lastmod: nil,
+          alternates: manifesto_alternates
+        }
+      end)
+
+    index_entries ++ legal_entries ++ manifesto_entries ++ documentation_entries()
+  end
+
+  defp documentation_entries do
+    for language <- Documentation.languages(),
+        slug <- [nil | Enum.map(Documentation.chapters(language), & &1.slug)] do
+      path = if slug, do: "/docs/#{slug}", else: "/docs"
+
+      alternates =
+        Enum.map(Documentation.languages(), fn locale ->
+          %{hreflang: locale, url: absolute("/#{locale}#{path}")}
+        end)
+
+      %{url: absolute("/#{language}#{path}"), lastmod: nil, alternates: alternates}
+    end
   end
 
   defp indexed_articles do

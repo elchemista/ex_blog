@@ -48,6 +48,8 @@ defmodule ExBlogWeb.Router do
 
     get "/", BlogController, :home
     get "/health", HealthController, :show
+    get "/docs", DocumentationController, :index
+    get "/docs/:slug", DocumentationController, :show
     get "/tag/:tag", BlogController, :tag
     get "/category/:category", BlogController, :category
     get "/feed.xml", FeedController, :rss
@@ -140,6 +142,9 @@ defmodule ExBlogWeb.Router do
     get "/:lang/cookies-policy", LegalController, :cookie_policy
     get "/:lang/privacy-policy", LegalController, :privacy_policy
     get "/:lang/gdpr-policy", LegalController, :gdpr_policy
+    get "/:lang/docs", DocumentationController, :index
+    get "/:lang/docs/:slug", DocumentationController, :show
+    get "/:lang/governed-act-model", GovernedActModelController, :show
     get "/:lang/:slug", BlogController, :show
     get "/:lang", BlogController, :index
   end

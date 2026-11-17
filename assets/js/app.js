@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", startCodeHighlighting, {once: true
 if (document.readyState !== "loading") startCodeHighlighting()
 window.addEventListener("phx:page-loading-stop", highlightPage)
 
-const siteDomain = "spectre.elchemista.com"
+const siteDomain = "spectre.guide"
 const documentLanguage = document.documentElement.lang.toLowerCase().split("-")[0]
 const consentLanguage = ["it", "en"].includes(documentLanguage) ? documentLanguage : "it"
 

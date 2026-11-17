@@ -11,7 +11,7 @@
 msgid ""
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:137
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:139
 #, elixir-autogen, elixir-format
 msgid "%{count} file"
 msgid_plural "%{count} files"
@@ -130,7 +130,7 @@ msgstr ""
 msgid "Connection details"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:219
+#: lib/ex_blog_web/components/layouts.ex:236
 #, elixir-autogen, elixir-format
 msgid "Connection lost"
 msgstr ""
@@ -140,7 +140,7 @@ msgstr ""
 msgid "Continue with the number"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html.ex:159
+#: lib/ex_blog_web/controllers/blog_html.ex:278
 #, elixir-autogen, elixir-format
 msgid "Cover image for %{title}"
 msgstr ""
@@ -240,7 +240,7 @@ msgstr ""
 msgid "Language"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:128
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:130
 #, elixir-autogen, elixir-format
 msgid "Latest posts"
 msgstr ""
@@ -250,7 +250,7 @@ msgstr ""
 msgid "Login choice"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:94
+#: lib/ex_blog_web/components/layouts.ex:96
 #, elixir-autogen, elixir-format
 msgid "Main navigation"
 msgstr ""
@@ -275,12 +275,13 @@ msgstr ""
 msgid "Open Telegram on the already authenticated phone."
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:184
+#: lib/ex_blog_web/components/layouts.ex:201
 #, elixir-autogen, elixir-format
 msgid "Open cookie preferences"
 msgstr ""
 
 #: lib/ex_blog_web/controllers/blog_controller.ex:135
+#: lib/ex_blog_web/controllers/governed_act_model_controller.ex:40
 #, elixir-autogen, elixir-format
 msgid "Page not found"
 msgstr ""
@@ -330,7 +331,7 @@ msgstr ""
 msgid "Reading time"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:227
+#: lib/ex_blog_web/components/layouts.ex:244
 #, elixir-autogen, elixir-format
 msgid "Reconnecting"
 msgstr ""
@@ -340,7 +341,7 @@ msgstr ""
 msgid "Requesting…"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:242
+#: lib/ex_blog_web/components/layouts.ex:259
 #, elixir-autogen, elixir-format
 msgid "Retrying in a moment"
 msgstr ""
@@ -371,12 +372,12 @@ msgstr ""
 msgid "Signed in."
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:68
+#: lib/ex_blog_web/components/layouts.ex:70
 #, elixir-autogen, elixir-format
 msgid "Skip to content"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:234
+#: lib/ex_blog_web/components/layouts.ex:251
 #, elixir-autogen, elixir-format
 msgid "Something went wrong"
 msgstr ""
@@ -478,7 +479,7 @@ msgstr ""
 msgid "The content you were looking for does not exist, is not published yet or has moved."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:157
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:159
 #, elixir-autogen, elixir-format
 msgid "The next piece is already in the works. Come back soon, or subscribe to the feed."
 msgstr ""
@@ -489,6 +490,7 @@ msgid "The password is verified against the Argon2 hash configured on the server
 msgstr ""
 
 #: lib/ex_blog_web/controllers/blog_controller.ex:136
+#: lib/ex_blog_web/controllers/governed_act_model_controller.ex:41
 #, elixir-autogen, elixir-format
 msgid "The requested page does not exist."
 msgstr ""
@@ -498,8 +500,8 @@ msgstr ""
 msgid "The session is authorized and running."
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:256
-#: lib/ex_blog_web/components/layouts.ex:257
+#: lib/ex_blog_web/components/layouts.ex:273
+#: lib/ex_blog_web/components/layouts.ex:274
 #, elixir-autogen, elixir-format
 msgid "Toggle colour theme"
 msgstr ""
@@ -561,7 +563,7 @@ msgstr ""
 msgid "Words"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:101
+#: lib/ex_blog_web/components/layouts.ex:103
 #, elixir-autogen, elixir-format
 msgid "archive"
 msgstr ""
@@ -571,12 +573,12 @@ msgstr ""
 msgid "auth"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:113
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:115
 #, elixir-autogen, elixir-format
 msgid "category"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:120
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:122
 #, elixir-autogen, elixir-format
 msgid "clear filter"
 msgstr ""
@@ -611,12 +613,12 @@ msgstr ""
 msgid "idle"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:154
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:156
 #, elixir-autogen, elixir-format
 msgid "ls: no matching file for this selection"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html.ex:123
+#: lib/ex_blog_web/controllers/blog_html.ex:242
 #, elixir-autogen, elixir-format
 msgid "no date"
 msgstr ""
@@ -667,7 +669,7 @@ msgstr ""
 msgid "requested scopes"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:113
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:115
 #, elixir-autogen, elixir-format
 msgid "tag"
 msgstr ""
@@ -682,7 +684,7 @@ msgstr ""
 msgid "telegram password"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:142
+#: lib/ex_blog_web/components/layouts.ex:159
 #, elixir-autogen, elixir-format
 msgid "written in Markdown, published from Git"
 msgstr ""
@@ -699,12 +701,12 @@ msgstr[1] ""
 msgid "A Spectre agent should read like a map, not a magic trick."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:131
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:133
 #, elixir-autogen, elixir-format
 msgid "Notes written while building all of the above."
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:79
+#: lib/ex_blog_web/components/layouts.ex:81
 #, elixir-autogen, elixir-format
 msgid "Spectre home"
 msgstr ""
@@ -894,12 +896,12 @@ msgstr ""
 msgid "Use another phone number"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:163
+#: lib/ex_blog_web/components/layouts.ex:180
 #, elixir-autogen, elixir-format
 msgid "Contact me by email"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:145
+#: lib/ex_blog_web/components/layouts.ex:162
 #, elixir-autogen, elixir-format
 msgid "built with love by"
 msgstr ""
@@ -1250,4 +1252,9 @@ msgstr ""
 #: lib/ex_blog_web/live/admin/telegram_live.ex:159
 #, elixir-autogen, elixir-format
 msgid "traffic"
+msgstr ""
+
+#: lib/ex_blog_web/components/layouts.ex:118
+#, elixir-autogen, elixir-format
+msgid "manifesto"
 msgstr ""

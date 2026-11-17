@@ -9,6 +9,8 @@ defmodule ExBlog.Agent.Instance do
   restart loses running verification loops but never blog content.
   """
 
+  alias ExBlog.Agent.Governance
+
   @supervisor ExBlog.SpectreSupervisor
   @doc "Name of the dynamic supervisor declared in the application tree."
   @spec supervisor() :: module()
@@ -17,9 +19,9 @@ defmodule ExBlog.Agent.Instance do
   @doc "Starts or reuses the blog's Agent Instance."
   @spec ensure() :: {:ok, pid()} | {:error, term()}
   def ensure do
-    case Process.whereis(ExBlog.Agent.Governance) do
+    case Process.whereis(Governance) do
       pid when is_pid(pid) ->
-        ExBlog.Agent.Governance.ensure()
+        Governance.ensure()
 
       nil ->
         # Keep isolated callers usable when the application supervision tree is
@@ -27,7 +29,7 @@ defmodule ExBlog.Agent.Instance do
         Spectre.ensure_instance(
           @supervisor,
           ExBlog.Agent,
-          ExBlog.Agent.Governance.subject()
+          Governance.subject()
         )
     end
   end

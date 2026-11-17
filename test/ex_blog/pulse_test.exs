@@ -38,22 +38,21 @@ defmodule ExBlog.PulseTest do
       assert spec[:authorize] == (&Access.authorize/2)
     end
 
-    test "offers only the scopes Pulse itself enforces" do
+    test "offers only implemented Pulse and host integration scopes" do
       assert Pulse.supported_scopes() == [
                "agent.runtime.read",
                "agent.runtime.stream",
                "agent.operations.read",
-               "agent.operations.stream"
+               "agent.operations.stream",
+               "agent.semantic_cache.read",
+               "agent.semantic_cache.promote",
+               "spectre.morph.propose"
              ]
 
-      # Studio transports these, but the host implements them, and this host
-      # does not. Granting one would render a panel that can only fail.
+      # These bridges require host capabilities this deployment does not expose.
       for unimplemented <- [
             "agent.message.send",
-            "agent.semantic_cache.read",
-            "agent.semantic_cache.promote",
             "spectre.skill.runtime.mount",
-            "spectre.morph.propose",
             "ledger.read",
             "lab.read"
           ] do

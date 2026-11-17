@@ -2,6 +2,7 @@ defmodule ExBlog.Agent.RouterPipelineTest do
   use ExBlog.DataCase, async: false
 
   alias ExBlog.Agent
+  alias ExBlog.Agent.RouterPipeline
   alias Spectre.Router
   alias Spectre.Router.SemanticCache
 
@@ -147,10 +148,10 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     router = Agent.__spectre_router__()
 
     assert Keyword.fetch!(router, :via) ==
-             [:regex, :classifier, :semantic_cache, :llm_classifier]
+             [:regex, :creation_continuation, :classifier, :semantic_cache, :llm_classifier]
 
     refute Keyword.fetch!(router, :classifier_history)
-    refute Keyword.fetch!(router, :semantic_learn?)
+    assert Keyword.fetch!(router, :semantic_learn?)
 
     rules = rules_by_label()
     read_via = [:embedding, :classifier, :semantic_cache, :llm_classifier]
@@ -359,6 +360,36 @@ defmodule ExBlog.Agent.RouterPipelineTest do
     assert prompt =~ "locate content that discusses a subject"
     assert prompt =~ request
     assert Keyword.fetch!(opts, :purpose) == :classifier
+  end
+
+  test "Morph rehearsal skips providers and restores normal routing afterwards" do
+    request = "surface the pieces that discuss concurrency"
+
+    assert {:ok, rehearsal} =
+             RouterPipeline.rehearse(fn ->
+               Router.evaluate(ClassifierAgent, request)
+             end)
+
+    assert rehearsal.label == :UNKNOWN
+    refute rehearsal.llm_called?
+    refute_received {:classifier_called, _prompt, _opts}
+
+    assert {:ok, live} = Router.evaluate(ClassifierAgent, request)
+    assert live.label == :SEARCH_ARTICLES
+    assert live.llm_called?
+    assert_received {:classifier_called, _prompt, _opts}
+  end
+
+  test "a failed Morph rehearsal does not leave subsequent routing model-free" do
+    assert_raise RuntimeError, "rehearsal failed", fn ->
+      RouterPipeline.rehearse(fn -> raise "rehearsal failed" end)
+    end
+
+    assert {:ok, receipt} =
+             Router.evaluate(ClassifierAgent, "surface the pieces that discuss concurrency")
+
+    assert receipt.label == :SEARCH_ARTICLES
+    assert receipt.llm_called?
   end
 
   test "classifier history cannot pin a new request to the previous route" do

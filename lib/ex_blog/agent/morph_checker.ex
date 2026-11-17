@@ -31,7 +31,7 @@ defmodule ExBlog.Agent.MorphChecker do
   def run(store, %{governance: %CandidateState{} = governance}, cases, opts)
       when is_list(cases) and is_list(opts) do
     if Keyword.keyword?(opts) do
-      run_checked(store, governance, cases, opts)
+      RouterPipeline.rehearse(fn -> run_checked(store, governance, cases, opts) end)
     else
       {:error, :invalid_ex_blog_morph_check_options}
     end

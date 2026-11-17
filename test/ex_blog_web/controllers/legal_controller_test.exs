@@ -6,7 +6,7 @@ defmodule ExBlogWeb.LegalControllerTest do
 
     assert one?(
              document,
-             ~s(#cookie-policy[data-site-domain="spectre.elchemista.com"][data-policy-language="it"])
+             ~s(#cookie-policy[data-site-domain="spectre.guide"][data-policy-language="it"])
            )
 
     assert one?(document, "h1#legal-title")
@@ -45,7 +45,7 @@ defmodule ExBlogWeb.LegalControllerTest do
 
     assert one?(
              document,
-             ~s(#privacy-policy[data-site-domain="spectre.elchemista.com"][data-policy-language="en"])
+             ~s(#privacy-policy[data-site-domain="spectre.guide"][data-policy-language="en"])
            )
 
     assert one?(document, "#controller")

@@ -1,8 +1,8 @@
 defmodule ExBlogWeb.LegalCopy do
   @moduledoc false
 
-  @site_name "spectre.elchemista.com"
-  @site_domain "spectre.elchemista.com"
+  @site_name "spectre.guide"
+  @site_domain "spectre.guide"
   @contact_email "elchemista@gmail.com"
 
   @spec site_name() :: String.t()
@@ -23,7 +23,7 @@ defmodule ExBlogWeb.LegalCopy do
       eyebrow: "controlli privacy",
       title: "Cookie Policy",
       summary:
-        "Questa informativa spiega quali cookie e tecnologie locali usa spectre.elchemista.com, perché vengono usati e come puoi cambiare scelta in qualsiasi momento.",
+        "Questa informativa spiega quali cookie e tecnologie locali usa spectre.guide, perché vengono usati e come puoi cambiare scelta in qualsiasi momento.",
       updated: "4 agosto 2026",
       sections: [
         %{
@@ -39,7 +39,7 @@ defmodule ExBlogWeb.LegalCopy do
           id: "come-li-usiamo",
           title: "2. Come li usiamo",
           paragraphs: [
-            "spectre.elchemista.com utilizza il minimo indispensabile per servire le pagine, proteggere le aree riservate e ricordare le tue scelte."
+            "spectre.guide utilizza il minimo indispensabile per servire le pagine, proteggere le aree riservate e ricordare le tue scelte."
           ],
           items: [
             %{
@@ -69,7 +69,7 @@ defmodule ExBlogWeb.LegalCopy do
           id: "terze-parti",
           title: "3. Cookie di terze parti",
           paragraphs: [
-            "Il sito non installa intenzionalmente cookie pubblicitari di terze parti. I siti esterni raggiunti tramite link applicano informative e preferenze proprie, sulle quali spectre.elchemista.com non ha controllo.",
+            "Il sito non installa intenzionalmente cookie pubblicitari di terze parti. I siti esterni raggiunti tramite link applicano informative e preferenze proprie, sulle quali spectre.guide non ha controllo.",
             "La misurazione delle visite non è affidata a terze parti: resta sull'infrastruttura del sito. Se in futuro venissero aggiunti altri strumenti non essenziali, saranno bloccati fino al consenso e questa informativa verrà aggiornata prima dell'attivazione."
           ],
           items: [],
@@ -140,7 +140,7 @@ defmodule ExBlogWeb.LegalCopy do
       eyebrow: "privacy controls",
       title: "Cookie Policy",
       summary:
-        "This notice explains which cookies and local technologies spectre.elchemista.com uses, why they are used, and how you can change your choice at any time.",
+        "This notice explains which cookies and local technologies spectre.guide uses, why they are used, and how you can change your choice at any time.",
       updated: "August 4, 2026",
       sections: [
         %{
@@ -156,7 +156,7 @@ defmodule ExBlogWeb.LegalCopy do
           id: "how-we-use-them",
           title: "2. How we use them",
           paragraphs: [
-            "spectre.elchemista.com uses only what is needed to serve pages, protect restricted areas, and remember your choices."
+            "spectre.guide uses only what is needed to serve pages, protect restricted areas, and remember your choices."
           ],
           items: [
             %{
@@ -186,7 +186,7 @@ defmodule ExBlogWeb.LegalCopy do
           id: "third-parties",
           title: "3. Third-party cookies",
           paragraphs: [
-            "The site does not intentionally install third-party advertising cookies. External websites reached through links apply their own notices and preferences, which spectre.elchemista.com does not control.",
+            "The site does not intentionally install third-party advertising cookies. External websites reached through links apply their own notices and preferences, which spectre.guide does not control.",
             "Visit measurement is not delegated to a third party: it stays on the site's own infrastructure. If other non-essential tools are added in the future, they will remain blocked until consent and this notice will be updated before activation."
           ],
           items: [],
@@ -258,14 +258,14 @@ defmodule ExBlogWeb.LegalCopy do
       eyebrow: "protezione dei dati",
       title: "Privacy e GDPR Policy",
       summary:
-        "Questa informativa descrive quali dati personali può trattare spectre.elchemista.com, per quali finalità, con quali basi giuridiche e quali diritti puoi esercitare.",
+        "Questa informativa descrive quali dati personali può trattare spectre.guide, per quali finalità, con quali basi giuridiche e quali diritti puoi esercitare.",
       updated: "4 agosto 2026",
       sections: [
         %{
           id: "titolare",
           title: "1. Titolare del trattamento",
           paragraphs: [
-            "Il titolare del trattamento per questo sito è spectre.elchemista.com, raggiungibile all'indirizzo indicato nella sezione Contatti.",
+            "Il titolare del trattamento per questo sito è spectre.guide, raggiungibile all'indirizzo indicato nella sezione Contatti.",
             "Questa informativa si applica alla navigazione del sito pubblico e alle comunicazioni inviate volontariamente tramite email."
           ],
           items: [],
@@ -338,7 +338,7 @@ defmodule ExBlogWeb.LegalCopy do
           title: "5. Destinatari e responsabili",
           paragraphs: [
             "I dati possono essere trattati da fornitori tecnici strettamente necessari per hosting, rete, sicurezza e posta elettronica, nei limiti del servizio affidato e con adeguati obblighi di riservatezza.",
-            "spectre.elchemista.com non vende dati personali e non li cede a intermediari pubblicitari. I dati possono essere comunicati alle autorità solo quando richiesto dalla legge."
+            "spectre.guide non vende dati personali e non li cede a intermediari pubblicitari. I dati possono essere comunicati alle autorità solo quando richiesto dalla legge."
           ],
           items: [],
           links: []
@@ -407,7 +407,7 @@ defmodule ExBlogWeb.LegalCopy do
           title: "10. Sicurezza e link esterni",
           paragraphs: [
             "Sono adottate misure tecniche e organizzative ragionevoli per proteggere i dati da perdita, alterazione, divulgazione o accesso non autorizzato. Nessun sistema connesso a Internet può tuttavia garantire sicurezza assoluta.",
-            "Il sito può contenere link a servizi esterni. Le loro pratiche privacy sono disciplinate dalle rispettive informative e non sono controllate da spectre.elchemista.com."
+            "Il sito può contenere link a servizi esterni. Le loro pratiche privacy sono disciplinate dalle rispettive informative e non sono controllate da spectre.guide."
           ],
           items: [],
           links: []
@@ -433,14 +433,14 @@ defmodule ExBlogWeb.LegalCopy do
       eyebrow: "data protection",
       title: "Privacy and GDPR Policy",
       summary:
-        "This notice describes which personal data spectre.elchemista.com may process, for which purposes and legal bases, and the rights you can exercise.",
+        "This notice describes which personal data spectre.guide may process, for which purposes and legal bases, and the rights you can exercise.",
       updated: "August 4, 2026",
       sections: [
         %{
           id: "controller",
           title: "1. Data controller",
           paragraphs: [
-            "The data controller for this website is spectre.elchemista.com and can be reached using the address in the Contact section.",
+            "The data controller for this website is spectre.guide and can be reached using the address in the Contact section.",
             "This notice applies to use of the public website and to communications you voluntarily send by email."
           ],
           items: [],
@@ -510,7 +510,7 @@ defmodule ExBlogWeb.LegalCopy do
           title: "5. Recipients and processors",
           paragraphs: [
             "Data may be processed by technical providers strictly required for hosting, networking, security, and email, within the scope of their service and under appropriate confidentiality obligations.",
-            "spectre.elchemista.com does not sell personal data or disclose it to advertising brokers. Data may be disclosed to authorities only where required by law."
+            "spectre.guide does not sell personal data or disclose it to advertising brokers. Data may be disclosed to authorities only where required by law."
           ],
           items: [],
           links: []
@@ -573,7 +573,7 @@ defmodule ExBlogWeb.LegalCopy do
           title: "10. Security and external links",
           paragraphs: [
             "Reasonable technical and organizational measures are used to protect data against loss, alteration, disclosure, or unauthorized access. No Internet-connected system can guarantee absolute security.",
-            "The site may contain links to external services. Their privacy practices are governed by their own notices and are not controlled by spectre.elchemista.com."
+            "The site may contain links to external services. Their privacy practices are governed by their own notices and are not controlled by spectre.guide."
           ],
           items: [],
           links: []

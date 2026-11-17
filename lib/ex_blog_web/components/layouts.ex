@@ -46,6 +46,8 @@ defmodule ExBlogWeb.Layouts do
   attr :current_scope, :map, default: nil
   attr :current_language, :string, default: nil
   attr :supported_languages, :list, default: []
+  attr :language_paths, :map, default: %{}
+  attr :active_nav, :atom, default: nil
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -101,6 +103,35 @@ defmodule ExBlogWeb.Layouts do
               ./{gettext("archive")}
             </.link>
             <.link
+              id="docs-nav-link"
+              href={~p"/#{reference_language(@current_language)}/docs"}
+              aria-current={if(@active_nav == :docs, do: "page", else: nil)}
+              class={[
+                "px-1.5 py-1 transition hover:t-strong hover:underline hover:decoration-dashed hover:underline-offset-4",
+                if(@active_nav == :docs,
+                  do: "t-strong underline decoration-dashed underline-offset-4",
+                  else: "t-dim"
+                )
+              ]}
+            >
+              ./docs
+            </.link>
+            <.link
+              id="manifesto-nav-link"
+              href={~p"/#{reference_language(@current_language)}/governed-act-model"}
+              aria-current={if(@active_nav == :manifesto, do: "page", else: nil)}
+              class={[
+                "px-1.5 py-1 transition hover:t-strong hover:underline hover:decoration-dashed hover:underline-offset-4",
+                if(@active_nav == :manifesto,
+                  do: "t-strong underline decoration-dashed underline-offset-4",
+                  else: "t-dim"
+                )
+              ]}
+            >
+              <span class="sm:hidden">./GAM</span>
+              <span class="hidden sm:inline">./{gettext("manifesto")}</span>
+            </.link>
+            <.link
               href={~p"/feed.xml"}
               class="hidden px-1.5 py-1 t-dim transition hover:t-strong hover:underline hover:decoration-dashed hover:underline-offset-4 md:block"
             >
@@ -111,7 +142,7 @@ defmodule ExBlogWeb.Layouts do
               <span :for={{language, index} <- Enum.with_index(@supported_languages)}>
                 <span :if={index > 0} aria-hidden="true" class="px-1">|</span>
                 <.link
-                  href={~p"/#{language}"}
+                  href={language_path(@language_paths, language)}
                   hreflang={language}
                   aria-current={if(language == @current_language, do: "page", else: nil)}
                   class={[
@@ -280,4 +311,15 @@ defmodule ExBlogWeb.Layouts do
     |> Jason.encode!(escape: :html_safe)
     |> raw()
   end
+
+  defp reference_language(language) when language in ["it", "en"], do: language
+
+  defp reference_language(_language) do
+    case ExBlog.Config.get().default_language do
+      language when language in ["it", "en"] -> language
+      _other -> "it"
+    end
+  end
+
+  defp language_path(paths, language), do: Map.get(paths, language, "/#{language}")
 end

@@ -126,8 +126,7 @@ defmodule ExBlog.Agent.Works.SyncAndVerifyTest do
 
   defp instance! do
     subject = "verify-#{System.unique_integer([:positive, :monotonic])}"
-    {:ok, pid} = Spectre.ensure_instance(ExBlog.SpectreSupervisor, Agent, subject)
-    pid
+    start_supervised!({Spectre.Instance, agent: Agent, subject: subject})
   end
 
   defp await_terminal(instance, ref, remaining_ms \\ 5_000) do

@@ -97,6 +97,9 @@ defmodule ExBlogWeb.BlogControllerTest do
              "sono poteri dello stesso agente, non agenti diversi"
 
     assert one?(document, "#spectre-principles")
+    assert one?(document, "#governed-act-model-feature")
+    assert one?(document, ~s(#governed-act-model-cta[href="/it/governed-act-model"]))
+    assert one?(document, ~s(#manifesto-nav-link[href="/it/governed-act-model"]))
     assert one?(document, "#article-card-it-primo-articolo")
     refute one?(document, "#article-card-it-bozza-segreta")
     assert LazyHTML.attribute(LazyHTML.query(document, "html"), "lang") == ["it"]
@@ -110,6 +113,11 @@ defmodule ExBlogWeb.BlogControllerTest do
 
     assert LazyHTML.text(LazyHTML.query(document, "#homepage-subtitle")) =~
              "they are powers of that same agent, not different agents"
+
+    assert LazyHTML.text(LazyHTML.query(document, "#governed-act-model-feature-title")) =~
+             "It does not grant itself power"
+
+    assert one?(document, ~s(#governed-act-model-cta[href="/en/governed-act-model"]))
   end
 
   test "the index head names Spectre, Elixir, and AI agents", %{conn: conn} do
@@ -271,6 +279,9 @@ defmodule ExBlogWeb.BlogControllerTest do
     assert body =~ "<loc>#{base}/fr</loc>"
     assert body =~ "<loc>#{base}/it/privacy-policy</loc>"
     assert body =~ "<loc>#{base}/fr/cookies-policy</loc>"
+    assert body =~ "<loc>#{base}/it/governed-act-model</loc>"
+    assert body =~ "<loc>#{base}/en/governed-act-model</loc>"
+    refute body =~ "<loc>#{base}/fr/governed-act-model</loc>"
     refute body =~ "bozza-segreta"
 
     # `/` and `/<default language>` render the same page, so the sitemap advertises

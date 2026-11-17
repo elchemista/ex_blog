@@ -22,6 +22,7 @@ defmodule ExBlog.Agent.Governance do
   alias Spectre.Definition.Resolver
   alias Spectre.Definition.Store
   alias Spectre.Instance.Activation
+  alias Spectre.Skill.Runtime
 
   @supervisor ExBlog.SpectreSupervisor
   @subject "blog-operations"
@@ -170,8 +171,8 @@ defmodule ExBlog.Agent.Governance do
 
   defp morph_authority do
     capabilities = [
-      Spectre.Skill.Runtime.capability(:mount),
-      Spectre.Skill.Runtime.capability(:replace)
+      Runtime.capability(:mount),
+      Runtime.capability(:replace)
     ]
 
     %{

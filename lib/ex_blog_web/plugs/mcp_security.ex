@@ -132,6 +132,12 @@ defmodule ExBlogWeb.Plugs.MCPSecurity do
       Plug.Crypto.secure_compare(supplied, expected)
   end
 
+  @spec assign_identity(
+          Plug.Conn.t(),
+          map() | nil,
+          MapSet.t(String.t()),
+          :static | :oauth | :anonymous
+        ) :: Plug.Conn.t()
   defp assign_identity(conn, principal, scopes, method) do
     conn
     |> assign(:mcp_authenticated?, not is_nil(principal))

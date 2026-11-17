@@ -20,7 +20,7 @@ defmodule ExBlog.Agent do
   """
 
   use Spectre.Agent,
-    version: 2,
+    version: 3,
     prompt_root: "lib/ex_blog_web/prompts",
     input_timeout: 30_000
 
@@ -60,7 +60,7 @@ defmodule ExBlog.Agent do
 
   # Runtime request data belongs to one typed context boundary shared by every
   # model-backed handler. Keeping this mount on the Agent also lets compiled
-  # Skills remain self-contained under Spectre 0.3's prompt budgets.
+  # Skills remain self-contained under the retained runtime's prompt budgets.
   inject(:untrusted_turn,
     from: {ExBlog.Agent.PromptContext, :untrusted_turn},
     into: :context,
@@ -70,6 +70,7 @@ defmodule ExBlog.Agent do
     request_limit: 8_000
   )
 
+  alias ExBlog.Agent.Router.Plugs.CreationContinuation
   alias ExBlog.Agent.RouterPipeline
   alias ExBlog.Agent.Skills.Assistance
   alias ExBlog.Agent.Skills.Editorial
@@ -87,10 +88,14 @@ defmodule ExBlog.Agent do
   # compile-time dependency explicit so parallel compilation cannot race it.
   Code.ensure_compiled!(OpenRouter)
 
+  # The router Adapter descriptor is read at compile time as well: the compiler
+  # snapshots it to resolve every `via: [:creation_continuation]` capture leaf.
+  Code.ensure_compiled!(CreationContinuation)
+
   # These satellite libraries extend this Agent with capabilities. They do not
   # own another Agent, state machine, or execution lifecycle. Agent-local mounts
-  # keep the 0.2 satellite adapters on Spectre core 0.3's supported compatibility
-  # path until their Stack manifests declare the new core requirement.
+  # use Spectre 0.4's retained Instance/Run integration for this editorial workflow.
+  # New AgentServer applications can install these capabilities through a Stack.
   prism do
     provider(:openrouter, OpenRouter,
       models: [
@@ -163,13 +168,12 @@ defmodule ExBlog.Agent do
   # fallback. The classifier sees the current message rather than prior replies:
   # conversational history is useful for answer generation, but it can bias an
   # otherwise explicit topic change such as "budget" followed by "list posts".
-  # Static
-  # `:embedding` similarity is supported by RouterPipeline but is not global:
-  # Spectre's stock plug embeds every declared example per request, which would
-  # replace one local query embedding with dozens of redundant inferences.
+  # Static `:embedding` similarity remains opt-in; production uses the reviewed
+  # learned index. Spectre 0.4 caches static example vectors, while first-use
+  # example encoding and query embeddings can still invoke the selected provider.
   router(
     pipeline: RouterPipeline,
-    via: [:regex, :classifier, :semantic_cache, :llm_classifier],
+    via: [:regex, CreationContinuation, :classifier, :semantic_cache, :llm_classifier],
     classifier_history: false,
     semantic_cache_search_threshold: 0.94,
     arbitrator:
@@ -220,7 +224,6 @@ defmodule ExBlog.Agent do
     ],
     semantic_cache?: true,
     semantic_cache: ExBlog.Agent.SemanticCache,
-    embedding: {ExBlog.Agent.Embedding, []},
     # Only rules explicitly marked `learn: true` are eligible. New LLM-routed
     # examples remain unverified until Studio promotes them (or the adapter's
     # stricter repeat-match gate verifies them), so one classification cannot

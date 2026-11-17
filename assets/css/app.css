@@ -962,6 +962,63 @@ a.term-chip--active:hover {
   accent-color: var(--fg-strong);
 }
 
+/* --- Governed Act Model ---------------------------------------------------
+   The manifesto shares the Markdown typography with articles, but its four
+   laws need to read like a constitution rather than another archive entry. */
+
+.manifesto-prose {
+  font-size: clamp(0.96rem, 1.25vw, 1.06rem);
+  line-height: 1.92;
+}
+
+.manifesto-prose > p:first-child {
+  margin-bottom: 2em;
+  color: var(--fg-strong);
+  font-size: 1.08em;
+  font-weight: 600;
+}
+
+.manifesto-prose p {
+  max-width: 76ch;
+  text-wrap: pretty;
+}
+
+.manifesto-prose p:has(strong) {
+  max-width: 76ch;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line-strong);
+  border-radius: 0 0.35rem 0.35rem 0;
+  background: var(--surface);
+  padding: 1rem 1.15rem;
+}
+
+.manifesto-prose h2 {
+  max-width: 28ch;
+  margin-top: 3.2em;
+  border-top: 1px solid var(--line);
+  padding-top: 1.3em;
+  font-size: clamp(1.5rem, 3vw, 2.15rem);
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.manifesto-prose h2::before {
+  content: "law / ";
+  display: block;
+  margin-bottom: 0.8rem;
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Comrak adds this empty self-link when heading IDs are enabled. The heading
+   itself owns the target; hiding the link prevents article link styles from
+   creating an unexplained focus-sized box. */
+.manifesto-prose h2 > a:empty {
+  display: none;
+}
+
 /* --- Syntax highlighting --------------------------------------------------
    Token classes emitted by assets/js/highlight.js, for both Markdown code
    fences and .term-code blocks. Colours come from the --hl-* scale declared

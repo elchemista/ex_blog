@@ -31,6 +31,50 @@ workflow:
 The agent operates in English. Articles, metadata, and translations can use any
 language enabled in `EX_BLOG_SUPPORTED_LANGUAGES`.
 
+## Spectre 0.4 integration
+
+ExBlog uses the published `spectre ~> 0.4.0` core and the compatible Prism,
+Beam, Kinetic, Lens and Pulse revisions recorded in `mix.exs` and `mix.lock`.
+Commit the lockfile when updating this coordinated dependency set.
+
+The editorial workflows use Spectre 0.4's retained **Instance/Run** runtime:
+Skills declare handlers, DETS persists conversational state, and
+`Spectre.Policy` mediates confirmed repository changes. The new
+**Stack → Agent → Server** architecture, mounted Skill GenServers and Managed
+GAM are available in the framework; adopting them for this editorial agent is
+a separate application migration. Follow the
+[0.3 → 0.4 migration guide](https://github.com/elchemista/spectre/blob/0.4.0/docs/MIGRATING_TO_0_4.md)
+when changing runtime ownership or effect execution.
+
+This upgrade advances the editorial Agent's immutable Definition revision to
+`version: 3`, independently of the Spectre package version. When a deployment
+changes code sealed by its Manifest, advance the version in
+[`ExBlog.Agent`](lib/ex_blog/agent.ex) and retain prior Definition artifacts in
+the durable Store. The new build receives its own Ref without rewriting history.
+Even source-equivalent recompilation or a toolchain change can alter sealed BEAM
+fingerprints; reuse the tested release artifact and advance this revision for a
+new protected build.
+
+## Spectre documentation website
+
+Open `/docs` for the configured default language, `/en/docs` for English or
+`/it/docs` for Italian. The chapter sidebar, previous/next links and page
+contents guide readers through architecture, routing, training, storage,
+behaviours, Mix tasks, integrations and migration. The language switch keeps
+the current chapter when changing between English and Italian.
+
+The versioned sources live in [`priv/spectre_docs/en`](priv/spectre_docs/en)
+and [`priv/spectre_docs/it`](priv/spectre_docs/it). Edit the matching Markdown
+chapters in both languages, then run `mix compile` and `mix precommit`.
+`ExBlog.Documentation` sanitizes and renders the bundled chapters at compile
+time; serving them needs neither a database nor a request to the content Git
+repository. New numbered Markdown files join the ordered chapter catalogue
+on recompilation. Each chapter includes a source link for corrections.
+
+Deploy ExBlog and verify `/en/docs` and `/it/docs` before pushing the content
+repository's 0.4 updates, so the published articles' new guide links resolve.
+The release articles remain drafts until their separate editorial publication.
+
 ## Connect Telegram: routes and access security
 
 After starting Phoenix, connect the Telegram account from the protected web
@@ -254,9 +298,9 @@ effect, shows what it is about to do, and waits: only a plain `yes` or
 three invalid confirmation attempts cancel the operation. No model output can
 approve a staged action.
 
-Read actions never mutate Git. Live LLM classifications are not learned
-automatically: one mistaken classification cannot pin later messages to the
-wrong read route. The versioned dataset and manually reviewed semantic rows
+Read actions never mutate Git. New LLM classifications are collected only for
+eligible read routes and remain unverified: one classification cannot become
+trusted routing evidence. The versioned dataset and verified semantic rows
 remain available, and neither can approve a write.
 
 ### Prism model routing
@@ -354,10 +398,21 @@ Git mutations expose optional static embeddings, the trained classifier, and
 the LLM classifier but exclude semantic-cache learning; intake capture leaves
 expose only the private `:creation_continuation` provider.
 
-The agent enables `[:regex, :classifier, :semantic_cache, :llm_classifier]`
+That private provider is a `Spectre.Router.Adapter`:
+`ExBlog.Agent.Router.Plugs.CreationContinuation` declares the
+`:creation_continuation` id, scores the one leaf that owns the persisted cursor,
+and is invoked from the pipeline plug of the same module. The plug keeps the
+precedence policy an evidence-only Adapter cannot express — global interrupts
+and explicit slash commands still win, and out-of-flow regex candidates are
+discarded before the cursor speaks.
+
+The agent enables
+`[:regex, CreationContinuation, :classifier, :semantic_cache, :llm_classifier]`
 globally; `:regex` stays in that list only for the safety and cancellation
-interrupts. `:embedding` remains an opt-in static matcher because it embeds every
-visible skill example during a request. The local-classifier provider is part
+interrupts. `:embedding` remains opt-in while production uses the reviewed
+learned index. Spectre 0.4 caches static example vectors; first-use encoding and
+query embeddings can still invoke the selected provider. The local-classifier
+provider is part
 of the pipeline but can report itself unavailable, allowing semantic search and
 the remote classifier to continue normally.
 
@@ -381,9 +436,9 @@ margin gates make ambiguous predictions fall through instead of treating them
 as authoritative. Hosted models receive the original redacted text without the
 E5-specific prefix.
 
-The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 532 original
-English examples across 22 routing intents, with at least 24 examples per
-intent. Twenty-one are locally
+The checked-in [`dataset.json`](priv/spectre/dataset.json) contains 556 original
+English examples across 23 routing intents, with at least 24 examples per
+intent. Twenty-two are locally
 routeable classifier labels; `UNKNOWN` remains in the training corpus as an
 abstention label that deliberately forces remote reinterpretation. The
 dataset includes contrastive cases such as reading versus searching, auditing
@@ -396,13 +451,14 @@ The optional development bootstrap produces two artifacts from the same
 corpus under ignored `artifacts/spectre`:
 
 - `classifier.etf`, used by the warm local intent classifier;
-- `semantic_cache.jsonl`, containing precomputed local vectors for all 532
+- `semantic_cache.jsonl`, containing precomputed local vectors for all 556
   examples; development boot filters them through route policy and warms
-  Vettore with the 268 cacheable read/help/conversational examples.
+  Vettore with eligible read/help/conversational examples.
 
 Production does not load either artifact. It still reads the release-safe
-dataset for exact matches. Automatic online learning is disabled; only
-explicitly reviewed semantic rows may be searched. Any such hosted vectors are
+dataset for exact matches. Eligible read routes can collect unverified online
+examples; Studio review or a later match above the adapter's stricter similarity
+and margin gates makes them reusable. Any such hosted vectors are
 persisted in a namespace containing the model and dimension identity, so a
 DETS store cannot mix them with local 384d rows.
 
@@ -413,6 +469,10 @@ verification starts, unsafe input, and unknown input can never become cached
 authorization. A conversational match still generates a fresh LLM answer; the
 cache stores only its safe routing label, never a previous reply.
 
+`Spectre.Router.evaluate/3` observes these same providers without running the
+selected handler. Morph checks separately enter the host's scoped model-free
+rehearsal: only regex evidence and runtime Skill replies are eligible there.
+
 The provider responsibilities are:
 
 | Provider | When it wins | External model call |
@@ -422,7 +482,7 @@ The provider responsibilities are:
 | semantic exact | a trusted dataset, skill, or verified learned phrase matches exactly | none |
 | local classifier | a development/test artifact recognizes the intent above its score and margin gates | one local embedding; disabled in production |
 | semantic search | a stored vector is close enough to the new request | local in development/test; one OpenRouter embedding in production |
-| static embedding | explicitly enabled for experiments | selected environment adapter per visible example |
+| static embedding | explicitly enabled for experiments | query embedding plus any missing example vectors |
 | LLM classifier | all local evidence misses or conflicts | one fast OpenRouter completion |
 
 Interrupt regex evidence is always hard: an actual match stops probabilistic
@@ -436,8 +496,9 @@ The gates are strict on purpose. The local classifier must reach `0.89` with a
 need `0.84` with a `0.03` margin; learned semantic matches need `0.94`
 similarity. A candidate that cannot clear its gate simply falls through to the
 next provider instead of routing the request on a guess. Reviewed rows and
-their embeddings are persisted in DETS. Live classifier output is never added
-automatically, and editorial mutations still require policy confirmation.
+their embeddings are persisted in DETS. New online rows require review or a
+later match above the stricter repeat-match gates before ordinary reuse, and
+editorial mutations still require policy confirmation.
 
 ### Reading the agent implementation
 
@@ -742,7 +803,7 @@ legacy aliases, but new deployments should use ExGram's conventional
 
 `PHX_HOST` is one canonical hostname, without scheme or path. Alternate public
 hosts belong in both `PHX_CHECK_ORIGINS` and `EX_BLOG_CORS_ORIGINS`. The Fly
-deployment uses `spectre.elchemista.com` as canonical and also accepts
+deployment uses `spectre.guide` as canonical and also accepts
 `https://spectre-blog.fly.dev`; local development accepts
 `http://localhost:4000` and `http://127.0.0.1:4000`.
 
@@ -1284,8 +1345,8 @@ dimensions. The Fly machine is fixed at 2 shared CPUs and 1 GB RAM for Phoenix
 and TDLib.
 
 The custom Fly hostname requires both DNS address records. For the current app
-they are `A spectre.elchemista.com 66.241.124.115` and
-`AAAA spectre.elchemista.com 2a09:8280:1::15f:3650:0`. Without the A record,
+they are `A spectre.guide 66.241.124.115` and
+`AAAA spectre.guide 2a09:8280:1::15f:3650:0`. Without the A record,
 IPv4-only clients cannot reach the custom domain even when its certificate is
 already issued.
 

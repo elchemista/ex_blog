@@ -31,7 +31,7 @@ primary_region = 'fra'
   EX_BLOG_PULSE_SCOPES = 'agent.runtime.read,agent.runtime.stream,agent.operations.read,agent.operations.stream,agent.semantic_cache.read,agent.semantic_cache.promote,spectre.morph.propose'
   EX_BLOG_SUPPORTED_LANGUAGES = 'en,it'
   PHX_CHECK_ORIGINS = 'https://spectre-blog.fly.dev,https://spectre.elchemista.com,https://spectre.guide'
-  PHX_HOST = 'spectre.elchemista.com'
+  PHX_HOST = 'spectre.guide'
   PHX_SERVER = 'true'
   PORT = '4000'
 

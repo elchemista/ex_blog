@@ -58,7 +58,7 @@ defmodule ExBlog.AI do
          %{
            configured: true,
            reachable: true,
-           models_available: Enum.all?(configured, &MapSet.member?(available, &1))
+           models_available: Enum.all?(configured, &Map.has_key?(available, &1))
          }}
 
       {:ok, %{status: status}} ->
@@ -69,16 +69,17 @@ defmodule ExBlog.AI do
     end
   end
 
+  @spec model_ids(term()) :: %{String.t() => true}
   defp model_ids(%{"data" => models}) when is_list(models) do
     models
     |> Enum.flat_map(fn
-      %{"id" => id} when is_binary(id) -> [id]
+      %{"id" => id} when is_binary(id) -> [{id, true}]
       _other -> []
     end)
-    |> MapSet.new()
+    |> Map.new()
   end
 
-  defp model_ids(_body), do: MapSet.new()
+  defp model_ids(_body), do: %{}
 
   defp openrouter_model_id(model) when is_binary(model) do
     case model |> String.trim() |> String.replace_prefix("openrouter:", "") do

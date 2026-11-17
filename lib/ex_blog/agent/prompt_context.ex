@@ -2,7 +2,8 @@ defmodule ExBlog.Agent.PromptContext do
   @moduledoc """
   Builds bounded, redacted runtime context for model-backed Spectre handlers.
 
-  Spectre 0.3 keeps executable providers out of compiled prompt instructions.
+  The retained Instance/Run runtime keeps executable providers out of compiled
+  prompt instructions.
   Values returned here are injected into the typed `:context` section, where
   Spectre treats them as untrusted data and escapes them for legacy adapters.
   """

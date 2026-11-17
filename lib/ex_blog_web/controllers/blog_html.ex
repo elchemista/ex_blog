@@ -104,6 +104,125 @@ defmodule ExBlogWeb.BlogHTML do
     """
   end
 
+  attr :current_language, :string, required: true
+
+  def governed_act_model_feature(assigns) do
+    language =
+      if assigns.current_language in ["it", "en"], do: assigns.current_language, else: "it"
+
+    assigns =
+      assigns
+      |> assign(:manifesto, ExBlog.GovernedActModel.fetch!(language))
+      |> assign(:manifesto_language, language)
+
+    ~H"""
+    <section id="governed-act-model-feature" class={["mt-16"]}>
+      <div class={[
+        "flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--line)] pb-4"
+      ]}>
+        <div>
+          <p class={["term-prompt text-[0.72rem] t-faint"]}>cat GOVERNED_ACT_MODEL.md</p>
+          <h2 class={["mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl"]}>
+            Governed Act Model
+          </h2>
+        </div>
+        <span class={["term-chip"]}>{@manifesto.home_eyebrow}</span>
+      </div>
+
+      <div class={["term-window mt-6 overflow-hidden"]}>
+        <div class={["term-bar"]}>
+          <span class={["term-dots"]} aria-hidden="true">
+            <span class={["term-dot"]}></span>
+            <span class={["term-dot"]}></span>
+            <span class={["term-dot"]}></span>
+          </span>
+          <span class={["term-title"]}>governance/constitution.md</span>
+          <span class={["ml-auto hidden t-faint sm:block"]}>normative core · v1</span>
+        </div>
+
+        <div class={["grid lg:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)]"]}>
+          <div class={["term-body p-5 sm:p-8"]}>
+            <p class={["text-[0.68rem] uppercase tracking-[0.14em] t-faint"]}>
+              {@manifesto.home_eyebrow}
+            </p>
+            <h3
+              id="governed-act-model-feature-title"
+              class={[
+                "mt-4 max-w-3xl text-2xl font-bold leading-tight tracking-[-0.025em] text-balance t-strong sm:text-4xl"
+              ]}
+            >
+              {@manifesto.home_title}
+            </h3>
+            <p class={["mt-5 max-w-3xl text-[0.82rem] leading-7 t-dim sm:text-[0.9rem]"]}>
+              <span class={["t-faint"]} aria-hidden="true">// </span>{@manifesto.home_summary}
+            </p>
+
+            <div class={[
+              "mt-7 grid gap-px overflow-hidden border border-[color:var(--line)] bg-[color:var(--line)] sm:grid-cols-2"
+            ]}>
+              <div
+                :for={{term, index} <- Enum.with_index(@manifesto.terms, 1)}
+                class={[
+                  "bg-[color:var(--surface)] p-4 transition hover:bg-[color:var(--surface-raised)]"
+                ]}
+              >
+                <p class={["text-[0.64rem] tracking-[0.12em] t-faint"]}>
+                  {String.pad_leading("#{index}", 2, "0")} / {term.verb}
+                </p>
+                <p class={["mt-2 text-[0.78rem] font-bold t-strong"]}>{term.name}</p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="governed-act-model-flow"
+            class={[
+              "flex flex-col justify-between border-t border-[color:var(--line)] bg-[color:var(--surface-bar)] p-5 lg:border-l lg:border-t-0 lg:p-7"
+            ]}
+          >
+            <div>
+              <p class={["text-[0.64rem] uppercase tracking-[0.14em] t-faint"]}>execution boundary</p>
+              <ol class={["mt-5 space-y-2"]}>
+                <li
+                  :for={{step, index} <- Enum.with_index(@manifesto.flow, 1)}
+                  class={["group flex items-center gap-3 text-[0.7rem]"]}
+                >
+                  <span class={["t-faint"]}>{String.pad_leading("#{index}", 2, "0")}</span>
+                  <span class={[
+                    "flex-1 border border-[color:var(--line)] bg-[color:var(--surface)] px-3 py-2 t-dim transition group-hover:border-[color:var(--line-strong)] group-hover:t-strong"
+                  ]}>
+                    {step}
+                  </span>
+                </li>
+              </ol>
+            </div>
+
+            <p class={[
+              "mt-7 border-t border-dashed border-[color:var(--line)] pt-5 text-[0.68rem] leading-5 t-faint"
+            ]}>
+              {@manifesto.home_note}
+            </p>
+          </div>
+        </div>
+
+        <div class={[
+          "flex flex-wrap items-center gap-4 border-t border-[color:var(--line)] bg-[color:var(--surface)] px-5 py-4 sm:px-8"
+        ]}>
+          <p class={["term-prompt text-[0.7rem] t-faint"]}>open --governed-act-model</p>
+          <.link
+            id="governed-act-model-cta"
+            href={~p"/#{@manifesto_language}/governed-act-model"}
+            class={["term-btn term-btn--primary ml-auto"]}
+          >
+            {@manifesto.home_cta}
+            <span aria-hidden="true">→</span>
+          </.link>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
   def file_path(article), do: "posts/#{article.lang}/#{article.slug}.md"
 
   def word_count(body) when is_binary(body) do

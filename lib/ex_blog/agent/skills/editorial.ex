@@ -128,6 +128,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
           regex: ~r{https?://[^\s<>"'`]+}iu,
           regex_strength: :hard,
           cache: false,
+          creation_continuation_strength: :hard,
           via: [:creation_continuation] do
           run(:capture_sources)
         end
@@ -136,32 +137,49 @@ defmodule ExBlog.Agent.Skills.Editorial do
       # Capture leaves intentionally expose only the custom continuation
       # provider. Hiding them from the global LLM classifier prevents an
       # out-of-flow message from being classified as an arbitrary field answer.
+      # `creation_continuation_strength: :hard` keeps that cursor evidence
+      # decisive, so the model-backed providers short-circuit for the turn.
       flow :article_brief do
-        on :CAPTURE_ARTICLE_BRIEF, cache: false, via: [:creation_continuation] do
+        on :CAPTURE_ARTICLE_BRIEF,
+          cache: false,
+          creation_continuation_strength: :hard,
+          via: [:creation_continuation] do
           run(:capture_brief)
         end
       end
 
       flow :article_language do
-        on :CAPTURE_ARTICLE_LANGUAGE, cache: false, via: [:creation_continuation] do
+        on :CAPTURE_ARTICLE_LANGUAGE,
+          cache: false,
+          creation_continuation_strength: :hard,
+          via: [:creation_continuation] do
           run(:capture_language)
         end
       end
 
       flow :article_category do
-        on :CAPTURE_ARTICLE_CATEGORY, cache: false, via: [:creation_continuation] do
+        on :CAPTURE_ARTICLE_CATEGORY,
+          cache: false,
+          creation_continuation_strength: :hard,
+          via: [:creation_continuation] do
           run(:capture_category)
         end
       end
 
       flow :article_title do
-        on :CAPTURE_ARTICLE_TITLE, cache: false, via: [:creation_continuation] do
+        on :CAPTURE_ARTICLE_TITLE,
+          cache: false,
+          creation_continuation_strength: :hard,
+          via: [:creation_continuation] do
           run(:capture_title)
         end
       end
 
       flow :article_seo do
-        on :CAPTURE_ARTICLE_SEO, cache: false, via: [:creation_continuation] do
+        on :CAPTURE_ARTICLE_SEO,
+          cache: false,
+          creation_continuation_strength: :hard,
+          via: [:creation_continuation] do
           run(:capture_seo)
         end
       end
@@ -172,6 +190,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
             ~r/^\s*(?:(?:yes|confirm|save|approve|si|sì|conferma|salva|approva)|(?:no|cancel|discard|annulla|cancella|scarta)|(?:modify|change|revise|edit|modifica|cambia|rivedi)\b.*)\s*[.!]?\s*$/iu,
           regex_strength: :hard,
           cache: false,
+          creation_continuation_strength: :hard,
           via: [:creation_continuation] do
           run(:capture_review)
         end
@@ -198,6 +217,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
       flow :article_revision_instructions do
         on :CAPTURE_ARTICLE_REVISION_INSTRUCTIONS,
           cache: false,
+          creation_continuation_strength: :hard,
           via: [:creation_continuation] do
           run(:capture_revision_instructions)
         end
@@ -209,6 +229,7 @@ defmodule ExBlog.Agent.Skills.Editorial do
             ~r/^\s*(?:(?:yes|confirm|save|approve|si|sì|conferma|salva|approva)|(?:no|cancel|discard|annulla|cancella|scarta)|(?:modify|change|revise|edit|modifica|cambia|rivedi)\b.*)\s*[.!]?\s*$/iu,
           regex_strength: :hard,
           cache: false,
+          creation_continuation_strength: :hard,
           via: [:creation_continuation] do
           run(:capture_revision_review)
         end
