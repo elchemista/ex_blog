@@ -1,21 +1,12 @@
 defmodule ExBlogWeb.Showcase do
   @moduledoc """
-  Home page sections presenting the Spectre ecosystem.
+  Homepage presentation of the released Spectre 0.4 AgentServer architecture.
 
-  Every claim rendered here is sourced, not invented:
-
-    * the definition, philosophy, safety boundary, reflective runtime and DSL
-      example come from the published `spectre` 0.3.2 documentation;
-    * each library summary comes from its own GitHub description
-      (`api.github.com/users/elchemista/repos`, checked 2026-08-16);
-    * the request path comes from `docs/spectre-editorial-showcase.md`;
-    * the compatibility matrix is not written here at all. It is the daily
-      `spectre_ecosystem` report, refreshed by `ExBlog.Ecosystem` and passed in
-      as the `ecosystem` attribute.
-
-  Every `repo` below was verified to resolve on github.com. Re-check before
-  adding one: a card links straight to it, so a private or renamed repository
-  sends visitors to a 404.
+  Examples follow the tagged core guides: Stack, Agent and Server, registered
+  effects and the trusted consumer's consent protocol. Model adapters are
+  application-owned; the optional Kinetic mail catalog deliberately simulates
+  delivery. ExBlog's retained editorial integration is identified separately.
+  Compatibility rows come from the published ecosystem report.
   """
 
   use Phoenix.Component
@@ -24,9 +15,9 @@ defmodule ExBlogWeb.Showcase do
   @spectre_repo "elchemista/spectre"
   @blog_repo "elchemista/ex_blog"
   # The released version this page describes. Keep it here only: the chip, the
-  # documentation link and the reflective-runtime paragraph all read it, so a
+  # documentation link and the governed-execution paragraph all read it, so a
   # release bump is a one-line change.
-  @spectre_version "0.3.2"
+  @spectre_version "0.4.0"
   @spectre_hexdocs_url "https://hexdocs.pm/spectre/#{@spectre_version}"
   @ecosystem_status_url "https://elchemista.github.io/spectre_ecosystem/"
 
@@ -40,8 +31,8 @@ defmodule ExBlogWeb.Showcase do
   def ecosystem_status_url, do: @ecosystem_status_url
 
   @doc """
-  The whole showcase: what Spectre is, a DSL sample, the request path this site
-  follows, the rationale, the library catalog, and the compatibility matrix.
+  The showcase: AgentServer architecture, executable API examples, governed
+  consequences, optional libraries and the published compatibility report.
   """
   attr :ecosystem, :any,
     default: nil,
@@ -53,6 +44,7 @@ defmodule ExBlogWeb.Showcase do
       assigns
       |> assign(:libraries, libraries())
       |> assign(:dsl_example, dsl_example())
+      |> assign(:effect_example, effect_example())
       |> assign(:evolution_path, evolution_path())
 
     ~H"""
@@ -87,7 +79,7 @@ defmodule ExBlogWeb.Showcase do
         <div class="term-body p-5 sm:p-7">
           <p class="text-[0.85rem] leading-7 t-body sm:text-[0.9rem]">
             {gettext(
-              "An agent is a supervised system, not a prompt or a costume for a model. Spectre gives each agent one canonical owner for state, explicit messages at every boundary, and recovery designed in from the start — the way OTP treats everything else."
+              "Build agents around supervised OTP processes, explicit state and application callbacks. Stack installs capabilities, Agent recognizes intent, and Server owns the conversation. GAM (Governed Act Model) checks authority before governed operations execute and records their observed outcomes."
             )}
           </p>
 
@@ -101,7 +93,7 @@ defmodule ExBlogWeb.Showcase do
               </p>
               <p class="mt-2 text-[0.72rem] leading-5 t-dim">
                 {gettext(
-                  "It cannot skip policy, invent authority, or execute a side effect by itself."
+                  "A model prepares a candidate; configured authority and required human consent determine whether GAM admits it."
                 )}
               </p>
             </div>
@@ -110,29 +102,29 @@ defmodule ExBlogWeb.Showcase do
               class="border-l border-[color:var(--line-strong)] pl-4"
             >
               <p class="text-[0.72rem] font-bold t-strong">
-                {gettext("Routing is a dial")}
+                {gettext("Routing combines evidence")}
               </p>
               <p class="mt-2 text-[0.72rem] leading-5 t-dim">
                 {gettext(
-                  "Choose regex, semantic evidence, or a model; the lifecycle after that choice stays deterministic."
+                  "Combine regex, reviewed examples, vector similarity and classifier models; Server callbacks own what happens next."
                 )}
               </p>
             </div>
             <div id="spectre-philosophy-data" class="border-l border-[color:var(--line-strong)] pl-4">
               <p class="text-[0.72rem] font-bold t-strong">
-                {gettext("Durable behavior is data")}
+                {gettext("Skills keep independent state")}
               </p>
               <p class="mt-2 text-[0.72rem] leading-5 t-dim">
                 {gettext(
-                  "Runtime-authored skills and proposals can reference only operations already registered by the host; data never becomes executable code."
+                  "Mounted Skills have separate Server processes and checkpoints while sharing their root agent’s GAM Domain and mount restrictions."
                 )}
               </p>
             </div>
           </div>
 
-          <p class="term-prompt mt-8 text-[0.72rem] t-faint">cat POLICY.md</p>
+          <p class="term-prompt mt-8 text-[0.72rem] t-faint">cat GAM.md</p>
           <p class="mt-3 text-[0.78rem] t-dim">
-            {gettext("Anything protected crosses one boundary:")}
+            {gettext("From a proposed consequence to a recorded outcome:")}
           </p>
           <ul class="mt-4 space-y-2 text-[0.78rem] leading-6 t-body">
             <li :for={rule <- safety_boundary()} class="flex gap-3">
@@ -154,16 +146,22 @@ defmodule ExBlogWeb.Showcase do
             <span class="term-dot"></span>
             <span class="term-dot"></span>
           </span>
-          <span class="term-title">support_agent.ex</span>
+          <span class="term-title">stack_agent_server.ex</span>
           <span class="ml-auto flex-none t-faint">elixir</span>
         </div>
         <div class="term-body p-5 sm:p-7">
           <p class="text-[0.78rem] leading-6 t-dim">
             <span class="t-faint" aria-hidden="true">// </span>{gettext(
-              "The whole agent is one module: the model, the router, a protected action, and the policy guarding it."
+              "Stack → Agent → Server: install capabilities, combine regex, embeddings and model classification, then handle the selected intent in ordinary callbacks. MyApp.Embeddings and MyApp.IntentModel are application-supplied providers; the mail example requires optional spectre_kinetic."
             )}
           </p>
-          <pre class="term-code mt-5" data-language="elixir"><code>{@dsl_example}</code></pre>
+          <pre id="spectre-agent-server-example" class="term-code mt-5" data-language="elixir"><code>{@dsl_example}</code></pre>
+          <p class="mt-6 text-[0.78rem] leading-6 t-dim">
+            {gettext(
+              "Define the typed action catalog before compiling the Stack. This fixture simulates delivery; replace its implementation with your mail transport. The configured consumer renders the exact request and submits the human’s separate choice."
+            )}
+          </p>
+          <pre id="spectre-governed-example" class="term-code mt-5" data-language="elixir"><code>{@effect_example}</code></pre>
         </div>
       </div>
 
@@ -175,12 +173,12 @@ defmodule ExBlogWeb.Showcase do
               <span class="term-dot"></span>
               <span class="term-dot"></span>
             </span>
-            <span class="term-title">$ spectre trace --this-site</span>
+            <span class="term-title">request_lifecycle.txt</span>
           </div>
           <div class="term-body">
             <p class="text-[0.78rem] leading-6 t-dim">
               <span class="t-faint" aria-hidden="true">// </span>{gettext(
-                "Every article below arrived through this path."
+                "How a governed request moves from recognition to an observed result."
               )}
             </p>
             <div class="mt-5 overflow-x-auto">
@@ -207,17 +205,17 @@ defmodule ExBlogWeb.Showcase do
           <div class="term-body space-y-4 text-[0.78rem] leading-6 t-dim">
             <p>
               <span class="t-faint" aria-hidden="true">// </span>{gettext(
-                "Routing is a dial, not a dogma: regex, a dataset, or a full LLM classifier. What happens after the decision stays deterministic."
+                "Use models where they help: semantic recognition, classification and generation. Keep application state, tool execution and authority explicit."
               )}
             </p>
             <p>
               <span class="t-faint" aria-hidden="true">// </span>{gettext(
-                "Borrowed from Phoenix routers, Ecto schemas, Oban workers and OTP supervision trees. Not a framework you disappear into."
+                "Ordinary Elixir callbacks, supervised workers and named continuations keep business behavior readable and testable."
               )}
             </p>
             <p>
               <span class="t-faint" aria-hidden="true">// </span>{gettext(
-                "No SQL here. GitHub keeps the content, Phoenix serves an ETS projection, and the agent asks before it writes."
+                "ExBlog keeps its editorial integration on Spectre 0.4's retained compatibility APIs. The example above shows AgentServer for new applications."
               )}
             </p>
             <p class="border-t border-dashed border-[color:var(--line)] pt-4">
@@ -241,17 +239,17 @@ defmodule ExBlogWeb.Showcase do
             <span class="term-dot"></span>
             <span class="term-dot"></span>
           </span>
-          <span class="term-title">$ spectre reflect --propose</span>
-          <span class="ml-auto hidden flex-none t-faint sm:block">governed evolution</span>
+          <span class="term-title">governed_execution.txt</span>
+          <span class="ml-auto hidden flex-none t-faint sm:block">governed execution</span>
         </div>
         <div class="term-body p-5 sm:p-7">
-          <p class="term-prompt text-[0.72rem] t-faint">man spectre-morph</p>
+          <p class="term-prompt text-[0.72rem] t-faint">cat GAM.md</p>
           <h2 class="mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl">
-            {gettext("How an agent can improve itself")}
+            {gettext("From intent to authorized execution")}
           </h2>
           <p class="mt-4 max-w-4xl text-[0.8rem] leading-7 t-dim">
             {gettext(
-              "Spectre %{version} can record explicitly enabled, redacted experience, inspect the active agent definition, and propose bounded changes to skills or configuration. The proposal is inert data: it cannot publish, approve, or activate itself.",
+              "Spectre %{version} routes requests to Server callbacks, runs models and tools in workers, and admits configured operations through GAM. Required human consent binds the exact presentation; the execution outcome remains a separate recorded fact.",
               version: spectre_version()
             )}
           </p>
@@ -270,7 +268,7 @@ defmodule ExBlogWeb.Showcase do
 
           <p class="mt-6 border-l-2 border-[color:var(--line-strong)] pl-4 text-[0.78rem] leading-6 t-strong">
             {gettext(
-              "Self-improving does not mean self-authorizing: evaluation, human review when required, activation, and rollback stay outside the model."
+              "An approval authorizes the presented operation; only an observed successful Outcome establishes that it completed."
             )}
           </p>
         </div>
@@ -295,12 +293,12 @@ defmodule ExBlogWeb.Showcase do
         <p class="term-prompt text-[0.72rem] t-faint">cat STACK.md</p>
         <p class="mt-3 max-w-4xl text-[0.82rem] leading-7 t-body">
           {gettext(
-            "There is still one agent, one identity, and one lifecycle. The spectre_* packages below are focused libraries you can install as capabilities — memory, planning, browser perception, model choice, channels, or protocols. They do not spawn a cast of specialist agents."
+            "Start with the core and install only the capabilities your application needs: memory, planning, browser access, model selection, channels, storage or agent messaging. Mounted Skills can run independently while sharing the root agent’s GAM Domain."
           )}
         </p>
         <p class="mt-3 max-w-4xl text-[0.74rem] leading-6 t-dim">
           {gettext(
-            "Installing a package only makes a capability available. A Flow, Work, Skill, or policy must still bind it explicitly, and the host keeps authorization and side effects."
+            "Installing a package exposes tools and resources. The Server queues work; registered effect adapters and configured GAM operations define the governed execution path."
           )}
         </p>
       </div>
@@ -352,11 +350,11 @@ defmodule ExBlogWeb.Showcase do
         <div class="term-body p-5 sm:p-7">
           <p class="term-prompt text-[0.72rem] t-faint">curl -s spectre_ecosystem/status.json</p>
           <h2 class="mt-3 text-xl font-bold tracking-tight t-strong sm:text-2xl">
-            {gettext("Compatibility with the current core")}
+            {gettext("Compatibility with the tested core")}
           </h2>
           <p class="mt-4 max-w-4xl text-[0.8rem] leading-7 t-dim">
             {gettext(
-              "Every satellite library is rebuilt and tested against the commit that Spectre core is on today. The table is the published result of that run, not a promise: this page reads it once a day and shows exactly what came back."
+              "Each report records the core and satellite revisions it tested. This page displays the published results and their timestamp; a passing row describes that tested combination."
             )}
           </p>
 
@@ -381,7 +379,7 @@ defmodule ExBlogWeb.Showcase do
           <div class="mt-6 w-full overflow-x-auto">
             <table class="term-table">
               <caption class="sr-only">
-                {gettext("Compatibility of each Spectre library with the current core")}
+                {gettext("Compatibility of each Spectre library with the tested core")}
               </caption>
               <thead>
                 <tr>
@@ -456,7 +454,7 @@ defmodule ExBlogWeb.Showcase do
       </div>
 
       <p class="pt-2 text-[0.72rem] leading-6 t-faint">
-        <span aria-hidden="true">// </span>{gettext("Also running under this site:")}
+        <span aria-hidden="true">// </span>{gettext("Related tools:")}
         <span :for={{tool, index} <- Enum.with_index(companion_tools())}>{if(index > 0, do: ", ")}<a
             href={"https://github.com/#{tool.repo}"}
             rel="noopener noreferrer"
@@ -498,91 +496,162 @@ defmodule ExBlogWeb.Showcase do
   defp source_label(:github), do: "github"
   defp source_label(_source), do: gettext("unknown")
 
-  # Verbatim from the "safety boundary" section of deps/spectre/README.md.
   defp safety_boundary do
     [
-      gettext("models and routes may propose work"),
-      gettext("protected work must pass a deterministic policy"),
-      gettext("approval changes state but does not execute the work"),
-      gettext("execution happens only through an explicit host call"),
-      gettext("every terminal outcome is returned as data")
+      gettext("declare and register the concrete operation"),
+      gettext("check the caller’s configured authority"),
+      gettext("show the exact consequence and collect required human consent"),
+      gettext("execute only after GAM admission"),
+      gettext("record the observed result, including uncertainty")
     ]
   end
 
-  # Trimmed from the support agent in deps/spectre/README.md.
+  # Providers are application-owned; the separately shown mail catalog is a fixture.
   defp dsl_example do
     ~S"""
+    # 1. Stack: optional Kinetic registers the typed mail tool and effect.
+    defmodule MyApp.AI do
+      use Spectre.Stack
+      install Spectre.Kinetic, mode: :closed_moves,
+        actions: MyApp.MailActions, modes: [send_email: :write]
+    end
+
+    # 2. Agent: recognize intent with patterns, similarity or a model.
     defmodule MyApp.SupportAgent do
-      use Spectre.Agent
+      use Spectre.Agent, stack: MyApp.AI, server: MyApp.SupportServer
+      embedding MyApp.Embeddings
+      classifier :llm, MyApp.IntentModel
+      router strategies: [:regex, :embedding, :llm_classifier]
 
-      model(MyApp.LLM, purpose: :smart)
-      router(via: [:regex, :embedding, :llm_classifier])
-
-      actions MyApp.SupportActions do
-        protect(:delete_account, with: :delete_account_confirmation)
+      flow :support do
+        on :pricing, regex: ~r/\b(price|pricing)\b/i,
+          semantic_examples: ["How much does a subscription cost?"]
+        on :send_email, regex: ~r/^send email$/i,
+          semantic_examples: ["Send the prepared message"]
       end
+    end
 
-      policy :delete_account_confirmation do
-        request(:confirm_delete_account)
-        accept(:confirmed_delete, regex: ~r/^yes, delete it$/i)
-        reject(:cancel_delete, regex: ~r/^(no|cancel)$/i)
-        attempts(3, then: :cancel_pending)
-      end
+    # 3. Server: return responses or concrete governed proposals.
+    defmodule MyApp.SupportServer do
+      use Spectre.Server, tools: MyApp.AI
 
-      interrupt :HELP, regex: ~r/^(help|menu)$/i do
-        reply(:help)
-      end
+      @impl true
+      def handle_flow({:support, :pricing}, _input, ctx),
+        do: respond(ctx, "Plans start at EUR 20 per month.")
+
+      def handle_flow({:support, :send_email}, _input, ctx),
+        do: propose(ctx, {:kinetic, :send_email},
+          %{"to" => "team@example.com", "body" => "The report is ready."},
+          on_result: :sent)
+
+      def handle_flow(:unmatched, _input, ctx),
+        do: respond(ctx, "Ask about pricing or send the prepared email.")
+
+      @impl true
+      def handle_result(:sent, {:governed, %{outcome: %{status: :succeeded}}}, ctx),
+        do: respond(ctx, "The registered mail operation completed.")
+
+      def handle_result(tag, result, ctx), do: super(tag, result, ctx)
+    end
+
+    {:ok, server} = Spectre.Server.start_link(
+      agent: MyApp.SupportAgent, consumer: self(),
+      identity: %{subject: "customer-42"},
+      gam: [operations: %{{:kinetic, :send_email} => [confirm: true]}])
+
+    {:ok, interaction} = Spectre.Server.input(server, "What is the price?")
+    receive do
+      {Spectre.Server, ^server, {:response, ^interaction, text, _meta}} ->
+        IO.puts(text)
+    after
+      5_000 -> raise "No response"
+    end
+    """
+  end
+
+  defp effect_example do
+    ~S"""
+    # Host-owned catalog; define before compiling MyApp.AI.
+    # This function simulates delivery and sends no real email.
+    defmodule MyApp.MailActions do
+      use SpectreKinetic
+      @al ~s(SEND EMAIL TO="team@example.com" BODY="The report is ready.")
+      @doc "Simulate delivery; replace with the application's mail transport."
+      @spec send_email(String.t(), String.t()) :: {:ok, map()}
+      def send_email(to, body), do: {:ok, %{to: to, body: body, simulated: true}}
+    end
+
+    # Continue in the configured consumer, using server from the first example.
+    {:ok, email_interaction} = Spectre.Server.input(server, "send email")
+    receive do
+      {Spectre.Server.GAM.Managed, _owner, {:presentation, material}} ->
+        IO.puts(material["rendered_payload"])
+        ref = material["presentation_ref"]
+        :ok = Spectre.Server.presented(server, ref)
+        receive do
+          {Spectre.Server, ^server, {:pending, ^email_interaction, _id}} -> :ok
+        after
+          5_000 -> raise "Consent wait unavailable"
+        end
+        choice = if IO.gets("Confirm? Type yes: ") == "yes\n", do: :confirm, else: :reject
+        Spectre.Server.decide(server, nil, ref, choice)
+    after
+      5_000 -> raise "No presentation"
     end
     """
   end
 
   defp request_path do
     [
-      %{node: "one blog agent", note: gettext("one identity · one lifecycle")},
-      %{node: "├── spectre_beam", note: gettext("channel capability")},
-      %{node: "├── spectre_prism", note: gettext("model-selection capability")},
-      %{node: "├── spectre_kinetic", note: gettext("planning capability")},
-      %{node: "├── spectre_lens", note: gettext("browser capability")},
-      %{node: "├── skills", note: gettext("reader · editorial · operations")},
-      %{node: "└── spectre core", note: gettext("routing · state · policy · effects")},
-      %{node: "    └── writer → git → ets", note: gettext("the page you are reading")}
+      %{node: "Stack", note: gettext("installed tools and supervised resources")},
+      %{node: "└── Agent router", note: gettext("patterns · vectors · classifier models")},
+      %{node: "    └── Server callbacks", note: gettext("conversation state and continuations")},
+      %{node: "        ├── workers", note: gettext("models and cognitive tools")},
+      %{
+        node: "        └── Managed GAM",
+        note: gettext("configured authority and required consent")
+      },
+      %{
+        node: "            ├── Presentation",
+        note: gettext("exact consequence shown to the human")
+      },
+      %{
+        node: "            └── Act → executor → Outcome",
+        note: gettext("admission and observed execution remain distinct")
+      }
     ]
   end
 
   defp evolution_path do
     [
       %{
-        command: "observe",
-        title: gettext("Experience"),
-        description:
-          gettext("The host opts in and records bounded evidence with sensitive values redacted.")
-      },
-      %{
-        command: "reflect",
-        title: gettext("Reflection"),
-        description:
-          gettext("Spectre compares what was declared, what is active, and what was observed.")
+        command: "recognize",
+        title: gettext("Recognize intent"),
+        description: gettext("Combine route evidence and select a declared Server handler.")
       },
       %{
         command: "propose",
-        title: gettext("Proposal"),
-        description:
-          gettext(
-            "Forge may suggest a closed change, but that proposal has no authority of its own."
-          )
+        title: gettext("Prepare the operation"),
+        description: gettext("Freeze the concrete arguments and registered execution contract.")
       },
       %{
-        command: "govern",
-        title: gettext("Evaluation and activation"),
+        command: "admit",
+        title: gettext("Verify authority and consent"),
+        description:
+          gettext("GAM checks the mandate and any required human approval before execution.")
+      },
+      %{
+        command: "observe",
+        title: gettext("Record the outcome"),
         description:
           gettext(
-            "Protected tests, review, approval, activation, and rollback guard every change."
+            "Keep success, refusal and uncertain external results separate; reconcile before retrying."
           )
       }
     ]
   end
 
-  # Taglines follow each repository's own GitHub description.
+  # Summaries describe the verified Spectre 0.4 installation and helper contracts.
   defp libraries do
     [
       %{
@@ -592,7 +661,7 @@ defmodule ExBlogWeb.Showcase do
         core?: true,
         tagline:
           gettext(
-            "The OTP-native core: one owner for state, explicit lifecycle and governance. Every optional power plugs into this foundation."
+            "The OTP core for AgentServer conversations, workers, routing and GAM authority. Runs in RAM without any satellite package."
           )
       },
       %{
@@ -602,27 +671,27 @@ defmodule ExBlogWeb.Showcase do
         core?: false,
         tagline:
           gettext(
-            "Semantic memory engine: ETS working memory, durable recall, typed observations and mental models."
+            "Explicit memory search, recall and writes in authenticated application partitions."
           )
       },
       %{
         name: "spectre_ledger",
         repo: "elchemista/spectre_ledger",
-        role: "checkpoints",
+        role: "storage",
         core?: false,
         tagline:
           gettext(
-            "Append-only durable checkpoints for Spectre agents, so state survives a crash."
+            "Persist Server checkpoints, coordination and canonical GAM history, with file and PostgreSQL backends."
           )
       },
       %{
         name: "spectre_kinetic",
         repo: "elchemista/spectre_kinetic",
-        role: "planning",
+        role: "actions",
         core?: false,
         tagline:
           gettext(
-            "Elixir-first planning toolkit: Action Language in, validated tool calls out. No JSON schema in the prompt."
+            "Interpret consolidated model output into validated action proposals; admitted operations reach the registered executor."
           )
       },
       %{
@@ -630,14 +699,20 @@ defmodule ExBlogWeb.Showcase do
         repo: "elchemista/spectre_pulse",
         role: "protocol",
         core?: false,
-        tagline: gettext("Transport-independent protocol for agents talking to other agents.")
+        tagline:
+          gettext(
+            "Authenticated agent messaging across transports; delivery receipts never stand in for human consent."
+          )
       },
       %{
         name: "spectre_directive",
         repo: "elchemista/spectre_directive",
         role: "missions",
         core?: false,
-        tagline: gettext("An embeddable mission loop for Elixir agents.")
+        tagline:
+          gettext(
+            "Pure resumable mission reducers that return requests for the Server to handle."
+          )
       },
       %{
         name: "spectre_lens",
@@ -646,7 +721,7 @@ defmodule ExBlogWeb.Showcase do
         core?: false,
         tagline:
           gettext(
-            "Agent-first browser lens for Lightpanda, so an agent can read what it shipped."
+            "Navigate, inspect and act through supervised browser resources with explicit governed bindings."
           )
       },
       %{
@@ -656,7 +731,7 @@ defmodule ExBlogWeb.Showcase do
         core?: false,
         tagline:
           gettext(
-            "Picks the model per request across OpenAI, OpenRouter, Ollama and Gemini, enforcing privacy, context, cost and latency limits before the call."
+            "Select model profiles for generation, classification and embeddings using host-defined providers and constraints."
           )
       },
       %{
@@ -666,7 +741,7 @@ defmodule ExBlogWeb.Showcase do
         core?: false,
         tagline:
           gettext(
-            "The external-channel boundary: it normalizes provider events and delivers messages idempotently."
+            "Normalize channel input and deliver through configured adapters; bind consequential sends to GAM."
           )
       },
       %{
@@ -676,7 +751,7 @@ defmodule ExBlogWeb.Showcase do
         core?: false,
         tagline:
           gettext(
-            "Debug Spectre agents with checkpoint playback and isolated testing tools, away from production."
+            "Inspect bounded Server diagnostics and checkpoint metadata, with separate offline archive tools."
           )
       }
     ]

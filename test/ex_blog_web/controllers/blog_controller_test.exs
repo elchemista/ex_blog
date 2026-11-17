@@ -91,10 +91,11 @@ defmodule ExBlogWeb.BlogControllerTest do
     assert one?(document, "#blog-index")
 
     assert document |> LazyHTML.query("#homepage-title") |> LazyHTML.text() |> String.trim() ==
-             "Costruisci un solo agente Elixir. Dagli solo i poteri che gli servono."
+             "L’unico modo giusto di costruire agenti AI per le aziende."
 
-    assert LazyHTML.text(LazyHTML.query(document, "#homepage-subtitle")) =~
-             "sono poteri dello stesso agente, non agenti diversi"
+    subtitle = document |> LazyHTML.query("#homepage-subtitle") |> LazyHTML.text()
+    assert subtitle =~ "permessi"
+    assert subtitle =~ "GAM"
 
     assert one?(document, "#spectre-principles")
     assert one?(document, "#governed-act-model-feature")
@@ -109,10 +110,11 @@ defmodule ExBlogWeb.BlogControllerTest do
     document = conn |> get("/en") |> html_document(200)
 
     assert document |> LazyHTML.query("#homepage-title") |> LazyHTML.text() |> String.trim() ==
-             "Build one Elixir agent. Give it only the powers it needs."
+             "The only right way to build enterprise AI agents."
 
-    assert LazyHTML.text(LazyHTML.query(document, "#homepage-subtitle")) =~
-             "they are powers of that same agent, not different agents"
+    subtitle = document |> LazyHTML.query("#homepage-subtitle") |> LazyHTML.text()
+    assert subtitle =~ "permissions you grant"
+    assert subtitle =~ "GAM"
 
     assert LazyHTML.text(LazyHTML.query(document, "#governed-act-model-feature-title")) =~
              "It does not grant itself power"
@@ -212,13 +214,34 @@ defmodule ExBlogWeb.BlogControllerTest do
     assert one?(document, "#spectre-philosophy-routing")
     assert one?(document, "#spectre-philosophy-data")
 
-    assert LazyHTML.text(LazyHTML.query(document, "#spectre-capabilities-explainer")) =~
-             "one agent, one identity, and one lifecycle"
+    capabilities =
+      document |> LazyHTML.query("#spectre-capabilities-explainer") |> LazyHTML.text()
+
+    assert capabilities =~ "Server"
+    assert capabilities =~ "GAM"
 
     assert LazyHTML.text(LazyHTML.query(document, "#spectre-evolution")) =~
-             "The proposal is inert data"
+             "approval"
 
     assert one?(document, "#spectre-evolution-step-4")
+  end
+
+  test "presents the 0.4 Stack, Agent, and Server example in architectural order", %{conn: conn} do
+    document = conn |> get("/en") |> html_document(200)
+    sample = document |> LazyHTML.query("#spectre-agent-server-example code") |> LazyHTML.text()
+
+    assert {stack, _} = :binary.match(sample, "defmodule MyApp.AI do")
+    assert {agent, _} = :binary.match(sample, "defmodule MyApp.SupportAgent do")
+    assert {server, _} = :binary.match(sample, "defmodule MyApp.SupportServer do")
+    assert stack < agent
+    assert agent < server
+    assert sample =~ "use Spectre.Stack"
+    assert sample =~ "use Spectre.Server"
+    refute sample =~ ~r/\bprotect\s*\(|\bpolicy\s+:/
+
+    assert document
+           |> LazyHTML.query(~s(a[href="https://hexdocs.pm/spectre/0.4.0"]))
+           |> LazyHTML.text() =~ "0.4.0"
   end
 
   test "renders sanitized article HTML, metadata, tags, and language alternatives", %{conn: conn} do

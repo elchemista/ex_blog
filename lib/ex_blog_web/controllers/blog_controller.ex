@@ -158,10 +158,8 @@ defmodule ExBlogWeb.BlogController do
   # this site.
   defp index_metadata(_language, nil) do
     {
-      gettext("Spectre — Secure AI Agent Runtime for Elixir and OTP"),
-      gettext(
-        "Spectre is the OTP-native Elixir runtime for secure, enterprise-grade AI agents: one supervised agent, deterministic policies, and governed self-improvement."
-      )
+      gettext("Spectre — Enterprise AI Agents with Elixir, OTP and GAM"),
+      Layouts.default_description()
     }
   end
 

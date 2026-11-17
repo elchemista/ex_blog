@@ -90,7 +90,7 @@ msgstr ""
 msgid "Category"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:173
+#: lib/ex_blog_web/controllers/blog_controller.ex:171
 #, elixir-autogen, elixir-format
 msgid "Category: %{category}"
 msgstr ""
@@ -130,7 +130,7 @@ msgstr ""
 msgid "Connection details"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:236
+#: lib/ex_blog_web/components/layouts.ex:250
 #, elixir-autogen, elixir-format
 msgid "Connection lost"
 msgstr ""
@@ -185,12 +185,12 @@ msgstr ""
 msgid "Enter the two-step verification password."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:174
+#: lib/ex_blog_web/controllers/blog_controller.ex:172
 #, elixir-autogen, elixir-format
 msgid "Every article in the %{category} category."
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:169
+#: lib/ex_blog_web/controllers/blog_controller.ex:167
 #, elixir-autogen, elixir-format
 msgid "Every article tagged %{tag}."
 msgstr ""
@@ -275,13 +275,13 @@ msgstr ""
 msgid "Open Telegram on the already authenticated phone."
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:201
+#: lib/ex_blog_web/components/layouts.ex:215
 #, elixir-autogen, elixir-format
 msgid "Open cookie preferences"
 msgstr ""
 
 #: lib/ex_blog_web/controllers/blog_controller.ex:135
-#: lib/ex_blog_web/controllers/governed_act_model_controller.ex:40
+#: lib/ex_blog_web/controllers/governed_act_model_controller.ex:41
 #, elixir-autogen, elixir-format
 msgid "Page not found"
 msgstr ""
@@ -331,7 +331,7 @@ msgstr ""
 msgid "Reading time"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:244
+#: lib/ex_blog_web/components/layouts.ex:258
 #, elixir-autogen, elixir-format
 msgid "Reconnecting"
 msgstr ""
@@ -341,7 +341,7 @@ msgstr ""
 msgid "Requesting…"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:259
+#: lib/ex_blog_web/components/layouts.ex:273
 #, elixir-autogen, elixir-format
 msgid "Retrying in a moment"
 msgstr ""
@@ -377,7 +377,7 @@ msgstr ""
 msgid "Skip to content"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:251
+#: lib/ex_blog_web/components/layouts.ex:265
 #, elixir-autogen, elixir-format
 msgid "Something went wrong"
 msgstr ""
@@ -397,7 +397,7 @@ msgstr ""
 msgid "TDLib session not started"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_controller.ex:169
+#: lib/ex_blog_web/controllers/blog_controller.ex:167
 #, elixir-autogen, elixir-format
 msgid "Tag: %{tag}"
 msgstr ""
@@ -490,7 +490,7 @@ msgid "The password is verified against the Argon2 hash configured on the server
 msgstr ""
 
 #: lib/ex_blog_web/controllers/blog_controller.ex:136
-#: lib/ex_blog_web/controllers/governed_act_model_controller.ex:41
+#: lib/ex_blog_web/controllers/governed_act_model_controller.ex:42
 #, elixir-autogen, elixir-format
 msgid "The requested page does not exist."
 msgstr ""
@@ -500,8 +500,8 @@ msgstr ""
 msgid "The session is authorized and running."
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:273
-#: lib/ex_blog_web/components/layouts.ex:274
+#: lib/ex_blog_web/components/layouts.ex:287
+#: lib/ex_blog_web/components/layouts.ex:288
 #, elixir-autogen, elixir-format
 msgid "Toggle colour theme"
 msgstr ""
@@ -684,19 +684,19 @@ msgstr ""
 msgid "telegram password"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:159
+#: lib/ex_blog_web/components/layouts.ex:173
 #, elixir-autogen, elixir-format
 msgid "written in Markdown, published from Git"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:287
+#: lib/ex_blog_web/components/showcase.ex:283
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{count} library"
 msgid_plural "%{count} libraries"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/ex_blog_web/components/showcase.ex:145
+#: lib/ex_blog_web/components/showcase.ex:137
 #, elixir-autogen, elixir-format
 msgid "A Spectre agent should read like a map, not a magic trick."
 msgstr ""
@@ -711,44 +711,9 @@ msgstr ""
 msgid "Spectre home"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:506
-#, elixir-autogen, elixir-format
-msgid "approval changes state but does not execute the work"
-msgstr ""
-
 #: lib/ex_blog_web/components/core_components.ex:140
 #, elixir-autogen, elixir-format
 msgid "close"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:508
-#, elixir-autogen, elixir-format
-msgid "every terminal outcome is returned as data"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:507
-#, elixir-autogen, elixir-format
-msgid "execution happens only through an explicit host call"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:504
-#, elixir-autogen, elixir-format
-msgid "models and routes may propose work"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:505
-#, elixir-autogen, elixir-format
-msgid "protected work must pass a deterministic policy"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:546
-#, elixir-autogen, elixir-format
-msgid "reader · editorial · operations"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:548
-#, elixir-autogen, elixir-format
-msgid "the page you are reading"
 msgstr ""
 
 #: lib/ex_blog_web/live/admin/telegram_live.ex:142
@@ -776,77 +741,7 @@ msgstr ""
 msgid "You are connecting the Spectre administrator to the MCP client. Review the permissions before continuing."
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:648
-#, elixir-autogen, elixir-format
-msgid "Agent-first browser lens for Lightpanda, so an agent can read what it shipped."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:459
-#, elixir-autogen, elixir-format
-msgid "Also running under this site:"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:640
-#, elixir-autogen, elixir-format
-msgid "An embeddable mission loop for Elixir agents."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:135
-#, elixir-autogen, elixir-format
-msgid "Anything protected crosses one boundary:"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:214
-#, elixir-autogen, elixir-format
-msgid "Borrowed from Phoenix routers, Ecto schemas, Oban workers and OTP supervision trees. Not a framework you disappear into."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:624
-#, elixir-autogen, elixir-format
-msgid "Elixir-first planning toolkit: Action Language in, validated tool calls out. No JSON schema in the prompt."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:182
-#, elixir-autogen, elixir-format
-msgid "Every article below arrived through this path."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:219
-#, elixir-autogen, elixir-format
-msgid "No SQL here. GitHub keeps the content, Phoenix serves an ETS projection, and the agent asks before it writes."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:658
-#, elixir-autogen, elixir-format, fuzzy
-msgid "Picks the model per request across OpenAI, OpenRouter, Ollama and Gemini, enforcing privacy, context, cost and latency limits before the call."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:209
-#, elixir-autogen, elixir-format
-msgid "Routing is a dial, not a dogma: regex, a dataset, or a full LLM classifier. What happens after the decision stays deterministic."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:604
-#, elixir-autogen, elixir-format
-msgid "Semantic memory engine: ETS working memory, durable recall, typed observations and mental models."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:668
-#, elixir-autogen, elixir-format, fuzzy
-msgid "The external-channel boundary: it normalizes provider events and delivers messages idempotently."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:162
-#, elixir-autogen, elixir-format
-msgid "The whole agent is one module: the model, the router, a protected action, and the policy guarding it."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:633
-#, elixir-autogen, elixir-format
-msgid "Transport-independent protocol for agents talking to other agents."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:231
+#: lib/ex_blog_web/components/showcase.ex:227
 #, elixir-autogen, elixir-format
 msgid "this site, open source"
 msgstr ""
@@ -896,342 +791,122 @@ msgstr ""
 msgid "Use another phone number"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:180
+#: lib/ex_blog_web/components/layouts.ex:194
 #, elixir-autogen, elixir-format
 msgid "Contact me by email"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:162
+#: lib/ex_blog_web/components/layouts.ex:176
 #, elixir-autogen, elixir-format
 msgid "built with love by"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:89
-#, elixir-autogen, elixir-format, fuzzy
-msgid "An agent is a supervised system, not a prompt or a costume for a model. Spectre gives each agent one canonical owner for state, explicit messages at every boundary, and recovery designed in from the start — the way OTP treats everything else."
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:32
-#, elixir-autogen, elixir-format
-msgid "Build one Elixir agent. Give it %{highlight}."
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:65
-#, elixir-autogen, elixir-format
-msgid "Capabilities, not personas"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:116
-#, elixir-autogen, elixir-format
-msgid "Choose regex, semantic evidence, or a model; the lifecycle after that choice stays deterministic."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:123
-#, elixir-autogen, elixir-format
-msgid "Durable behavior is data"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:576
-#, elixir-autogen, elixir-format
-msgid "Evaluation and activation"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:556
-#, elixir-autogen, elixir-format
-msgid "Experience"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:570
-#, elixir-autogen, elixir-format
-msgid "Forge may suggest a closed change, but that proposal has no authority of its own."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:250
-#, elixir-autogen, elixir-format
-msgid "How an agent can improve itself"
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:77
-#, elixir-autogen, elixir-format
-msgid "Improvement stays governed"
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:68
-#, elixir-autogen, elixir-format
-msgid "Install only the powers one agent needs. Each package has one job and never becomes a hidden second agent."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:302
-#, elixir-autogen, elixir-format
-msgid "Installing a package only makes a capability available. A Flow, Work, Skill, or policy must still bind it explicitly, and the host keeps authorization and side effects."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:103
-#, elixir-autogen, elixir-format
-msgid "It cannot skip policy, invent authority, or execute a side effect by itself."
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:56
-#, elixir-autogen, elixir-format
-msgid "It may propose work; deterministic policies and your application decide what is allowed and when a side effect runs."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:283
+#: lib/ex_blog_web/components/showcase.ex:279
 #, elixir-autogen, elixir-format
 msgid "One core, optional powers"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:568
-#, elixir-autogen, elixir-format
-msgid "Proposal"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:578
-#, elixir-autogen, elixir-format
-msgid "Protected tests, review, approval, activation, and rollback guard every change."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:562
-#, elixir-autogen, elixir-format
-msgid "Reflection"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:113
-#, elixir-autogen, elixir-format
-msgid "Routing is a dial"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:126
-#, elixir-autogen, elixir-format
-msgid "Runtime-authored skills and proposals can reference only operations already registered by the host; data never becomes executable code."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:272
-#, elixir-autogen, elixir-format
-msgid "Self-improving does not mean self-authorizing: evaluation, human review when required, activation, and rollback stay outside the model."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:564
-#, elixir-autogen, elixir-format
-msgid "Spectre compares what was declared, what is active, and what was observed."
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:41
-#, elixir-autogen, elixir-format
-msgid "Spectre gives one supervised agent ownership of its state and lifecycle. Optional spectre_* libraries add capabilities such as memory, planning, model selection, channels, or a browser: they are powers of that same agent, not different agents."
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:21
-#, elixir-autogen, elixir-format
-msgid "Spectre — an OTP-native runtime for agents that stay understandable, governable, and recoverable. This site runs on it."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:594
-#, elixir-autogen, elixir-format
-msgid "The OTP-native core: one owner for state, explicit lifecycle and governance. Every optional power plugs into this foundation."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:64
+#: lib/ex_blog_web/components/showcase.ex:56
 #, elixir-autogen, elixir-format
 msgid "The Spectre philosophy"
 msgstr ""
 
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:80
-#, elixir-autogen, elixir-format
-msgid "The agent can learn from experience and propose a safer definition; evaluation, review, approval, activation, and rollback remain explicit."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:558
-#, elixir-autogen, elixir-format
-msgid "The host opts in and records bounded evidence with sensitive values redacted."
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:53
-#, elixir-autogen, elixir-format
-msgid "The model never executes"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:100
+#: lib/ex_blog_web/components/showcase.ex:92
 #, elixir-autogen, elixir-format
 msgid "The model proposes"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:297
-#, elixir-autogen, elixir-format
-msgid "There is still one agent, one identity, and one lifecycle. The spectre_* packages below are focused libraries you can install as capabilities — memory, planning, browser perception, model choice, channels, or protocols. They do not spawn a cast of specialist agents."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:545
-#, elixir-autogen, elixir-format
-msgid "browser capability"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:323
+#: lib/ex_blog_web/components/showcase.ex:319
 #, elixir-autogen, elixir-format
 msgid "capability"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:542
-#, elixir-autogen, elixir-format
-msgid "channel capability"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:323
+#: lib/ex_blog_web/components/showcase.ex:319
 #, elixir-autogen, elixir-format
 msgid "foundation"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:543
-#, elixir-autogen, elixir-format
-msgid "model-selection capability"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:541
-#, elixir-autogen, elixir-format
-msgid "one identity · one lifecycle"
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_html/index.html.heex:33
-#, elixir-autogen, elixir-format
-msgid "only the powers it needs"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:544
-#, elixir-autogen, elixir-format
-msgid "planning capability"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:547
-#, elixir-autogen, elixir-format, fuzzy
-msgid "routing · state · policy · effects"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:377
+#: lib/ex_blog_web/components/showcase.ex:373
 #, elixir-autogen, elixir-format
 msgid "%{count} failing"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:365
+#: lib/ex_blog_web/components/showcase.ex:361
 #, elixir-autogen, elixir-format
 msgid "%{count} library checked"
 msgid_plural "%{count} libraries checked"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/ex_blog_web/components/showcase.ex:373
+#: lib/ex_blog_web/components/showcase.ex:369
 #, elixir-autogen, elixir-format
 msgid "%{count} passing"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:614
-#, elixir-autogen, elixir-format
-msgid "Append-only durable checkpoints for Spectre agents, so state survives a crash."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:384
-#, elixir-autogen, elixir-format
-msgid "Compatibility of each Spectre library with the current core"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:355
-#, elixir-autogen, elixir-format
-msgid "Compatibility with the current core"
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:678
-#, elixir-autogen, elixir-format
-msgid "Debug Spectre agents with checkpoint playback and isolated testing tools, away from production."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:358
-#, elixir-autogen, elixir-format
-msgid "Every satellite library is rebuilt and tested against the commit that Spectre core is on today. The table is the published result of that run, not a promise: this page reads it once a day and shows exactly what came back."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:253
-#, elixir-autogen, elixir-format
-msgid "Spectre %{version} can record explicitly enabled, redacted experience, inspect the active agent definition, and propose bounded changes to skills or configuration. The proposal is inert data: it cannot publish, approve, or activate itself."
-msgstr ""
-
-#: lib/ex_blog_web/components/showcase.ex:389
+#: lib/ex_blog_web/components/showcase.ex:385
 #, elixir-autogen, elixir-format
 msgid "check"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:349
+#: lib/ex_blog_web/components/showcase.ex:345
 #, elixir-autogen, elixir-format
 msgid "checked %{timestamp}"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:490
+#: lib/ex_blog_web/components/showcase.ex:486
 #, elixir-autogen, elixir-format
 msgid "failing"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:388
+#: lib/ex_blog_web/components/showcase.ex:384
 #, elixir-autogen, elixir-format
 msgid "library"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:493
+#: lib/ex_blog_web/components/showcase.ex:489
 #, elixir-autogen, elixir-format
 msgid "not configured"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:494
+#: lib/ex_blog_web/components/showcase.ex:490
 #, elixir-autogen, elixir-format
 msgid "not run"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:489
+#: lib/ex_blog_web/components/showcase.ex:485
 #, elixir-autogen, elixir-format
 msgid "passing"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:491
+#: lib/ex_blog_web/components/showcase.ex:487
 #, elixir-autogen, elixir-format
 msgid "pending"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:391
+#: lib/ex_blog_web/components/showcase.ex:387
 #, elixir-autogen, elixir-format
 msgid "source"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:492
+#: lib/ex_blog_web/components/showcase.ex:488
 #, elixir-autogen, elixir-format
 msgid "stale"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:453
+#: lib/ex_blog_web/components/showcase.ex:449
 #, elixir-autogen, elixir-format
 msgid "the full report, refreshed by its own scheduled run"
 msgstr ""
 
+#: lib/ex_blog_web/components/showcase.ex:491
 #: lib/ex_blog_web/components/showcase.ex:495
-#: lib/ex_blog_web/components/showcase.ex:499
 #, elixir-autogen, elixir-format
 msgid "unknown"
 msgstr ""
 
-#: lib/ex_blog_web/components/showcase.ex:390
+#: lib/ex_blog_web/components/showcase.ex:386
 #, elixir-autogen, elixir-format
 msgid "version"
-msgstr ""
-
-#: lib/ex_blog_web/components/layouts.ex:14
-#, elixir-autogen, elixir-format
-msgid "Spectre is an OTP-native runtime for secure, governed AI agents in Elixir: one supervised agent, explicit policies, and optional spectre_* capabilities."
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_controller.ex:162
-#, elixir-autogen, elixir-format
-msgid "Spectre is the OTP-native Elixir runtime for secure, enterprise-grade AI agents: one supervised agent, deterministic policies, and governed self-improvement."
-msgstr ""
-
-#: lib/ex_blog_web/controllers/blog_controller.ex:161
-#, elixir-autogen, elixir-format
-msgid "Spectre — Secure AI Agent Runtime for Elixir and OTP"
 msgstr ""
 
 #: lib/ex_blog_web/controllers/blog_controller.ex:113
@@ -1254,7 +929,327 @@ msgstr ""
 msgid "traffic"
 msgstr ""
 
-#: lib/ex_blog_web/components/layouts.ex:118
+#: lib/ex_blog_web/components/layouts.ex:132
 #, elixir-autogen, elixir-format
 msgid "manifesto"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:95
+#, elixir-autogen, elixir-format
+msgid "A model prepares a candidate; configured authority and required human consent determine whether GAM admits it."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:268
+#, elixir-autogen, elixir-format
+msgid "An approval authorizes the presented operation; only an observed successful Outcome establishes that it completed."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:670
+#, elixir-autogen, elixir-format
+msgid "Authenticated agent messaging across transports; delivery receipts never stand in for human consent."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:53
+#, elixir-autogen, elixir-format
+msgid "Authority stays with you"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:81
+#, elixir-autogen, elixir-format
+msgid "Build agents around supervised OTP processes, explicit state and application callbacks. Stack installs capabilities, Agent recognizes intent, and Server owns the conversation. GAM (Governed Act Model) checks authority before governed operations execute and records their observed outcomes."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:65
+#, elixir-autogen, elixir-format
+msgid "Build agents you can operate"
+msgstr ""
+
+#: lib/ex_blog_web/components/layouts.ex:14
+#, elixir-autogen, elixir-format
+msgid "Build enterprise AI agents with Spectre: OTP supervision, explicit authority through GAM, human approval and an auditable record of consequential actions."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:108
+#, elixir-autogen, elixir-format
+msgid "Combine regex, reviewed examples, vector similarity and classifier models; Server callbacks own what happens next."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:612
+#, elixir-autogen, elixir-format
+msgid "Combine route evidence and select a declared Server handler."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:380
+#, elixir-autogen, elixir-format
+msgid "Compatibility of each Spectre library with the tested core"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:351
+#, elixir-autogen, elixir-format
+msgid "Compatibility with the tested core"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:160
+#, elixir-autogen, elixir-format
+msgid "Define the typed action catalog before compiling the Stack. This fixture simulates delivery; replace its implementation with your mail transport. The configured consumer renders the exact request and submits the human’s separate choice."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:354
+#, elixir-autogen, elixir-format
+msgid "Each report records the core and satellite revisions it tested. This page displays the published results and their timestamp; a passing row describes that tested combination."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:215
+#, elixir-autogen, elixir-format
+msgid "ExBlog keeps its editorial integration on Spectre 0.4's retained compatibility APIs. The example above shows AgentServer for new applications."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:641
+#, elixir-autogen, elixir-format
+msgid "Explicit memory search, recall and writes in authenticated application partitions."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:68
+#, elixir-autogen, elixir-format
+msgid "Explicit state, supervised processes and recoverable sessions give your team control over the agent lifecycle."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:614
+#, elixir-autogen, elixir-format
+msgid "Freeze the concrete arguments and registered execution contract."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:127
+#, elixir-autogen, elixir-format
+msgid "From a proposed consequence to a recorded outcome:"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:246
+#, elixir-autogen, elixir-format
+msgid "From intent to authorized execution"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:616
+#, elixir-autogen, elixir-format
+msgid "GAM checks the mandate and any required human approval before execution."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:178
+#, elixir-autogen, elixir-format
+msgid "How a governed request moves from recognition to an observed result."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:715
+#, elixir-autogen, elixir-format
+msgid "Inspect bounded Server diagnostics and checkpoint metadata, with separate offline archive tools."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:298
+#, elixir-autogen, elixir-format
+msgid "Installing a package exposes tools and resources. The Server queues work; registered effect adapters and configured GAM operations define the governed execution path."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:661
+#, elixir-autogen, elixir-format
+msgid "Interpret consolidated model output into validated action proposals; admitted operations reach the registered executor."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:618
+#, elixir-autogen, elixir-format
+msgid "Keep success, refusal and uncertain external results separate; reconcile before retrying."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:77
+#, elixir-autogen, elixir-format
+msgid "Keep the record. Own the outcome."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:56
+#, elixir-autogen, elixir-format
+msgid "Models propose work. Your application grants authority. GAM checks every governed operation before execution."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:118
+#, elixir-autogen, elixir-format
+msgid "Mounted Skills have separate Server processes and checkpoints while sharing their root agent’s GAM Domain and mount restrictions."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:685
+#, elixir-autogen, elixir-format
+msgid "Navigate, inspect and act through supervised browser resources with explicit governed bindings."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:705
+#, elixir-autogen, elixir-format
+msgid "Normalize channel input and deliver through configured adapters; bind consequential sends to GAM."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:210
+#, elixir-autogen, elixir-format
+msgid "Ordinary Elixir callbacks, supervised workers and named continuations keep business behavior readable and testable."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:651
+#, elixir-autogen, elixir-format
+msgid "Persist Server checkpoints, coordination and canonical GAM history, with file and PostgreSQL backends."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:613
+#, elixir-autogen, elixir-format
+msgid "Prepare the operation"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:677
+#, elixir-autogen, elixir-format
+msgid "Pure resumable mission reducers that return requests for the Server to handle."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:41
+#, elixir-autogen, elixir-format
+msgid "Put AI to work where decisions have consequences. Spectre combines OTP supervision with GAM to govern consequential actions, enforce the permissions you grant, and request human approval where you require it. Your rules. Your state. Your audit trail."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:611
+#, elixir-autogen, elixir-format
+msgid "Recognize intent"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:617
+#, elixir-autogen, elixir-format
+msgid "Record the outcome"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:455
+#, elixir-autogen, elixir-format
+msgid "Related tools:"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:105
+#, elixir-autogen, elixir-format
+msgid "Routing combines evidence"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:695
+#, elixir-autogen, elixir-format
+msgid "Select model profiles for generation, classification and embeddings using host-defined providers and constraints."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:115
+#, elixir-autogen, elixir-format
+msgid "Skills keep independent state"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:249
+#, elixir-autogen, elixir-format
+msgid "Spectre %{version} routes requests to Server callbacks, runs models and tools in workers, and admits configured operations through GAM. Required human consent binds the exact presentation; the execution outcome remains a separate recorded fact."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_controller.ex:161
+#, elixir-autogen, elixir-format
+msgid "Spectre — Enterprise AI Agents with Elixir, OTP and GAM"
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:21
+#, elixir-autogen, elixir-format
+msgid "Spectre. Your agents do the work. Your business sets the rules."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:154
+#, elixir-autogen, elixir-format
+msgid "Stack → Agent → Server: install capabilities, combine regex, embeddings and model classification, then handle the selected intent in ordinary callbacks. MyApp.Embeddings and MyApp.IntentModel are application-supplied providers; the mail example requires optional spectre_kinetic."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:293
+#, elixir-autogen, elixir-format
+msgid "Start with the core and install only the capabilities your application needs: memory, planning, browser access, model selection, channels, storage or agent messaging. Mounted Skills can run independently while sharing the root agent’s GAM Domain."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:631
+#, elixir-autogen, elixir-format
+msgid "The OTP core for AgentServer conversations, workers, routing and GAM authority. Runs in RAM without any satellite package."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:32
+#, elixir-autogen, elixir-format
+msgid "The only right way to build %{highlight}."
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:80
+#, elixir-autogen, elixir-format
+msgid "Track decisions, attempts and observed results. Require human approval for the operations your business protects."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:205
+#, elixir-autogen, elixir-format
+msgid "Use models where they help: semantic recognition, classification and generation. Keep application state, tool execution and authority explicit."
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:615
+#, elixir-autogen, elixir-format
+msgid "Verify authority and consent"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:605
+#, elixir-autogen, elixir-format
+msgid "admission and observed execution remain distinct"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:500
+#, elixir-autogen, elixir-format
+msgid "check the caller’s configured authority"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:603
+#, elixir-autogen, elixir-format
+msgid "configured authority and required consent"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:601
+#, elixir-autogen, elixir-format
+msgid "conversation state and continuations"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:499
+#, elixir-autogen, elixir-format
+msgid "declare and register the concrete operation"
+msgstr ""
+
+#: lib/ex_blog_web/controllers/blog_html/index.html.heex:33
+#, elixir-autogen, elixir-format
+msgid "enterprise AI agents"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:604
+#, elixir-autogen, elixir-format
+msgid "exact consequence shown to the human"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:502
+#, elixir-autogen, elixir-format
+msgid "execute only after GAM admission"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:599
+#, elixir-autogen, elixir-format
+msgid "installed tools and supervised resources"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:602
+#, elixir-autogen, elixir-format
+msgid "models and cognitive tools"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:600
+#, elixir-autogen, elixir-format
+msgid "patterns · vectors · classifier models"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:503
+#, elixir-autogen, elixir-format
+msgid "record the observed result, including uncertainty"
+msgstr ""
+
+#: lib/ex_blog_web/components/showcase.ex:501
+#, elixir-autogen, elixir-format
+msgid "show the exact consequence and collect required human consent"
 msgstr ""

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">Spectre 0.4.0 — enterprise AI agents</title>
+  <desc id="description">The only right way to build enterprise AI agents. Stack to Agent to Server, with GAM, authority and human approval.</desc>
+  <rect width="1200" height="630" fill="#08090b"/>
+  <rect x="24" y="24" width="1152" height="582" rx="16" fill="#0d0f12" stroke="#30343c"/>
+  <path d="M24 88H1176" stroke="#30343c"/>
+  <g fill="#555b66">
+    <circle cx="57" cy="56" r="6"/>
+    <circle cx="79" cy="56" r="6"/>
+    <circle cx="101" cy="56" r="6"/>
+  </g>
+  <g font-family="DejaVu Sans Mono, monospace">
+    <text x="136" y="63" font-size="19" fill="#8b929f">spectre:~$ cat manifesto.md</text>
+    <text x="66" y="163" font-size="40" font-weight="700" fill="#f4f5f7">spectre<tspan fill="#b8f247">_</tspan></text>
+    <rect x="947" y="126" width="185" height="43" rx="8" fill="#151d11" stroke="#43572b"/>
+    <text x="1039" y="154" text-anchor="middle" font-size="21" fill="#b8f247">0.4.0</text>
+    <text x="66" y="249" font-size="45" font-weight="700" fill="#f4f5f7">The only right way to build</text>
+    <text x="66" y="318" font-size="58" font-weight="700" fill="#b8f247">enterprise AI agents.</text>
+    <text x="68" y="367" font-size="21" fill="#a7aeba">Elixir + OTP · governed by your application</text>
+    <g font-size="26" text-anchor="middle" fill="#f4f5f7">
+      <rect x="66" y="409" width="280" height="67" rx="8" fill="#15181d" stroke="#414751"/>
+      <rect x="459" y="409" width="280" height="67" rx="8" fill="#15181d" stroke="#414751"/>
+      <rect x="852" y="409" width="280" height="67" rx="8" fill="#151d11" stroke="#6d8d42"/>
+      <text x="206" y="452">Stack</text>
+      <text x="599" y="452">Agent</text>
+      <text x="992" y="452">Server</text>
+    </g>
+    <g fill="none" stroke="#b8f247" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M371 442H432m-10-9 10 9-10 9"/>
+      <path d="M764 442H825m-10-9 10 9-10 9"/>
+    </g>
+    <text x="68" y="529" font-size="20" fill="#a7aeba">GAM / Authority / Human approval</text>
+    <path d="M66 550H1132" stroke="#30343c"/>
+    <text x="68" y="582" font-size="18" fill="#8b929f">spectre.guide</text>
+    <text x="1132" y="582" text-anchor="end" font-size="18" fill="#8b929f">github.com/elchemista/spectre</text>
+  </g>
+</svg>

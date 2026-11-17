@@ -10,11 +10,11 @@ defmodule ExBlogWeb.ShowcaseTest do
     test "announces the released core version once, from a single source" do
       document = render_showcase(ecosystem: nil)
 
-      assert Showcase.spectre_version() == "0.3.2"
+      assert Showcase.spectre_version() == "0.4.0"
       assert Showcase.spectre_hexdocs_url() =~ Showcase.spectre_version()
 
       assert LazyHTML.text(document) =~ "hex · #{Showcase.spectre_version()}"
-      refute LazyHTML.text(document) =~ "0.3.0"
+      refute matches?(document, ~s(a[href="https://hexdocs.pm/spectre/0.3.2"]))
     end
 
     test "lists every satellite library, including the durability and debug ones" do
@@ -25,6 +25,21 @@ defmodule ExBlogWeb.ShowcaseTest do
       end
     end
 
+    test "shows Server callbacks and human consent through the 0.4 APIs" do
+      document = render_showcase(ecosystem: nil)
+      sample = text(document, "#spectre-agent-server-example")
+      consumer = text(document, "#spectre-governed-example")
+
+      assert sample =~ "def handle_flow("
+      assert sample =~ "propose(ctx,"
+      assert sample =~ "on_result:"
+      assert consumer =~ "Spectre.Server.presented("
+      assert consumer =~ "Spectre.Server.decide("
+      assert text(document, "#spectre-capabilities-explainer") =~ "GAM Domain"
+      assert text(document, "#spectre-evolution") =~ "Verify authority and consent"
+      assert text(document, "#spectre-evolution") =~ "Record the outcome"
+    end
+
     test "renders one compatibility row per checked library" do
       document = render_showcase(ecosystem: snapshot())
 
@@ -33,7 +48,7 @@ defmodule ExBlogWeb.ShowcaseTest do
       assert matches?(document, "#compat-spectre_lens")
 
       row = text(document, "#compat-spectre")
-      assert row =~ "0.3.2"
+      assert row =~ "0.4.0"
       assert row =~ "hex"
 
       # The outcome is stated in words, so it survives without the colour.
@@ -70,7 +85,7 @@ defmodule ExBlogWeb.ShowcaseTest do
         %{
           "name" => "spectre",
           "status" => "passing",
-          "version" => "0.3.2",
+          "version" => "0.4.0",
           "version_source" => "hex",
           "repository_url" => "https://github.com/elchemista/spectre",
           "version_url" => "https://hex.pm/packages/spectre"

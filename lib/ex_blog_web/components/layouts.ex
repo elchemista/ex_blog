@@ -12,7 +12,7 @@ defmodule ExBlogWeb.Layouts do
   def default_description,
     do:
       gettext(
-        "Spectre is an OTP-native runtime for secure, governed AI agents in Elixir: one supervised agent, explicit policies, and optional spectre_* capabilities."
+        "Build enterprise AI agents with Spectre: OTP supervision, explicit authority through GAM, human approval and an auditable record of consequential actions."
       )
 
   @doc """
