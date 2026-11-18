@@ -4,6 +4,8 @@ Migrate conversation ownership and effect execution deliberately while retaining
 
 Spectre 0.4 changes how new applications declare agents, own conversations and execute tools. It keeps recognition, labeled examples, training, provider adapters and Stack composition. An existing Instance application does not become an AgentServer merely by updating the dependency.
 
+Choose a 0.3 route that only produces text. In 0.4 keep its declaration in the Agent and move the reply into `handle_flow({flow, label}, input, ctx)` in the Server. Verify the consumer reply, then migrate an effect using [proposal, consent and continuation](/en/docs/handlers).
+
 ## Map the application responsibilities
 
 | Earlier pattern | AgentServer 0.4 |

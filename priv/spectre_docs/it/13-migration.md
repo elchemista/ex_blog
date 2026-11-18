@@ -4,6 +4,8 @@ Migra consapevolmente proprietà della conversazione ed esecuzione degli effetti
 
 Spectre 0.4 cambia dichiarazione degli agenti, proprietà delle conversazioni ed esecuzione dei tool nelle nuove applicazioni. Mantiene riconoscimento, esempi etichettati, training, adapter dei provider e composizione Stack. Un'applicazione Instance non diventa AgentServer aggiornando soltanto la dipendenza.
 
+Scegli una route che in 0.3 produce solo testo. Nella 0.4 mantieni la dichiarazione nell’Agent e sposta la risposta in `handle_flow({flow, label}, input, ctx)` nel Server. Verifica la risposta al consumer, poi migra un’operazione con effetto usando [proposta, consenso e continuazione](/it/docs/handlers).
+
 ## Mappa le responsabilità applicative
 
 | Modello precedente | AgentServer 0.4 |

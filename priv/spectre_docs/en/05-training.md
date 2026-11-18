@@ -2,6 +2,8 @@
 
 Collect and review intent examples, prepare compatible vectors, and train local classifiers as separate operations.
 
+Start with a phrase that reaches `handle_flow(:unmatched, input, ctx)` but should select an existing route. Label it, review the example, then rerun the routing test. Success means that the Server receives the same key for the original phrase and its new wording.
+
 ## One dataset, several uses
 
 `Spectre.IntentDataset` stores labeled intent examples, not cached model answers. A reviewed text-only row can recognize an exact input. Only rows with valid compatible embeddings enter vector lookup. Classifier training produces separate prediction artifacts.

@@ -109,7 +109,8 @@ defmodule ExBlogWeb.DocumentationController do
   defp copy("it") do
     %{
       title: "Documentazione Spectre",
-      summary: "Costruire agenti OTP con architettura, riconoscimento e autorità espliciti.",
+      summary:
+        "Avvia il primo agente, segui un input fino alla risposta e integra la tua libreria Elixir.",
       chapters: "Guide e riferimento",
       contents: "In questa pagina",
       previous: "Precedente",
@@ -117,14 +118,16 @@ defmodule ExBlogWeb.DocumentationController do
       introduction: "Dalla prima conversazione alle integrazioni in produzione",
       source: "Sorgente della guida",
       edition: "Edizione",
-      note: "Esempi progressivi, contratti verificabili e integrazioni opzionali."
+      note:
+        "Parti da «Il tuo primo AgentServer». Le guide successive mostrano un invio con consenso, tutte le callback e un client di fatturazione."
     }
   end
 
   defp copy("en") do
     %{
       title: "Spectre documentation",
-      summary: "Build OTP agents with explicit architecture, recognition and authority.",
+      summary:
+        "Start your first agent, trace an input to its reply, and integrate your own Elixir library.",
       chapters: "Guides and reference",
       contents: "On this page",
       previous: "Previous",
@@ -132,7 +135,8 @@ defmodule ExBlogWeb.DocumentationController do
       introduction: "From the first conversation to production integrations",
       source: "Guide source",
       edition: "Edition",
-      note: "Progressive examples, verifiable contracts and optional integrations."
+      note:
+        "Start with “Build your first AgentServer”. Then try delivery with consent, look up a callback, or connect your billing client."
     }
   end
 end

@@ -2,6 +2,8 @@
 
 Combine seven recognition strategies and application-owned providers without confusing route confidence with permission.
 
+To try a strategy, keep one route and inspect `ctx.routing` inside `handle_flow/3`. Change the wording while keeping the callback key the same. If you receive `:unmatched`, inspect `ctx.routing.reason`. Then follow [dispatch in the Server](/en/docs/server-callbacks).
+
 ## Seven complementary strategies
 
 | Strategy | Evidence | Dependencies |
@@ -18,7 +20,7 @@ Bag uses `String.bag_distance/2` on characters, not word tokens. Jaro uses `Stri
 
 ## Combine semantic matching and model classification
 
-This Agent fragment extends the [Stack → Agent → Server example](/en/docs/getting-started). `MyApp.Embeddings` and `MyApp.IntentModel` are application adapters configured below; the Server must implement both routes.
+This Agent fragment adds provider bindings to the [first conversation](/en/docs/getting-started). `MyApp.Embeddings` and `MyApp.IntentModel` are application adapters configured below; the Server must implement both routes.
 
 ```elixir
 defmodule MyApp.SupportAgent do

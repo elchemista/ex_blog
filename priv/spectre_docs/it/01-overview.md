@@ -1,8 +1,14 @@
 # Documentazione Spectre 0.4
 
-Costruisci agenti che riconoscono richieste, usano modelli e strumenti ed eseguono lavoro governato in processi Elixir supervisionati.
+Avvia un agente in RAM, dagli un comando e osserva quale funzione risponde. Per la prima prova bastano Elixir e il core di Spectre.
 
-Spectre separa riconoscimento, proprietà della conversazione e permesso di agire. Un modello può aiutare a comprendere una domanda, generare testo o preparare una proposta. L'applicazione decide quali operazioni esistono, chi può autorizzarle, come persiste lo stato e cosa costituisce un risultato osservato.
+Con strumenti installati leggerai lo schema **Stack → Agent → Server**. Puoi saltare lo Stack nella prima prova. Quando vuoi aggiungere una tua libreria, segui [il caso del client di fatturazione](/it/docs/stack-tools).
+
+## Il percorso per la prima prova
+
+1. [Avvia la prima conversazione](/it/docs/getting-started). Scrivi «hello» nell’agente generato e osserva la risposta del Server.
+2. [Segui un invio dall’input al risultato](/it/docs/handlers). Copia un programma completo, rifiuta una richiesta, poi confermala e confronta l’output.
+3. [Consulta le callback del Server](/it/docs/server-callbacks) quando aggiungi una route, un’attesa o una Skill. Troverai ordine di dispatch, argomenti, opzioni e tuple di ritorno.
 
 ## Parti dall'architettura
 
@@ -21,7 +27,7 @@ modelli, memoria, tool        prove di riconoscimento       conversazione + work
                                                          Outcome osservato
 ```
 
-**Stack** seleziona le capacità riutilizzabili. **Agent** dichiara il riconoscimento. **Server** possiede la conversazione in esecuzione attraverso normali callback OTP. Le Skill montate hanno processi Server e stato propri, condividendo il Domain GAM dell'agente principale.
+**Stack** seleziona le capacità riutilizzabili. **Agent** dichiara il riconoscimento. **Server** possiede la conversazione in esecuzione attraverso normali callback OTP. Le Skill montate con `server:` hanno processi Server e stato propri, condividendo il Domain GAM dell'agente principale.
 
 **GAM significa Governed Act Model.** Definisce il passaggio da una proposta a un'operazione autorizzata. Ammissione ed esecuzione sono fatti distinti: il permesso di inviare un'email non dimostra che il servizio l'abbia accettata. Leggi il [manifesto GAM](/it/governed-act-model), poi la [guida all'architettura](/it/docs/architecture-gam).
 

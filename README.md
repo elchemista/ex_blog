@@ -47,7 +47,7 @@ a separate application migration. Follow the
 when changing runtime ownership or effect execution.
 
 This upgrade advances the editorial Agent's immutable Definition revision to
-`version: 5`, independently of the Spectre package version. When a deployment
+`version: 6`, independently of the Spectre package version. When a deployment
 changes code sealed by its Manifest, advance the version in
 [`ExBlog.Agent`](lib/ex_blog/agent.ex) and retain prior Definition artifacts in
 the durable Store. The new build receives its own Ref without rewriting history.
@@ -62,6 +62,8 @@ Open `/docs` for the configured default language, `/en/docs` for English or
 contents guide readers through architecture, routing, training, storage,
 behaviours, Mix tasks, integrations and migration. The language switch keeps
 the current chapter when changing between English and Italian.
+
+For the runnable learning path see [the first conversation](priv/spectre_docs/en/02-getting-started.md), [dispatch and consent](priv/spectre_docs/en/02-handlers.md), [callback reference](priv/spectre_docs/en/02-server-callbacks.md) and [integrating a billing SDK](priv/spectre_docs/en/02-stack-tools.md).
 
 The versioned sources live in [`priv/spectre_docs/en`](priv/spectre_docs/en)
 and [`priv/spectre_docs/it`](priv/spectre_docs/it). Edit the matching Markdown

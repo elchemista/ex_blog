@@ -15,7 +15,9 @@ defmodule ExBlogWeb.DocumentationControllerTest do
       document = conn |> get("/#{language}/docs") |> html_document(200)
       chapters = Documentation.chapters(language)
 
-      assert length(chapters) == 13
+      assert Enum.take(Enum.map(chapters, & &1.slug), 5) ==
+               ~w(overview getting-started handlers server-callbacks stack-tools)
+
       assert count(document, "h1") == 1
       assert count(document, "#docs-catalogue li") == length(chapters)
       assert count(document, ~s(#docs-nav-link[aria-current="page"])) == 1
@@ -68,6 +70,31 @@ defmodule ExBlogWeb.DocumentationControllerTest do
       assert metadata["@type"] == "TechArticle"
       assert metadata["version"] == "0.4.0"
       assert metadata["inLanguage"] == language
+    end
+  end
+
+  test "the callback reference covers the published behaviour in both languages", %{conn: conn} do
+    for language <- Documentation.languages() do
+      document = conn |> get("/#{language}/docs/server-callbacks") |> html_document(200)
+
+      signatures =
+        document
+        |> LazyHTML.query("#docs-body table td:first-child code")
+        |> Enum.map(&LazyHTML.text/1)
+
+      for {name, arity} <- Spectre.Server.behaviour_info(:callbacks) do
+        assert Enum.any?(signatures, fn signature ->
+                 case Regex.run(~r/^(\w+)\(([^()]*)\)$/, signature) do
+                   [_, function, args] ->
+                     function == Atom.to_string(name) and
+                       length(String.split(args, ",", trim: true)) == arity
+
+                   _ ->
+                     false
+                 end
+               end),
+               "Missing #{name}/#{arity} in #{language}"
+      end
     end
   end
 

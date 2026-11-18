@@ -20,17 +20,17 @@ mix test test/my_app/support_agent_test.exs
 
 Usa **`--server`** per l'architettura della 0.4. Il generatore crea Agent dichiarativo, modulo Server e test del runtime. Senza quel flag genera la definizione precedente basata su Instance. `--dry-run` mostra i file previsti; per sostituire file esistenti serve `--force`.
 
+Apri `lib/my_app/support_agent.ex`. La dichiarazione `flow :support` con `on :greeting` dà alla route la chiave `{:support, :greeting}`. Apri `lib/my_app/support_server.ex`: troverai la stessa chiave nel primo argomento di `handle_flow/3`. Cambia il testo passato a `respond/2` e aggiorna l’asserzione nel test generato. È qui che modifichi la risposta a «hello».
+
+L’esempio qui sotto è un secondo programma autonomo. Puoi eseguirlo anche senza aver generato quei moduli.
+
 ## Un programma completo senza modelli
 
-Salva questo codice in `quickstart.exs` ed esegui `mix run quickstart.exs`. Segue l'ordine **Stack → Agent → Server**. Regex, similarità dei caratteri e confronto Jaro non richiedono servizi esterni.
+Salva questo codice in `quickstart.exs` ed esegui `mix run quickstart.exs`. Per questa prova bastano Agent e Server. Regex, similarità dei caratteri e confronto Jaro non richiedono servizi esterni.
 
 ```elixir
-defmodule Quickstart.AI do
-  use Spectre.Stack
-end
-
 defmodule Quickstart.SupportAgent do
-  use Spectre.Agent, stack: Quickstart.AI, server: Quickstart.SupportServer
+  use Spectre.Agent, server: Quickstart.SupportServer
 
   router(strategies: [:regex, :bag, :jaro])
 
@@ -44,7 +44,7 @@ defmodule Quickstart.SupportAgent do
 end
 
 defmodule Quickstart.SupportServer do
-  use Spectre.Server, tools: Quickstart.AI
+  use Spectre.Server
 
   @impl true
   def handle_flow({:support, :pricing}, _input, ctx) do
@@ -69,9 +69,11 @@ end
 GenServer.stop(server)
 ```
 
-Lo Stack può essere vuoto: servirà in seguito per installare strumenti e capacità dei modelli. Agent sceglie una route; `handle_flow/3` del Server risponde. Il modulo delle callback viene eseguito dentro `Spectre.Server.Runtime`: non crea un secondo GenServer applicativo.
+Qui puoi omettere sia `stack:` sia `tools:`. Aggiungili quando installi una capacità come [il tuo client di fatturazione](/it/docs/stack-tools). Agent sceglie una route; `handle_flow/3` del Server risponde. Il modulo delle callback viene eseguito dentro `Spectre.Server.Runtime`: non crea un secondo GenServer applicativo.
 
 `input/3` acquisisce l'interazione. Il testo arriva separatamente al consumer configurato. Non aspettarti `{:ok, "la risposta"}` da `input/3` e non bloccare il consumer effettuando chiamate sincrone a sé stesso.
+
+Per un input ordinario che corrisponde a questa route il percorso completo è `"What is the price?" → {:support, :pricing} → handle_flow/3 → respond/2 → {:response, interaction, text, metadata}`. Una risposta letterale conclude il percorso. Per fare altro dopo un comando asincrono, [prova ad aggiungere una continuazione](/it/docs/handlers).
 
 ## Supervisiona una conversazione
 
@@ -108,4 +110,4 @@ Metti dati applicativi portabili in `ctx.assigns`. Usa `ctx.private` per riferim
 
 Aggiungi riconoscimento semantico o classificazione con modelli attraverso il [routing](/it/docs/routing). Installa tool nello Stack e gestisci i risultati asincroni nelle [ricette](/it/docs/recipes). Aggiungi approvazione dopo aver registrato l'effetto concreto e abilitato la sua operazione in GAM. Usa lo [storage](/it/docs/storage) quando lo stato deve sopravvivere ai riavvii.
 
-Il [quickstart ufficiale](https://github.com/elchemista/spectre/blob/0.4.0/docs/examples/agent_server_quickstart.exs) è eseguibile dal checkout del core. La [demo](https://github.com/elchemista/demo_spectre) aggiunge LiveView, Skill montate e PostgreSQL: è un'applicazione più completa, non una dipendenza di questo programma.
+Il [quickstart ufficiale](https://github.com/elchemista/spectre/blob/main/docs/examples/agent_server_quickstart.exs) è eseguibile dal checkout del core. La [demo](https://github.com/elchemista/demo_spectre) aggiunge LiveView, Skill montate e PostgreSQL: è un'applicazione più completa, non una dipendenza di questo programma.

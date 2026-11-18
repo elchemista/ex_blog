@@ -2,6 +2,8 @@
 
 Combina sette strategie di riconoscimento e provider applicativi senza confondere la confidenza di una route con un permesso.
 
+Per provare una strategia, mantieni una sola route e osserva `ctx.routing` dentro `handle_flow/3`. Cambia la frase lasciando invariata la chiave della callback. Se arriva `:unmatched`, leggi `ctx.routing.reason`. Dopo il riconoscimento segui [il percorso nel Server](/it/docs/server-callbacks).
+
 ## Sette strategie complementari
 
 | Strategia | Prova utilizzata | Dipendenze |
@@ -18,7 +20,7 @@ Bag usa `String.bag_distance/2` sui caratteri, non sui token delle parole. Jaro 
 
 ## Combina similarità semantica e classificazione con modello
 
-Questo frammento Agent estende l'[esempio Stack → Agent → Server](/it/docs/getting-started). `MyApp.Embeddings` e `MyApp.IntentModel` sono adapter applicativi descritti sotto; il Server deve implementare entrambe le route.
+Questo frammento Agent estende l’[esempio della prima conversazione](/it/docs/getting-started). `MyApp.Embeddings` e `MyApp.IntentModel` sono adapter applicativi descritti sotto; il Server deve implementare entrambe le route.
 
 ```elixir
 defmodule MyApp.SupportAgent do

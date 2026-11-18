@@ -2,6 +2,8 @@
 
 Scegli il punto di estensione adatto per conversazioni, routing, inferenza, strumenti, persistenza o un host GAM indipendente.
 
+Per integrare un tuo SDK con un esempio da eseguire, vedi [quali funzioni implementa il pacchetto di fatturazione](/it/docs/stack-tools).
+
 ## Come leggere il catalogo
 
 Il core 0.4 dichiara **52 behaviour pubblici**. Le tabelle elencano tutti i moduli per responsabilità e distinguono callback formalmente richieste da `@optional_callbacks`. Una macro `use` può fornire i default richiesti: `use Spectre.Server` lo fa, quindi l'applicazione ridefinisce solo i percorsi necessari. Usa `@impl true` per vere callback e `@spec` per le API basate su funzioni.
@@ -9,6 +11,8 @@ Il core 0.4 dichiara **52 behaviour pubblici**. Le tabelle elencano tutti i modu
 Ogni behaviour collega i tipi esatti di argomenti e risultati. Una callback opzionale può essere necessaria per un gruppo funzionale: lo Store persistente unificato richiede tutto il gruppo della storia canonica, la proiezione persistente tutte e sei le callback oppure nessuna. I gruppi incompleti vengono rifiutati all'avvio.
 
 Parti dal Server dei [primi passi](/it/docs/getting-started), dagli esempi sotto e dallo [storage](/it/docs/storage). Per creare un agente non devi implementare tutti questi contratti.
+
+Se devi solo rispondere a un messaggio, apri il modulo con `use Spectre.Server` generato nella tua applicazione. Trovi l’ordine degli eventi e ogni ritorno nel [riferimento delle callback](/it/docs/server-callbacks). Il catalogo sotto serve quando vuoi sostituire un componente, per esempio il modello che genera la risposta.
 
 ## Proprietario della conversazione
 

@@ -2,6 +2,8 @@
 
 Use the twelve core tasks to generate, inspect, evaluate and train agents, with explicit runtime and adapter requirements.
 
+After generation, open `lib/my_app/support_agent.ex` for the recognized input and `lib/my_app/support_server.ex` for the reply. Run `mix spectre.routes MyApp.SupportAgent` to check the compiled name, then run the generated test to check that the callback behaves as expected.
+
 ## Generate the current architecture
 
 ```sh

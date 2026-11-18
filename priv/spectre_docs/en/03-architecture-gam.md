@@ -12,7 +12,7 @@ Understand Stack, Agent, Server and GAM before connecting an agent to consequent
 
 The Server runtime owns the GenServer. Helpers such as `generate`, `classify`, `propose` and installed tool helpers append commands to the returned Context. Slow cognition and effects run in workers; results return to a named continuation. Checkpoint acquisition remains an ordered durability barrier, so storage latency still matters.
 
-Mounted Skills are separate Server processes with independent assigns, workers and checkpoints. They share the root GAM Domain and the mount's restrictions. Two independent AgentServers instead normally have two independent Domains. This distinction matters for both supervision and external approvals.
+Skills mounted with a `server:` binding run in separate Server processes with independent assigns, workers and checkpoints. They share the root GAM Domain and the mount's restrictions. Two independent AgentServers instead normally have two independent Domains. This distinction matters for both supervision and external approvals.
 
 ## What GAM means
 
@@ -62,6 +62,8 @@ def handle_result(tag, result, ctx), do: super(tag, result, ctx)
 ```
 
 This fragment is not a complete mail client: Kinetic's ActionProvider, the effect registration, credentials and the application's permitted authority must exist. See [tools and recipes](/en/docs/recipes).
+
+In the code, `:mail` comes from `flow :mail` and `:send` from `on :send`. The command requests execution of `{:kinetic, :send_email}`. You write the tag `:sent` in `on_result:`; it comes back as the first argument even on rejection. The second argument is the actual result. To see the registration and consumer code too, [run the full core-only path](/en/docs/handlers).
 
 ## Consent has a rendering boundary
 

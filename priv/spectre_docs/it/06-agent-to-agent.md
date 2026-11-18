@@ -2,6 +2,8 @@
 
 Collega agenti indipendenti mantenendo distinti autorità di esecuzione, autenticazione del trasporto e consenso umano.
 
+Prima prova [il consenso con un solo Server](/it/docs/handlers). Qui il Server del cliente esegue ancora `propose` e riceve ancora `handle_result(tag, result, ctx)`. Cambia la destinazione della presentazione: il consumer del secondo agente mostra la richiesta e raccoglie la scelta della persona.
+
 ## L'agente del cliente chiede al tuo agente personale
 
 Un cliente vuole che il proprio agente navighi su un sito, ma solo dopo la tua approvazione. Tu hai una chat separata con il tuo agente personale. È un'approvazione umana esterna, non una delega dell'autorità a un modello AI.

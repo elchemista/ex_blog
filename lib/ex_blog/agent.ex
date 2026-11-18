@@ -20,7 +20,7 @@ defmodule ExBlog.Agent do
   """
 
   use Spectre.Agent,
-    version: 5,
+    version: 6,
     prompt_root: "lib/ex_blog_web/prompts",
     input_timeout: 30_000
 

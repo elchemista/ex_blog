@@ -2,6 +2,8 @@
 
 Usa i dodici task del core per generare, ispezionare, valutare e addestrare agenti, con requisiti espliciti per runtime e adapter.
 
+Dopo il generatore apri `lib/my_app/support_agent.ex` per l’input riconosciuto e `lib/my_app/support_server.ex` per la risposta. Esegui `mix spectre.routes MyApp.SupportAgent` per verificare il nome compilato, poi il test generato per verificare che la callback si comporti come previsto.
+
 ## Genera l'architettura corrente
 
 ```sh

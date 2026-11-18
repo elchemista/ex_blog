@@ -2,6 +2,8 @@
 
 Choose the smallest extension point for conversations, routing, inference, tools, persistence or a standalone GAM host.
 
+For a runnable SDK integration, see [which functions the billing package implements](/en/docs/stack-tools).
+
 ## Read this catalogue
 
 Core 0.4 declares **52 public behaviours**. The tables group every module by responsibility and distinguish formally required callbacks from `@optional_callbacks`. A `use` macro can provide required defaults: `use Spectre.Server` does this, so an application overrides only the paths it needs. Use `@impl true` for real behaviour callbacks and `@spec` for documented function APIs.
@@ -9,6 +11,8 @@ Core 0.4 declares **52 public behaviours**. The tables group every module by res
 Click a behaviour for exact argument and result types. Optional callbacks can become required as a complete feature group: a persistent unified Store needs all canonical-history callbacks, and a persisted projection implements all six callbacks or none. A partially implemented group is rejected at startup.
 
 Start with the Server from [getting started](/en/docs/getting-started), the examples below, and [storage](/en/docs/storage). You do not need to implement all these contracts to create an agent.
+
+To answer a message, edit the generated application module using `use Spectre.Server`. Find event order and every return in the [callback reference](/en/docs/server-callbacks). Use the catalogue below when replacing a component, such as the model that generates a reply.
 
 ## Conversation owner
 

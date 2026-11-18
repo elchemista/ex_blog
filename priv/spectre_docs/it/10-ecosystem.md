@@ -2,6 +2,8 @@
 
 Installa solo le capacità necessarie alla tua applicazione e verifica insieme le versioni esatte di core e satelliti.
 
+Puoi anche installare un tuo modulo Elixir: [costruisci un pacchetto per la tua API di fatturazione](/it/docs/stack-tools).
+
 ## Nove librerie indipendenti
 
 | Libreria | Scopo | Helper Server | Responsabilità dell’host |
@@ -127,17 +129,24 @@ Invio Beam e Pulse richiedono binding espliciti nello Stack, per esempio `instal
 
 Queste sono chiamate alternative dentro le callback applicative. Endpoint Beam `:email` e peer Pulse devono esistere nella configurazione dell'host:
 
+Le alternative sotto associano un tag diverso a ogni operazione. Copia la chiamata che ti serve nella tua callback del Server.
+
 ```elixir
-beam(ctx, {:deliver, :email, %{to: "owner@example.com", content: %{type: :text, text: "Report ready"}}}, on_result: :sent)
-mnemonic(ctx, {:remember, "The outreach report is complete."}, on_result: :sent)
+beam(ctx, {:deliver, :email, %{to: "owner@example.com", content: %{type: :text, text: "Report ready"}}}, on_result: :delivered)
+mnemonic(ctx, {:remember, "The outreach report is complete."}, on_result: :remembered)
 pulse(ctx, {:send, %{to: "spectre://team/assistant", payload: %{type: "support.message", data: "Report ready"}}}, on_result: :sent)
 ```
 
-A differenza dei risultati cognitivi `{:ok, value}`, le scritture ammesse usano la continuazione governata. Gestisci separatamente rifiuto, scadenza e incertezza; una ricevuta positiva Pulse non è consenso umano né risultato di business remoto.
+Prendiamo l’ultima riga. `:send` seleziona l’operazione del tool Pulse. Il tag applicativo `:sent` indica a quale clausola consegnare l’esito. La ricevuta del trasporto riguarda l’invio del messaggio. L’approvazione umana, quando richiesta, è un evento distinto.
 
 ```elixir
 def handle_result(:sent, {:governed, %{outcome: %{status: :succeeded}}}, ctx),
-  do: respond(ctx, "L'operazione registrata è stata completata.")
+  do: respond(ctx, "Message submitted.")
+
+def handle_result(:sent, {:consent, :rejected}, ctx),
+  do: respond(ctx, "Message declined.")
+
+def handle_result(tag, result, ctx), do: super(tag, result, ctx)
 ```
 
 ## Quale esempio eseguire?

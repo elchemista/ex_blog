@@ -2,6 +2,8 @@
 
 Move from recognition to asynchronous tools, mounted Skills and governed proposals using tested reference workflows.
 
+To connect your own billing library, [follow the draft, confirmation and issuing example](/en/docs/stack-tools). The first recipe below shows a small helper for a text transformation.
+
 ## A complete pure installed tool
 
 This program needs only core 0.4. Save it as `tool_recipe.exs` in your application and run `mix run tool_recipe.exs`. The output is `UPPERCASE HELLO`. The tool performs no external effect and needs no Stack runtime resource.
@@ -120,6 +122,16 @@ Handle empty or multiple proposals, malformed model output, refusal, expiry and 
 
 `planning: false` preserves consolidated model output for the explicit `kinetic` step. Alternatively use the automatic planner with `planning: true`; do not run both interpretation paths for the same result. Partial streaming tokens must never invoke actions.
 
+Follow one returned command at a time:
+
+| The Server returns | On completion Spectre calls |
+| --- | --- |
+| `generate(..., on_result: :draft)` | `handle_result(:draft, {:generated, response}, ctx)` with the model’s draft |
+| `kinetic(..., on_result: :prepared)` | `handle_result(:prepared, {:prepared, data}, ctx)` with the extracted proposals |
+| `propose(..., on_result: :sent)` | `handle_result(:sent, result, ctx)`. Only a successful Outcome justifies the success reply |
+
+The `:send` argument in `generate(ctx, :send, ...)` is the prompt selected by the application. It can be renamed independently of the Agent’s `on :send`. To try consent without Kinetic or a model, [run the complete example](/en/docs/handlers).
+
 ## Custom effect adapters
 
 Implement `Spectre.Server.GAM.EffectAdapter.execute_effect/3` for a registered operation. Return `{:ok, portable_receipt}` only for an observed success; otherwise use `{:error, :failed | :definitive_no_effect | :ambiguous, reason}` according to actual evidence.
@@ -148,9 +160,11 @@ def handle_flow({:billing, :refund}, _input, ctx),
   do: propose(ctx, :refund, %{invoice_id: ctx.assigns.invoice_id}, on_result: :refunded)
 ```
 
-Each mounted Skill has its own process, assigns, pending work and checkpoint. It shares the root's Domain and Stack resources. The mount allowlist restricts which operations it may propose; it does not grant those operations independently.
+Each Skill mounted with `server:` has its own process, assigns, pending work and checkpoint. It shares the root's Domain and Stack resources. The mount allowlist restricts which operations it may propose; it does not grant those operations independently.
 
 The consumer receives `{Spectre.Server, root, {:skill, mount, event}}`. Bind approval controls to the correct mount and presentation. A separate root AgentServer used for an external approver has a different Domain; see [agent-to-agent](/en/docs/agent-to-agent).
+
+In this mount, `as: :billing` gives the Skill an address. `flow :billing` and `on :refund` form the local key `{:billing, :refund}`. The route’s `protected: true` requests confirmation when the callback proposes the refund; `governed: [:refund]` restricts the mount’s operations. For the `:status` route add `def handle_flow({:billing, :status}, _input, ctx), do: respond(ctx, "Billing ready.")` in BillingServer. See [the other options and the dispatch key for a Skill without a Server](/en/docs/server-callbacks).
 
 ## Reset a session safely
 

@@ -12,7 +12,7 @@ Comprendi Stack, Agent, Server e GAM prima di collegare un agente a operazioni c
 
 Il runtime Server possiede il GenServer. Gli helper `generate`, `classify`, `propose` e quelli dei tool aggiungono comandi al Context restituito. Elaborazioni lente ed effetti girano in worker; i risultati tornano a una continuazione nominata. Il checkpoint rimane una barriera ordinata di persistenza: la latenza dello storage conta comunque.
 
-Le Skill montate sono processi Server distinti con assigns, worker e checkpoint propri. Condividono il Domain GAM principale e i vincoli del mount. Due AgentServer indipendenti hanno invece normalmente due Domain indipendenti. La distinzione è importante per supervisione e approvazioni esterne.
+Le Skill montate con `server:` hanno processi Server distinti con assigns, worker e checkpoint propri. Condividono il Domain GAM principale e i vincoli del mount. Due AgentServer indipendenti hanno invece normalmente due Domain indipendenti. La distinzione è importante per supervisione e approvazioni esterne.
 
 ## Cosa significa GAM
 
@@ -62,6 +62,8 @@ def handle_result(tag, result, ctx), do: super(tag, result, ctx)
 ```
 
 Il frammento non è un client email completo: servono ActionProvider Kinetic, registrazione dell'effetto, credenziali e autorità consentita dall'applicazione. Consulta [tool e ricette](/it/docs/recipes).
+
+Nel codice, `:mail` viene da `flow :mail` e `:send` da `on :send`. Il comando chiede l’esecuzione di `{:kinetic, :send_email}`. Il tag `:sent` è scritto dall’autore in `on_result:` e torna come primo argomento anche in caso di rifiuto. La seconda posizione della callback contiene l’esito effettivo. Per vedere anche i due moduli di registrazione e il codice del consumer, [esegui il percorso completo con il solo core](/it/docs/handlers).
 
 ## Il consenso richiede la presentazione
 

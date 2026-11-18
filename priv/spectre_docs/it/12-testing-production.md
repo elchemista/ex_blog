@@ -2,6 +2,8 @@
 
 Testa comportamenti osservabili e confini di errore, misura la memoria dei processi e distribuisci con policy esplicite per storage e autorità.
 
+Usa [il percorso guidato](/it/docs/handlers) come primo test di accettazione. Per «help» verifica il messaggio al consumer. Per «send» verifica separatamente la presentazione, il rifiuto senza invocazione dell’adapter e il consenso con ricevuta di successo. Così puoi distinguere un problema di routing da un problema nel consenso o nella consegna.
+
 ## Parti dal comportamento applicativo
 
 Testa il protocollo pubblico input/risposta prima dei dettagli interni. Copri route riconosciute, ambigue e assenti, guasti dei provider, generazione, proiezione dei tool e ogni continuazione applicativa. Usa provider deterministici per le regressioni normali e verifica separatamente gli adapter reali.

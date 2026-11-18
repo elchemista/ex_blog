@@ -2,6 +2,8 @@
 
 Install only the capabilities your application needs and verify the exact core and satellite versions together.
 
+You can install your own Elixir module too. [Build an integration for your billing API](/en/docs/stack-tools).
+
 ## Nine independent libraries
 
 | Library | Purpose | Server helper | Host responsibility |
@@ -127,17 +129,24 @@ Beam delivery and Pulse sending need explicit Stack bindings, for example `insta
 
 These are alternative command calls inside application callbacks. The Beam `:email` endpoint and Pulse peer must exist in host configuration:
 
+The alternatives below give each operation its own tag. Put the call you need in your Server callback.
+
 ```elixir
-beam(ctx, {:deliver, :email, %{to: "owner@example.com", content: %{type: :text, text: "Report ready"}}}, on_result: :sent)
-mnemonic(ctx, {:remember, "The outreach report is complete."}, on_result: :sent)
+beam(ctx, {:deliver, :email, %{to: "owner@example.com", content: %{type: :text, text: "Report ready"}}}, on_result: :delivered)
+mnemonic(ctx, {:remember, "The outreach report is complete."}, on_result: :remembered)
 pulse(ctx, {:send, %{to: "spectre://team/assistant", payload: %{type: "support.message", data: "Report ready"}}}, on_result: :sent)
 ```
 
-Unlike cognitive `{:ok, value}` results, admitted writes use the governed continuation. Handle refusal, expiry and uncertainty separately; a successful Pulse transport receipt is still not human consent or a remote business outcome.
+Take the last line. `:send` selects the Pulse tool operation. The application tag `:sent` selects the clause that receives its result. A transport receipt concerns sending the message. Human approval, when required, is a separate event.
 
 ```elixir
 def handle_result(:sent, {:governed, %{outcome: %{status: :succeeded}}}, ctx),
-  do: respond(ctx, "The registered operation completed.")
+  do: respond(ctx, "Message submitted.")
+
+def handle_result(:sent, {:consent, :rejected}, ctx),
+  do: respond(ctx, "Message declined.")
+
+def handle_result(tag, result, ctx), do: super(tag, result, ctx)
 ```
 
 ## Which example should you run?

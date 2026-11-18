@@ -2,6 +2,8 @@
 
 Connect independent agents while keeping execution authority, transport authentication and human consent separate.
 
+First try [consent with one Server](/en/docs/handlers). Here the customer Server still calls `propose` and receives `handle_result(tag, result, ctx)`. The destination of the presentation changes: the second agent’s consumer displays it and collects the human choice.
+
 ## A customer agent asks your personal agent
 
 A customer wants its agent to browse a website, but only after you approve. You have a separate chat with your personal agent. This is an external human approval, not delegation of authority to an AI model.

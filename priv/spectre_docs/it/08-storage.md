@@ -2,6 +2,8 @@
 
 Lavora in RAM oppure configura coordinamento persistente, storia canonica GAM e proiezioni su database tramite un provider.
 
+Parti dal programma [con invio simulato](/it/docs/handlers). Lascia i callback nel Server. Quando vuoi riprendere una conversazione dopo un riavvio, configura lo storage in `Server.start_link/1` e usa la stessa identità al riavvio. Controlla separatamente un valore di `ctx.assigns` recuperato e l’esito registrato di un’operazione.
+
 ## Scegli la modalità di persistenza
 
 | Configurazione in `gam:` | Comportamento |

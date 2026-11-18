@@ -1,8 +1,14 @@
 # Spectre 0.4 documentation
 
-Build agents that recognize requests, use models and tools, and perform governed work in supervised Elixir processes.
+Start an agent in RAM, give it a command and observe which function answers. Your first run needs only Elixir and Spectre core.
 
-Spectre separates recognition, conversation ownership and permission to act. A model can help understand a question, generate text or prepare a proposal. Your application still decides which operations exist, who may authorize them, how state persists and what counts as an observed result.
+With installed tools the architecture reads **Stack → Agent → Server**. Skip the Stack on your first run. To add your own library, follow [the billing client example](/en/docs/stack-tools).
+
+## Your first run
+
+1. [Start a conversation](/en/docs/getting-started). Send “hello” to the generated agent and observe the Server reply.
+2. [Follow an input from route to result](/en/docs/handlers). Copy a complete program, decline a request, then approve it and compare the output.
+3. [Look up Server callbacks](/en/docs/server-callbacks) as you add a route, wait or Skill. Find dispatch order, arguments, options and return tuples.
 
 ## Start with the architecture
 
@@ -21,7 +27,7 @@ models, memory, tools         recognition evidence          conversation + worke
                                                          observed Outcome
 ```
 
-**Stack** selects reusable capabilities. **Agent** declares recognition. **Server** owns the running conversation through ordinary OTP callbacks. Mounted Skills have their own Server processes and state while sharing the root agent's GAM Domain.
+**Stack** selects reusable capabilities. **Agent** declares recognition. **Server** owns the running conversation through ordinary OTP callbacks. Skills mounted with a `server:` binding have their own Server processes and state while sharing the root agent's GAM Domain.
 
 **GAM means Governed Act Model.** It defines the transition from a proposal to an authorized operation. Admission and execution are separate facts: permission to send an email does not prove that the email service accepted it. Read the [GAM manifesto](/en/governed-act-model), then the [architecture guide](/en/docs/architecture-gam).
 

@@ -2,6 +2,8 @@
 
 Test observable behavior and failure boundaries, measure real process memory, and deploy with explicit storage and authority policy.
 
+Use the [guided example](/en/docs/handlers) as a first acceptance test. For “help”, check the consumer message. For “send”, test the presentation, rejection without invoking the adapter, and confirmation with a success receipt separately. This distinguishes routing failures from consent or delivery failures.
+
 ## Start with application behavior
 
 Test the public input/response protocol before inspecting implementation details. Exercise matched, ambiguous and unmatched routes, provider failure, model generation, tool projection and every continuation your application uses. Use deterministic providers for routine regression tests, then separately test real service adapters.

@@ -2,6 +2,8 @@
 
 Run in RAM or configure durable coordination, canonical GAM history and database-backed projections through one provider.
 
+Start with the [simulated delivery](/en/docs/handlers). Keep the same Server callbacks. To resume after a restart, configure storage in `Server.start_link/1` and restart with the same identity. Check a restored `ctx.assigns` value and the recorded outcome of an operation separately.
+
 ## Choose a persistence mode
 
 | Configuration under `gam:` | Behavior |

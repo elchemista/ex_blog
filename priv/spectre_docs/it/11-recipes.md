@@ -2,6 +2,8 @@
 
 Passa dal riconoscimento a strumenti asincroni, Skill montate e proposte governate usando flussi di riferimento testati.
 
+Se vuoi collegare la tua libreria di fatturazione, [segui l’esempio con lettura bozza, conferma ed emissione](/it/docs/stack-tools). La prima ricetta qui sotto mostra l’helper più piccolo possibile per una trasformazione di testo.
+
 ## Un tool puro installato completo
 
 Il programma richiede solo il core 0.4. Salvalo come `tool_recipe.exs` nell'applicazione ed esegui `mix run tool_recipe.exs`. Stampa `UPPERCASE HELLO`. Non produce effetti esterni e non richiede risorse del runtime Stack.
@@ -120,6 +122,16 @@ L'applicazione deve gestire proposte vuote o multiple, output malformato, rifiut
 
 `planning: false` conserva l'output consolidato per il passaggio `kinetic` esplicito. In alternativa usa il planner automatico con `planning: true`; non interpretare due volte lo stesso risultato. I token parziali dello streaming non devono eseguire azioni.
 
+Segui la catena una chiamata alla volta:
+
+| Il Server restituisce | Alla fine Spectre chiama |
+| --- | --- |
+| `generate(..., on_result: :draft)` | `handle_result(:draft, {:generated, response}, ctx)` con la bozza del modello |
+| `kinetic(..., on_result: :prepared)` | `handle_result(:prepared, {:prepared, data}, ctx)` con le proposte estratte |
+| `propose(..., on_result: :sent)` | `handle_result(:sent, result, ctx)`. Solo un Outcome riuscito giustifica la risposta di successo |
+
+Il simbolo `:send` in `generate(ctx, :send, ...)` è il nome del prompt scelto dall’applicazione. Puoi rinominare il prompt indipendentemente da `on :send` nell’Agent. Per provare il passaggio di consenso senza predisporre Kinetic o un modello, [esegui l’esempio completo](/it/docs/handlers).
+
 ## Adapter di effetti personalizzati
 
 Implementa `Spectre.Server.GAM.EffectAdapter.execute_effect/3` per un'operazione registrata. Restituisci `{:ok, ricevuta_portabile}` solo per un successo osservato; altrimenti usa `{:error, :failed | :definitive_no_effect | :ambiguous, reason}` secondo le prove reali.
@@ -148,9 +160,11 @@ def handle_flow({:billing, :refund}, _input, ctx),
   do: propose(ctx, :refund, %{invoice_id: ctx.assigns.invoice_id}, on_result: :refunded)
 ```
 
-Ogni Skill montata ha processo, assigns, attese e checkpoint propri. Condivide Domain e risorse Stack del root. La allowlist del mount limita le operazioni proponibili: non le autorizza indipendentemente.
+Una Skill montata con `server:` ha processo, assigns, attese e checkpoint propri. Condivide Domain e risorse Stack del root. La allowlist del mount limita le operazioni proponibili: non le autorizza indipendentemente.
 
 Il consumer riceve `{Spectre.Server, root, {:skill, mount, event}}`. Collega i controlli di consenso al mount e alla presentation corretti. Un AgentServer root separato usato dall'approvatore esterno ha invece un Domain diverso; vedi [comunicazione tra agenti](/it/docs/agent-to-agent).
+
+In questo mount, `as: :billing` dà un indirizzo alla Skill. `flow :billing` e `on :refund` formano la chiave locale `{:billing, :refund}`. Il `protected: true` di quella route richiede conferma quando la callback propone il rimborso; `governed: [:refund]` delimita le operazioni del mount. Per la route `:status` aggiungi nel BillingServer `def handle_flow({:billing, :status}, _input, ctx), do: respond(ctx, "Billing ready.")`. Vedi [le altre opzioni e la chiave di una Skill senza Server](/it/docs/server-callbacks).
 
 ## Reimposta una sessione in sicurezza
 

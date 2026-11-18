@@ -2,6 +2,8 @@
 
 Raccogli e verifica esempi di intenti, prepara vettori compatibili e addestra classificatori locali come operazioni distinte.
 
+Parti da una frase che oggi finisce in `handle_flow(:unmatched, input, ctx)` ma che dovrebbe selezionare una route esistente. Assegna l’etichetta corretta, verifica l’esempio, poi ripeti il test del router. Il criterio di riuscita è che il Server riceva la stessa chiave per la frase originale e per la nuova formulazione.
+
 ## Un dataset, diversi utilizzi
 
 `Spectre.IntentDataset` conserva esempi etichettati di intenti, non risposte del modello in cache. Una riga verificata di solo testo può riconoscere un input esatto. Alla ricerca vettoriale partecipano solo righe con embedding validi e compatibili. Il training del classificatore produce artefatti di predizione separati.
