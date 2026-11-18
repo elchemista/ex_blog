@@ -101,6 +101,8 @@ When you omit `on_result:`, the tag for `generate`, `classify`, `propose`, `call
 
 To customize a wait, use `confirm_pending`, `reject_pending` or `explain_pending` with `pending.id`. To switch topics, `route_current_input(ctx, suspend: pending.id)` suspends the wait and reroutes the turn; `resume_pending` brings it back. `close_pending`, `close_pending_after` and `cancel_pending_close` manage application closure. Consent has its own expiry. See [router strategies](/en/docs/routing), [Skill and tool examples](/en/docs/recipes) and [external approvals](/en/docs/agent-to-agent).
 
+See [how the Server gets `kinetic/3` and which callback receives its proposals](/en/docs/recipes#where-does-kinetic-come-from-in-the-server).
+
 ## Customizing policy and wait duration
 
 For confirmation on every proposal, use `confirm: true` in the operation configuration. When the rule depends on the current request, the Server can return e.g. `{:confirm, %{message: "Confirm delivery?", expires_in: 60_000}}` from `handle_action/2`. The message accompanies the proposal material. Duration is in milliseconds and is bounded by host policy.

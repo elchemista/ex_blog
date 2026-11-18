@@ -47,7 +47,7 @@ a separate application migration. Follow the
 when changing runtime ownership or effect execution.
 
 This upgrade advances the editorial Agent's immutable Definition revision to
-`version: 6`, independently of the Spectre package version. When a deployment
+`version: 7`, independently of the Spectre package version. When a deployment
 changes code sealed by its Manifest, advance the version in
 [`ExBlog.Agent`](lib/ex_blog/agent.ex) and retain prior Definition artifacts in
 the durable Store. The new build receives its own Ref without rewriting history.

@@ -95,30 +95,63 @@ defmodule MyApp.MailActions do
 end
 ```
 
-Installalo nello Stack con `install Spectre.Kinetic, mode: :closed_moves, actions: MyApp.MailActions, modes: [send_email: :write]`. Collega un modello reale o deterministico, crea il prompt applicativo `:send` e dichiara la route `{:mail, :send}`. La continuazione del Server è:
+## Da dove viene kinetic nel Server?
+
+1. La dipendenza `spectre_kinetic` in `mix.exs` rende disponibile il modulo `Spectre.Kinetic`.
+2. `install Spectre.Kinetic` nello Stack registra i tool dichiarati dal pacchetto. La chiave `:kinetic` restituita da `Spectre.Kinetic.tools/1` dà il nome all’helper. La sua operazione predefinita è `:interpret`.
+3. Nell’Agent, `stack: MyApp.MailStack` seleziona quelle capacità per la conversazione. Nel modulo **Server**, `use Spectre.Server, tools: MyApp.MailStack` legge i tool di quello Stack **durante la compilazione** e definisce due funzioni private locali: `kinetic(ctx, response)` e `kinetic(ctx, response, opts)`. È questa riga a rendere la chiamata disponibile dentro le tue callback.
+
+L’esempio usa il catalogo `MyApp.MailActions` appena definito. Fornisci il tuo adapter di modello `MyApp.TextModel` e il prompt `priv/mail/prompts/send.text.heex` per generare una risposta con un comando come `<al>SEND EMAIL TO="dev@example.com" BODY="Hello"</al>`.
 
 ```elixir
-# Server clauses; require the configured model, :send prompt and Kinetic Stack.
-def handle_flow({:mail, :send}, _input, ctx),
-  do: generate(ctx, :send, planning: false, on_result: :draft)
-
-def handle_result(:draft, {:generated, response}, ctx),
-  do: kinetic(ctx, response, on_result: :prepared)
-
-def handle_result(:prepared, {:prepared, %{actions: [proposal]}}, ctx) do
-  propose(ctx, proposal.operation, proposal.args,
-    proposal_metadata: proposal.metadata, on_result: :sent)
+defmodule MyApp.MailStack do
+  use Spectre.Stack
+  install Spectre.Kinetic,
+    mode: :closed_moves, actions: MyApp.MailActions, modes: [send_email: :write]
 end
 
-def handle_result(:sent, {:governed, %{outcome: %{status: :succeeded}}}, ctx),
-  do: respond(ctx, "The registered effect completed.")
+defmodule MyApp.MailAgent do
+  use Spectre.Agent, stack: MyApp.MailStack, server: MyApp.MailServer
+  model MyApp.TextModel
 
-def handle_result(tag, result, ctx), do: super(tag, result, ctx)
+  flow :mail do
+    on :send, regex: ~r/^send email$/i
+  end
+end
+
+defmodule MyApp.MailServer do
+  use Spectre.Server, tools: MyApp.MailStack, prompt_root: "priv/mail/prompts"
+
+  @impl true
+  def handle_flow({:mail, :send}, _input, ctx),
+    do: generate(ctx, :send, planning: false, on_result: :draft)
+
+  def handle_flow(key, input, ctx), do: super(key, input, ctx)
+
+  @impl true
+  def handle_result(:draft, {:generated, response}, ctx),
+    do: kinetic(ctx, response, on_result: :prepared)
+
+  def handle_result(:prepared, {:prepared, %{actions: [proposal]}}, ctx) do
+    propose(ctx, proposal.operation, proposal.args,
+      proposal_metadata: proposal.metadata, on_result: :sent)
+  end
+
+  def handle_result(:sent, {:governed, %{outcome: %{status: :succeeded}}}, ctx),
+    do: respond(ctx, "The registered effect completed.")
+
+  def handle_result(:sent, {:consent, :rejected}, ctx),
+    do: respond(ctx, "Sending declined.")
+
+  def handle_result(tag, result, ctx), do: super(tag, result, ctx)
+end
 ```
+
+Quando Spectre chiama `handle_result(:draft, {:generated, response}, ctx)`, la tua clausola chiama l’helper. `kinetic/3` restituisce subito il `ctx` con il comando accodato. Un worker interpreta l’output completo del modello e il runtime richiama `handle_result(:prepared, {:prepared, data}, ctx)`. Il **primo** `:prepared` viene dal tuo `on_result:` e puoi rinominarlo; il **secondo** identifica il risultato prodotto da Kinetic. Se ometti `on_result:`, il primo argomento sarà `:kinetic`. Solo la successiva chiamata a `propose` sottopone la proposta a GAM.
 
 All'avvio abilita `gam: [operations: %{{:kinetic, :send_email} => [confirm: true]}]` e fornisci identità/consumer autenticati. Kinetic registra il catalogo di esecuzione; GAM verifica comunque proposta concreta e consenso umano. Conserva i metadati della proposta per validare provider, catalogo e schema.
 
-L'applicazione deve gestire proposte vuote o multiple, output malformato, rifiuto, scadenza ed esecuzione incerta. Il frammento lascia deliberatamente i casi non gestiti a `super`: non è un client email di produzione. La [guida completa Kinetic](https://github.com/elchemista/spectre_kinetic/blob/main/README.md) include avvio e requisiti dei prompt.
+L'applicazione deve gestire proposte vuote o multiple, output malformato, scadenza ed esecuzione incerta. Il frammento lascia deliberatamente i casi non gestiti a `super`: non è un client email di produzione. La [guida completa Kinetic](https://github.com/elchemista/spectre_kinetic/blob/main/README.md) include avvio e requisiti dei prompt.
 
 `planning: false` conserva l'output consolidato per il passaggio `kinetic` esplicito. In alternativa usa il planner automatico con `planning: true`; non interpretare due volte lo stesso risultato. I token parziali dello streaming non devono eseguire azioni.
 

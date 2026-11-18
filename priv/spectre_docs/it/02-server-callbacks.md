@@ -101,6 +101,8 @@ Se ometti `on_result:`, per `generate`, `classify`, `propose`, `call_actor` e `d
 
 Per personalizzare l’attesa usa `confirm_pending`, `reject_pending` o `explain_pending` con `pending.id`. Per cambiare argomento, `route_current_input(ctx, suspend: pending.id)` sospende l’attesa e reinstrada il turno; `resume_pending` la riprende. `close_pending`, `close_pending_after` e `cancel_pending_close` gestiscono la chiusura applicativa. La scadenza del consenso resta distinta. Consulta [routing e strategie](/it/docs/routing), [esempi di Skill e tool](/it/docs/recipes) e [approvazioni esterne](/it/docs/agent-to-agent).
 
+Per vedere come una funzione diventa disponibile nel tuo modulo Server, segui [da dove viene `kinetic/3` e quale callback riceve le proposte](/it/docs/recipes#da-dove-viene-kinetic-nel-server).
+
 ## Personalizzare la policy e la durata di un’attesa
 
 Se basta chiedere conferma ogni volta, usa `confirm: true` nella configurazione dell’operazione. Se la regola dipende dalla richiesta corrente, il Server può restituire da `handle_action/2` per esempio `{:confirm, %{message: "Confermare l’invio?", expires_in: 60_000}}`. Il messaggio accompagna il materiale della proposta. La durata è in millisecondi ed è limitata dalla policy dell’host.
